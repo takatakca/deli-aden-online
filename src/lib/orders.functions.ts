@@ -51,7 +51,7 @@ export const createOrder = createServerFn({ method: "POST" })
         delivery_address: data.deliveryAddress || null,
         preferred_time: data.preferredTime || "ASAP",
         payment_method: data.paymentMethod,
-        items: data.items as unknown as object,
+        items: data.items as never,
         subtotal: data.subtotal,
         gst: data.gst,
         qst: data.qst,
