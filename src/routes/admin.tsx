@@ -118,7 +118,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
     setLoading(true);
     try {
       const r = await list({ data: { password, status, search: search.trim() || undefined } });
-      setOrders(r.orders as Order[]);
+      setOrders(r.orders as unknown as Order[]);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur");
     } finally {
