@@ -39,7 +39,7 @@ function ConfirmationPage() {
 
   useEffect(() => {
     fetchOrder({ data: { orderNumber } })
-      .then((r) => setOrder(r.order as OrderRow | null))
+      .then((r) => setOrder(r.order as unknown as OrderRow | null))
       .finally(() => setLoading(false));
   }, [orderNumber, fetchOrder]);
 
