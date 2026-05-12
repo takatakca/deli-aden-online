@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { adminVerify, adminListOrders, adminUpdateOrderStatus } from "@/lib/orders.functions";
+import { api, type AdminOrder } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,26 +35,6 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-destructive text-destructive-foreground",
 };
 
-type Order = {
-  id: string;
-  order_number: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_email: string | null;
-  order_type: string;
-  delivery_address: string | null;
-  preferred_time: string;
-  payment_method: string;
-  items: Array<{ name: string; quantity: number; unitPrice: number; options?: { groupLabel: string; values: string[] }[]; notes?: string }>;
-  subtotal: number;
-  gst: number;
-  qst: number;
-  total: number;
-  special_notes: string | null;
-  status: string;
-  created_at: string;
-};
-
 function AdminPage() {
   const [password, setPassword] = useState("");
   const [authed, setAuthed] = useState(false);
@@ -73,7 +52,6 @@ function AdminPage() {
 }
 
 function Login({ onSuccess }: { onSuccess: (p: string) => void }) {
-  const verify = useServerFn(adminVerify);
   const [pwd, setPwd] = useState("");
   const [loading, setLoading] = useState(false);
   return (
@@ -83,9 +61,11 @@ function Login({ onSuccess }: { onSuccess: (p: string) => void }) {
           e.preventDefault();
           setLoading(true);
           try {
-            const r = await verify({ data: { password: pwd } });
+            const r = await api.adminVerify(pwd);
             if (r.ok) onSuccess(pwd);
             else toast.error("Mot de passe invalide");
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Erreur");
           } finally {
             setLoading(false);
           }
@@ -107,9 +87,7 @@ function Login({ onSuccess }: { onSuccess: (p: string) => void }) {
 }
 
 function Dashboard({ password, onLogout }: { password: string; onLogout: () => void }) {
-  const list = useServerFn(adminListOrders);
-  const updateStatus = useServerFn(adminUpdateOrderStatus);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
@@ -117,8 +95,8 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const r = await list({ data: { password, status, search: search.trim() || undefined } });
-      setOrders(r.orders as unknown as Order[]);
+      const r = await api.adminListOrders(password, status, search.trim() || undefined);
+      setOrders(r.orders);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur");
     } finally {
@@ -133,9 +111,9 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
-  const onChangeStatus = async (id: string, newStatus: Order["status"]) => {
+  const onChangeStatus = async (id: number, newStatus: string) => {
     try {
-      await updateStatus({ data: { password, id, status: newStatus as never } });
+      await api.adminUpdateStatus(password, id, newStatus);
       setOrders((o) => o.map((or) => (or.id === id ? { ...or, status: newStatus } : or)));
       toast.success("Statut mis à jour");
     } catch (err) {
@@ -205,7 +183,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Select value={o.status} onValueChange={(v) => onChangeStatus(o.id, v as Order["status"])}>
+                <Select value={o.status} onValueChange={(v) => onChangeStatus(o.id, v)}>
                   <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {STATUSES.filter((s) => s.value !== "all").map((s) => (
