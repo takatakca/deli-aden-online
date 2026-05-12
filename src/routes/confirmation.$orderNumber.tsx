@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { getOrderByNumber } from "@/lib/orders.functions";
+import { api, type AdminOrder } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2 } from "lucide-react";
 import { fmt } from "@/lib/cart-store";
@@ -13,35 +12,17 @@ export const Route = createFileRoute("/confirmation/$orderNumber")({
   component: ConfirmationPage,
 });
 
-type OrderRow = {
-  order_number: string;
-  customer_name: string;
-  customer_phone: string;
-  customer_email: string | null;
-  order_type: string;
-  delivery_address: string | null;
-  preferred_time: string;
-  payment_method: string;
-  items: Array<{ name: string; quantity: number; unitPrice: number; options?: { groupLabel: string; values: string[] }[]; notes?: string }>;
-  subtotal: number;
-  gst: number;
-  qst: number;
-  total: number;
-  special_notes: string | null;
-  created_at: string;
-};
-
 function ConfirmationPage() {
   const { orderNumber } = Route.useParams();
-  const fetchOrder = useServerFn(getOrderByNumber);
-  const [order, setOrder] = useState<OrderRow | null>(null);
+  const [order, setOrder] = useState<AdminOrder | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchOrder({ data: { orderNumber } })
-      .then((r) => setOrder(r.order as unknown as OrderRow | null))
+    api.getOrder(orderNumber)
+      .then((r) => setOrder(r.order))
+      .catch(() => setOrder(null))
       .finally(() => setLoading(false));
-  }, [orderNumber, fetchOrder]);
+  }, [orderNumber]);
 
   if (loading) return <div className="p-20 text-center text-muted-foreground">Chargement...</div>;
   if (!order)
