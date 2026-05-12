@@ -14,7 +14,6 @@ export const Route = createFileRoute("/contact")({
 });
 
 function Contact() {
-  const send = useServerFn(submitContact);
   const [form, setForm] = useState({ name: "", phone: "", email: "", message: "" });
   const [loading, setLoading] = useState(false);
 
