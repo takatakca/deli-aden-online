@@ -30,9 +30,9 @@ export function SiteFooter() {
         <div>
           <div className="mb-3 font-display font-semibold text-accent">Contact</div>
           <ul className="space-y-2 text-sm opacity-90">
-            <li className="flex items-center gap-2"><Phone className="h-3.5 w-3.5" /> (000) 000-0000</li>
-            <li className="flex items-center gap-2"><Mail className="h-3.5 w-3.5" /> orders@deliaden.ca</li>
-            <li className="flex items-start gap-2"><MapPin className="mt-0.5 h-3.5 w-3.5" /> Adresse du restaurant, Québec</li>
+            <li className="flex items-center gap-2"><Phone className="h-3.5 w-3.5" /><span>(000) 000-0000</span></li>
+            <li className="flex items-center gap-2"><Mail className="h-3.5 w-3.5" /><span>orders@deliaden.ca</span></li>
+            <li className="flex items-start gap-2"><MapPin className="mt-0.5 h-3.5 w-3.5" /><span>Adresse du restaurant, Québec</span></li>
           </ul>
         </div>
       </div>
