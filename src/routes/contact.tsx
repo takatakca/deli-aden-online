@@ -21,7 +21,7 @@ function Contact() {
     e.preventDefault();
     setLoading(true);
     try {
-      await send({ data: form });
+      await api.submitContact(form);
       toast.success("Message envoyé !");
       setForm({ name: "", phone: "", email: "", message: "" });
     } catch (err) {
