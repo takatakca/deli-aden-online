@@ -1,8 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
 import { useCart, cartStore, computeTotals, fmt } from "@/lib/cart-store";
-import { createOrder } from "@/lib/orders.functions";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,7 +18,6 @@ function CheckoutPage() {
   const cart = useCart();
   const totals = computeTotals(cart);
   const navigate = useNavigate();
-  const submit = useServerFn(createOrder);
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -53,28 +51,26 @@ function CheckoutPage() {
     }
     setLoading(true);
     try {
-      const res = await submit({
-        data: {
-          customer: { name: name.trim(), phone: phone.trim(), email: email.trim() || undefined },
-          orderType,
-          deliveryAddress: orderType === "delivery" ? address.trim() : "",
-          preferredTime: time === "scheduled" ? scheduledTime || "Programmé" : "ASAP",
-          paymentMethod: payment,
-          specialNotes: notes.trim(),
-          items: cart.map((c) => ({
-            itemId: c.itemId,
-            name: c.name,
-            unitPrice: c.unitPrice,
-            quantity: c.quantity,
-            options: c.options,
-            combo: c.combo,
-            notes: c.notes,
-          })),
-          subtotal: totals.subtotal,
-          gst: totals.gst,
-          qst: totals.qst,
-          total: totals.total,
-        },
+      const res = await api.createOrder({
+        customer: { name: name.trim(), phone: phone.trim(), email: email.trim() || undefined },
+        orderType,
+        deliveryAddress: orderType === "delivery" ? address.trim() : "",
+        preferredTime: time === "scheduled" ? scheduledTime || "Programmé" : "ASAP",
+        paymentMethod: payment,
+        specialNotes: notes.trim(),
+        items: cart.map((c) => ({
+          itemId: c.itemId,
+          name: c.name,
+          unitPrice: c.unitPrice,
+          quantity: c.quantity,
+          options: c.options,
+          combo: c.combo,
+          notes: c.notes,
+        })),
+        subtotal: totals.subtotal,
+        gst: totals.gst,
+        qst: totals.qst,
+        total: totals.total,
       });
       cartStore.clear();
       toast.success("Commande envoyée !");

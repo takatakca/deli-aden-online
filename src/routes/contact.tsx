@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useServerFn } from "@tanstack/react-start";
-import { submitContact } from "@/lib/orders.functions";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,7 +14,6 @@ export const Route = createFileRoute("/contact")({
 });
 
 function Contact() {
-  const send = useServerFn(submitContact);
   const [form, setForm] = useState({ name: "", phone: "", email: "", message: "" });
   const [loading, setLoading] = useState(false);
 
@@ -23,7 +21,7 @@ function Contact() {
     e.preventDefault();
     setLoading(true);
     try {
-      await send({ data: form });
+      await api.submitContact(form);
       toast.success("Message envoyé !");
       setForm({ name: "", phone: "", email: "", message: "" });
     } catch (err) {
