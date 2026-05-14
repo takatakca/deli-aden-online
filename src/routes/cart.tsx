@@ -4,7 +4,16 @@ import { useCart, cartStore, computeTotals, fmt } from "@/lib/cart-store";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/cart")({
-  head: () => ({ meta: [{ title: "Panier — Les Délices d'Aden" }] }),
+  head: () => ({
+    meta: [
+      { title: "Panier — Les Délices d'Aden" },
+      { name: "description", content: "Vérifiez vos plats sélectionnés et passez à la caisse pour finaliser votre commande chez Les Délices d'Aden." },
+      { property: "og:title", content: "Votre panier — Les Délices d'Aden" },
+      { property: "og:description", content: "Récapitulatif de votre commande chez Les Délices d'Aden." },
+      { property: "og:url", content: "/cart" },
+    ],
+    links: [{ rel: "canonical", href: "/cart" }],
+  }),
   component: CartPage,
 });
 
