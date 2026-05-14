@@ -311,5 +311,12 @@ if (fs.existsSync(DIST_DIR)) {
 }
 
 app.listen(PORT, () => {
-  console.log(`Deli Aden server running on port ${PORT}`);
+  const smtpConfigured = Boolean(
+    process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS
+  );
+  console.log(`[Deli Aden] Server running on port ${PORT}`);
+  console.log(`[Deli Aden] Database: ${DB_PATH}`);
+  console.log(`[Deli Aden] Dist:     ${DIST_DIR}${fs.existsSync(DIST_DIR) ? "" : " (MISSING — run `npm run build`)"}`);
+  console.log(`[Deli Aden] SMTP:     ${smtpConfigured ? "configured" : "NOT configured (emails disabled)"}`);
+  console.log(`[Deli Aden] Admin:    password ${process.env.ADMIN_PASSWORD ? "set via env" : "USING DEFAULT — change ADMIN_PASSWORD!"}`);
 });
