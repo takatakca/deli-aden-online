@@ -61,9 +61,9 @@ function CartPage() {
                 )}
                 <div className="mt-auto flex items-center justify-between pt-2">
                   <div className="flex items-center gap-1 rounded-full border border-border">
-                    <button onClick={() => cartStore.updateQty(line.uid, line.quantity - 1)} className="p-1.5"><Minus className="h-3.5 w-3.5" /></button>
+                    <button aria-label={`Diminuer la quantité de ${line.name}`} onClick={() => cartStore.updateQty(line.uid, line.quantity - 1)} className="p-1.5"><Minus className="h-3.5 w-3.5" /></button>
                     <span className="w-7 text-center text-sm font-semibold">{line.quantity}</span>
-                    <button onClick={() => cartStore.updateQty(line.uid, line.quantity + 1)} className="p-1.5"><Plus className="h-3.5 w-3.5" /></button>
+                    <button aria-label={`Augmenter la quantité de ${line.name}`} onClick={() => cartStore.updateQty(line.uid, line.quantity + 1)} className="p-1.5"><Plus className="h-3.5 w-3.5" /></button>
                   </div>
                   <button onClick={() => cartStore.remove(line.uid)} className="text-xs text-destructive hover:underline">
                     <Trash2 className="mr-1 inline h-3.5 w-3.5" /> Retirer
