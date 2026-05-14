@@ -64,7 +64,7 @@ function MenuPage() {
         <section key={cat.id} id={cat.id} className="scroll-mt-32 py-8">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <div className="category-bar">{cat.name}</div>
+              <h2 className="category-bar">{cat.name}</h2>
               {cat.blurb && <p className="mt-3 text-sm text-muted-foreground">{cat.blurb}</p>}
             </div>
           </div>
