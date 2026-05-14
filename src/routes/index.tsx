@@ -36,7 +36,7 @@ function Home() {
           <div className="max-w-3xl">
             <span className="category-bar text-xs">Cuisine algérienne authentique</span>
             <h1 className="mt-6 font-display text-5xl font-bold leading-tight text-foreground md:text-7xl">
-              Les Délices <span className="text-primary">d'Aden</span>
+              Les Délices <span className="text-primary">d'Aden</span> — Cuisine algérienne authentique
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl">
               Cuisine algérienne authentique, grillades, poissons, fast food et desserts faits maison.
