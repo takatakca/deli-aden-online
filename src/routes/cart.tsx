@@ -4,7 +4,16 @@ import { useCart, cartStore, computeTotals, fmt } from "@/lib/cart-store";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/cart")({
-  head: () => ({ meta: [{ title: "Panier — Les Délices d'Aden" }] }),
+  head: () => ({
+    meta: [
+      { title: "Panier — Les Délices d'Aden" },
+      { name: "description", content: "Vérifiez vos plats sélectionnés et passez à la caisse pour finaliser votre commande chez Les Délices d'Aden." },
+      { property: "og:title", content: "Votre panier — Les Délices d'Aden" },
+      { property: "og:description", content: "Récapitulatif de votre commande chez Les Délices d'Aden." },
+      { property: "og:url", content: "/cart" },
+    ],
+    links: [{ rel: "canonical", href: "/cart" }],
+  }),
   component: CartPage,
 });
 
@@ -35,7 +44,7 @@ function CartPage() {
               <img src={line.image} alt={line.name} className="h-24 w-24 rounded-lg object-cover" />
               <div className="flex flex-1 flex-col">
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-display text-base font-semibold">{line.name}</h3>
+                  <h2 className="font-display text-base font-semibold">{line.name}</h2>
                   <span className="font-display font-bold text-primary">{fmt(line.unitPrice * line.quantity)}</span>
                 </div>
                 {line.options && line.options.length > 0 && (
@@ -52,9 +61,9 @@ function CartPage() {
                 )}
                 <div className="mt-auto flex items-center justify-between pt-2">
                   <div className="flex items-center gap-1 rounded-full border border-border">
-                    <button onClick={() => cartStore.updateQty(line.uid, line.quantity - 1)} className="p-1.5"><Minus className="h-3.5 w-3.5" /></button>
+                    <button aria-label={`Diminuer la quantité de ${line.name}`} onClick={() => cartStore.updateQty(line.uid, line.quantity - 1)} className="p-1.5"><Minus className="h-3.5 w-3.5" /></button>
                     <span className="w-7 text-center text-sm font-semibold">{line.quantity}</span>
-                    <button onClick={() => cartStore.updateQty(line.uid, line.quantity + 1)} className="p-1.5"><Plus className="h-3.5 w-3.5" /></button>
+                    <button aria-label={`Augmenter la quantité de ${line.name}`} onClick={() => cartStore.updateQty(line.uid, line.quantity + 1)} className="p-1.5"><Plus className="h-3.5 w-3.5" /></button>
                   </div>
                   <button onClick={() => cartStore.remove(line.uid)} className="text-xs text-destructive hover:underline">
                     <Trash2 className="mr-1 inline h-3.5 w-3.5" /> Retirer

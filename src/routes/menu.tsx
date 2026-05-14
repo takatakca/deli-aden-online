@@ -9,8 +9,12 @@ export const Route = createFileRoute("/menu")({
   head: () => ({
     meta: [
       { title: "Menu — Les Délices d'Aden" },
-      { name: "description", content: "Plats algériens, grillades, fast food, poissons, desserts. Commandez en ligne." },
+      { name: "description", content: "Découvrez notre menu : plats algériens, grillades, poissons, fast food et desserts faits maison. Commandez en ligne." },
+      { property: "og:title", content: "Menu — Les Délices d'Aden" },
+      { property: "og:description", content: "Plats algériens, grillades, poissons, fast food et desserts. Commandez en ligne." },
+      { property: "og:url", content: "/menu" },
     ],
+    links: [{ rel: "canonical", href: "/menu" }],
   }),
   component: MenuPage,
 });
@@ -60,7 +64,7 @@ function MenuPage() {
         <section key={cat.id} id={cat.id} className="scroll-mt-32 py-8">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
             <div>
-              <div className="category-bar">{cat.name}</div>
+              <h2 className="category-bar">{cat.name}</h2>
               {cat.blurb && <p className="mt-3 text-sm text-muted-foreground">{cat.blurb}</p>}
             </div>
           </div>

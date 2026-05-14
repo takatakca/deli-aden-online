@@ -10,7 +10,16 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/checkout")({
-  head: () => ({ meta: [{ title: "Finaliser la commande — Les Délices d'Aden" }] }),
+  head: () => ({
+    meta: [
+      { title: "Finaliser la commande — Les Délices d'Aden" },
+      { name: "description", content: "Renseignez vos coordonnées et confirmez votre commande pour ramassage ou livraison chez Les Délices d'Aden." },
+      { property: "og:title", content: "Finaliser la commande — Les Délices d'Aden" },
+      { property: "og:description", content: "Confirmez votre commande pour ramassage ou livraison." },
+      { property: "og:url", content: "/checkout" },
+    ],
+    links: [{ rel: "canonical", href: "/checkout" }],
+  }),
   component: CheckoutPage,
 });
 

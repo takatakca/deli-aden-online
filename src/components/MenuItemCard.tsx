@@ -23,7 +23,7 @@ export function MenuItemCard({ item }: { item: MenuItem }) {
       <div className="aspect-[4/3] overflow-hidden bg-muted">
         <img
           src={item.image}
-          alt={item.name}
+          alt={`${item.name} — plat servi aux Délices d'Aden`}
           loading="lazy"
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
         />
@@ -191,9 +191,9 @@ function CustomizeDialog({ item }: { item: MenuItem }) {
           <div className="flex items-center justify-between">
             <Label className="font-semibold">Quantité</Label>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="icon" onClick={() => setQty((q) => Math.max(1, q - 1))}><Minus className="h-4 w-4" /></Button>
+              <Button aria-label="Diminuer la quantité" variant="outline" size="icon" onClick={() => setQty((q) => Math.max(1, q - 1))}><Minus className="h-4 w-4" /></Button>
               <span className="w-8 text-center font-semibold">{qty}</span>
-              <Button variant="outline" size="icon" onClick={() => setQty((q) => Math.min(20, q + 1))}><Plus className="h-4 w-4" /></Button>
+              <Button aria-label="Augmenter la quantité" variant="outline" size="icon" onClick={() => setQty((q) => Math.min(20, q + 1))}><Plus className="h-4 w-4" /></Button>
             </div>
           </div>
         </div>

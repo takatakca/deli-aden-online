@@ -12,6 +12,34 @@ export const Route = createFileRoute("/")({
         content:
           "Cuisine algérienne authentique, grillades, poissons, fast food et desserts faits maison. Ramassage et livraison.",
       },
+      { property: "og:title", content: "Les Délices d'Aden — Restaurant algérien" },
+      { property: "og:description", content: "Cuisine algérienne authentique. Commandez en ligne pour ramassage ou livraison." },
+      { property: "og:url", content: "/" },
+      { property: "og:type", content: "website" },
+    ],
+    links: [{ rel: "canonical", href: "/" }],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Restaurant",
+          name: "Les Délices d'Aden",
+          image: "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=1200&q=70",
+          servesCuisine: ["Algerian", "Mediterranean"],
+          priceRange: "$$",
+          telephone: "+1-000-000-0000",
+          email: "orders@deliaden.ca",
+          address: {
+            "@type": "PostalAddress",
+            streetAddress: "Adresse du restaurant",
+            addressLocality: "Québec",
+            addressRegion: "QC",
+            addressCountry: "CA",
+          },
+          openingHours: ["Mo-Th 11:00-22:00", "Fr-Sa 11:00-23:00", "Su 12:00-22:00"],
+        }),
+      },
     ],
   }),
   component: Home,
@@ -36,7 +64,7 @@ function Home() {
           <div className="max-w-3xl">
             <span className="category-bar text-xs">Cuisine algérienne authentique</span>
             <h1 className="mt-6 font-display text-5xl font-bold leading-tight text-foreground md:text-7xl">
-              Les Délices <span className="text-primary">d'Aden</span>
+              Les Délices <span className="text-primary">d'Aden</span> — Cuisine algérienne authentique
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted-foreground md:text-xl">
               Cuisine algérienne authentique, grillades, poissons, fast food et desserts faits maison.
@@ -76,7 +104,7 @@ function Home() {
           {FEATURED_CATEGORIES.map((c) => (
             <Link key={c.id} to="/menu" hash={c.id} className="group overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
               <div className="aspect-square overflow-hidden bg-muted">
-                <img src={c.image} alt={c.name} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
+                <img src={c.image} alt={`Catégorie ${c.name} — Les Délices d'Aden`} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
               </div>
               <div className="p-3 text-center">
                 <div className="font-display text-base font-semibold text-foreground">{c.name}</div>

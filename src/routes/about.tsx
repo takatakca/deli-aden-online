@@ -4,8 +4,12 @@ export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
       { title: "À propos — Les Délices d'Aden" },
-      { name: "description", content: "Notre histoire, notre cuisine algérienne authentique." },
+      { name: "description", content: "Découvrez l'histoire des Délices d'Aden : cuisine algérienne authentique, recettes familiales et saveurs du Maghreb au Québec." },
+      { property: "og:title", content: "À propos — Les Délices d'Aden" },
+      { property: "og:description", content: "Notre histoire et notre passion pour la cuisine algérienne authentique au Québec." },
+      { property: "og:url", content: "/about" },
     ],
+    links: [{ rel: "canonical", href: "/about" }],
   }),
   component: About,
 });
@@ -18,7 +22,7 @@ function About() {
       <div className="mt-8 grid gap-10 md:grid-cols-[1fr_1.2fr] md:items-center">
         <img
           src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=900&q=70"
-          alt="Restaurant"
+          alt="Restaurant Les Délices d'Aden — salle de cuisine algérienne"
           className="aspect-square rounded-2xl object-cover shadow-lg"
         />
         <div className="space-y-4 text-lg leading-relaxed text-foreground/85">

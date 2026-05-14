@@ -9,7 +9,16 @@ import { Phone, Mail, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/contact")({
-  head: () => ({ meta: [{ title: "Contact — Les Délices d'Aden" }] }),
+  head: () => ({
+    meta: [
+      { title: "Contact — Les Délices d'Aden" },
+      { name: "description", content: "Contactez Les Délices d'Aden pour vos questions, réservations et commandes spéciales. Téléphone, email et adresse au Québec." },
+      { property: "og:title", content: "Contactez Les Délices d'Aden" },
+      { property: "og:description", content: "Téléphone, email et adresse de notre restaurant algérien au Québec." },
+      { property: "og:url", content: "/contact" },
+    ],
+    links: [{ rel: "canonical", href: "/contact" }],
+  }),
   component: Contact,
 });
 
