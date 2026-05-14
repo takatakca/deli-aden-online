@@ -1,0 +1,10 @@
+# Les Délices d'Aden
+
+> Restaurant algérien au Québec — cuisine authentique, grillades, poissons, fast food et desserts faits maison. Commande en ligne pour ramassage ou livraison.
+
+## Pages
+
+- [Accueil](/): Présentation du restaurant et des catégories du menu.
+- [Menu](/menu): Carte complète avec commande en ligne (entrées, grillades, poissons, fast food, desserts).
+- [À propos](/about): Notre histoire et notre approche de la cuisine algérienne.
+- [Contact](/contact): Téléphone, email, adresse et formulaire de contact.
