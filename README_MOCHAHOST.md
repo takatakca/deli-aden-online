@@ -87,3 +87,20 @@ npm run build
 
 La base SQLite vit par défaut dans `./data/deli-aden.db` (relatif au dossier
 de l'app). Sauvegardez ce fichier régulièrement via cPanel ou cron.
+
+## 10. Notes production
+
+- **Node.js 20+** requis (testé sur 20.x).
+- **Sauvegarde** : copier `data/deli-aden.db` (et `data/deli-aden.db-wal` si présent) régulièrement.
+- **better-sqlite3** : si l'installation échoue sur MochaHost (besoin de
+  compilation native C++), ouvrir un ticket support pour activer
+  `python` + `make` + `g++` sur le compte. Alternative : remplacer par
+  `sqlite3` (driver pur JS plus lent) dans `server.cjs`.
+- **SMTP optionnel** : si les variables SMTP sont absentes ou erronées, les
+  commandes sont quand même enregistrées en base et le client reçoit sa
+  confirmation — seul l'email vers `orders@deliaden.ca` est ignoré (erreur
+  loggée dans la console cPanel). La commande n'échoue jamais à cause d'un
+  problème email.
+- **ADMIN_PASSWORD** : impérativement défini en variable d'environnement
+  avant la mise en production (sinon valeur par défaut faible utilisée).
+
