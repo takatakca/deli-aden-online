@@ -23,7 +23,7 @@ export function MenuItemCard({ item }: { item: MenuItem }) {
       <div className="aspect-[4/3] overflow-hidden bg-muted">
         <img
           src={item.image}
-          alt={item.name}
+          alt={`${item.name} — plat servi aux Délices d'Aden`}
           loading="lazy"
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
         />
