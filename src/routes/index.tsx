@@ -104,7 +104,7 @@ function Home() {
           {FEATURED_CATEGORIES.map((c) => (
             <Link key={c.id} to="/menu" hash={c.id} className="group overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
               <div className="aspect-square overflow-hidden bg-muted">
-                <img src={c.image} alt={c.name} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
+                <img src={c.image} alt={`Catégorie ${c.name} — Les Délices d'Aden`} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-110" />
               </div>
               <div className="p-3 text-center">
                 <div className="font-display text-base font-semibold text-foreground">{c.name}</div>
