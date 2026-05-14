@@ -44,7 +44,7 @@ function CartPage() {
               <img src={line.image} alt={line.name} className="h-24 w-24 rounded-lg object-cover" />
               <div className="flex flex-1 flex-col">
                 <div className="flex items-start justify-between gap-3">
-                  <h3 className="font-display text-base font-semibold">{line.name}</h3>
+                  <h2 className="font-display text-base font-semibold">{line.name}</h2>
                   <span className="font-display font-bold text-primary">{fmt(line.unitPrice * line.quantity)}</span>
                 </div>
                 {line.options && line.options.length > 0 && (
