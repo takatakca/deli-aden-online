@@ -37,14 +37,6 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-destructive text-destructive-foreground",
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  new: "bg-primary text-primary-foreground",
-  accepted: "bg-blue-600 text-white",
-  preparing: "bg-amber-500 text-white",
-  ready: "bg-emerald-600 text-white",
-  completed: "bg-muted text-muted-foreground",
-  cancelled: "bg-destructive text-destructive-foreground",
-};
 
 function AdminPage() {
   const [password, setPassword] = useState("");
