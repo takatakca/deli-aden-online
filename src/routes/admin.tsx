@@ -22,9 +22,20 @@ const STATUSES = [
   { value: "accepted", label: "Acceptée" },
   { value: "preparing", label: "En préparation" },
   { value: "ready", label: "Prête" },
+  { value: "dispatched", label: "Expédiée" },
   { value: "completed", label: "Terminée" },
   { value: "cancelled", label: "Annulée" },
 ];
+
+const STATUS_COLORS: Record<string, string> = {
+  new: "bg-primary text-primary-foreground",
+  accepted: "bg-blue-600 text-white",
+  preparing: "bg-amber-500 text-white",
+  ready: "bg-emerald-600 text-white",
+  dispatched: "bg-indigo-600 text-white",
+  completed: "bg-muted text-muted-foreground",
+  cancelled: "bg-destructive text-destructive-foreground",
+};
 
 const STATUS_COLORS: Record<string, string> = {
   new: "bg-primary text-primary-foreground",
