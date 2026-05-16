@@ -96,7 +96,7 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
-  const lastTopIdRef = (typeof window !== "undefined") ? (window as unknown as { _lastTopId?: { current: number | null } })._lastTopId ??= { current: null } : { current: null };
+  const lastTopIdRef = useRef<number | null>(null);
 
   const playChime = () => {
     try {
