@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, type AdminOrder } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { fmt } from "@/lib/cart-store";
-import { RefreshCw, Printer, Search, LogOut } from "lucide-react";
+import { RefreshCw, Printer, Search, LogOut, Download } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin")({
@@ -22,6 +22,7 @@ const STATUSES = [
   { value: "accepted", label: "Acceptée" },
   { value: "preparing", label: "En préparation" },
   { value: "ready", label: "Prête" },
+  { value: "dispatched", label: "Expédiée" },
   { value: "completed", label: "Terminée" },
   { value: "cancelled", label: "Annulée" },
 ];
@@ -31,9 +32,11 @@ const STATUS_COLORS: Record<string, string> = {
   accepted: "bg-blue-600 text-white",
   preparing: "bg-amber-500 text-white",
   ready: "bg-emerald-600 text-white",
+  dispatched: "bg-indigo-600 text-white",
   completed: "bg-muted text-muted-foreground",
   cancelled: "bg-destructive text-destructive-foreground",
 };
+
 
 function AdminPage() {
   const [password, setPassword] = useState("");
@@ -90,12 +93,34 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [loading, setLoading] = useState(false);
+  const lastTopIdRef = useRef<number | null>(null);
+
+  const playChime = () => {
+    try {
+      const AC = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+      const ctx = new AC();
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.frequency.value = 880; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.15, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+      o.start(); o.stop(ctx.currentTime + 0.6);
+    } catch { /* ignore */ }
+  };
 
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const r = await api.adminListOrders(password, status, search.trim() || undefined);
+      const r = await api.adminListOrders(password, {
+        status, search: search.trim() || undefined, from: from || undefined, to: to || undefined,
+      });
+      const topId = r.orders[0]?.id ?? null;
+      if (lastTopIdRef.current !== null && topId !== null && topId !== lastTopIdRef.current) {
+        const isNew = r.orders[0]?.status === "new";
+        if (isNew) { playChime(); toast.success(`Nouvelle commande ${r.orders[0]?.order_number}`); }
+      }
+      lastTopIdRef.current = topId;
       setOrders(r.orders);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur");
@@ -106,10 +131,10 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
 
   useEffect(() => {
     fetchOrders();
-    const t = setInterval(fetchOrders, 30000);
+    const t = setInterval(fetchOrders, 10000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
+  }, [status, from, to]);
 
   const onChangeStatus = async (id: number, newStatus: string) => {
     try {
@@ -119,6 +144,22 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erreur");
     }
+  };
+
+  const exportCsv = () => {
+    const url = api.adminExportCsvUrl({ status, search: search.trim() || undefined, from: from || undefined, to: to || undefined });
+    // Server requires X-Admin-Password header; do an authed fetch then trigger download
+    fetch(url, { headers: { "X-Admin-Password": password } })
+      .then(async (r) => {
+        if (!r.ok) throw new Error("Export refusé");
+        const blob = await r.blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `orders-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      })
+      .catch((e) => toast.error(e instanceof Error ? e.message : "Erreur export"));
   };
 
   return (
@@ -136,20 +177,26 @@ function Dashboard({ password, onLogout }: { password: string; onLogout: () => v
               className="w-56 pl-8"
             />
           </div>
+          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" title="Du" />
+          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" title="Au" />
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
               {STATUSES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Button onClick={fetchOrders} variant="outline" size="icon" disabled={loading}>
+          <Button onClick={fetchOrders} variant="outline" size="icon" disabled={loading} title="Rafraîchir">
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+          </Button>
+          <Button onClick={exportCsv} variant="outline" size="sm" className="gap-1" title="Exporter CSV">
+            <Download className="h-4 w-4" /> CSV
           </Button>
           <Button onClick={onLogout} variant="ghost" size="sm" className="gap-1">
             <LogOut className="h-4 w-4" /> Déconnexion
           </Button>
         </div>
       </div>
+      <p className="mt-2 text-xs text-muted-foreground">Auto-rafraîchissement toutes les 10 secondes • {orders.length} commande(s)</p>
 
       <div className="mt-6 space-y-3">
         {orders.length === 0 && (

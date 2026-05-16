@@ -70,14 +70,28 @@ export const api = {
       body: JSON.stringify({ password }),
     }),
 
-  adminListOrders: (password: string, status?: string, search?: string) => {
+  adminListOrders: (
+    password: string,
+    opts: { status?: string; search?: string; from?: string; to?: string } = {}
+  ) => {
     const qs = new URLSearchParams();
-    if (status) qs.set("status", status);
-    if (search) qs.set("search", search);
+    if (opts.status) qs.set("status", opts.status);
+    if (opts.search) qs.set("search", opts.search);
+    if (opts.from) qs.set("from", opts.from);
+    if (opts.to) qs.set("to", opts.to);
     return request<{ orders: AdminOrder[] }>(
       `/api/orders?${qs.toString()}`,
       { headers: { "X-Admin-Password": password } }
     );
+  },
+
+  adminExportCsvUrl: (opts: { status?: string; search?: string; from?: string; to?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (opts.status) qs.set("status", opts.status);
+    if (opts.search) qs.set("search", opts.search);
+    if (opts.from) qs.set("from", opts.from);
+    if (opts.to) qs.set("to", opts.to);
+    return `/api/orders.csv?${qs.toString()}`;
   },
 
   adminUpdateStatus: (password: string, id: string | number, status: string) =>

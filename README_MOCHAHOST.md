@@ -1,6 +1,7 @@
-# Deploiement MochaHost — Les Délices d'Aden
+# Déploiement MochaHost — Les Délices d'Aden
 
-Application Node.js (Express + SQLite + Nodemailer) avec frontend React/Vite.
+Application Node.js haute performance : Express + MySQL/MariaDB (avec
+fallback SQLite) + Nodemailer + helmet/compression + frontend React/Vite.
 
 ## 1. Préparer le projet localement
 
@@ -13,69 +14,104 @@ npm run build
 
 ## 2. Téléverser sur MochaHost
 
-Via cPanel **File Manager** (ou FTP), envoyez le projet entier dans un dossier
-hors de `public_html`, par exemple `/home/USER/deliaden/`. Téléversez **tout
-sauf** `node_modules/` (sera réinstallé sur le serveur).
+Via cPanel **File Manager** (ou FTP), envoyez le projet dans un dossier hors
+de `public_html`, par exemple `/home/USER/deliaden/`. Téléversez tout sauf
+`node_modules/`.
 
-Doivent être présents :
-- `server.cjs`
-- `package.json`, `package-lock.json` (ou `bun.lock`)
-- `dist/` (résultat de `npm run build`)
-- `.env` (créé à partir de `.env.example`)
+Fichiers requis : `server.cjs`, `package.json`, `package-lock.json`, `dist/`,
+`.env` (créé à partir de `.env.example`).
 
-## 3. Créer l'application Node.js dans cPanel
+## 3. Créer la base MySQL/MariaDB (recommandé)
+
+Dans cPanel → **MySQL Databases** :
+
+1. Créez une base : `USER_deliaden`
+2. Créez un utilisateur : `USER_deliaden_app` avec un mot de passe fort
+3. Attribuez **ALL PRIVILEGES** à l'utilisateur sur la base
+
+Les tables (`orders`, `order_events`, `contact_messages`, `email_logs`,
+`counters`) et tous les **index** (`order_number`, `status`, `created_at`,
+`customer_phone`) sont créés automatiquement au premier démarrage de
+`server.cjs`.
+
+> Si vous n'utilisez pas MySQL, laissez `DB_HOST` vide : le serveur basculera
+> automatiquement sur SQLite (`data/deli-aden.db`).
+
+## 4. Créer l'application Node.js dans cPanel
 
 1. cPanel → **Setup Node.js App** → **Create Application**
-2. Node.js version : **20.x** ou supérieure
+2. Node.js version : **20.x ou supérieure**
 3. Application mode : **Production**
-4. Application root : `deliaden` (chemin du projet)
-5. Application URL : votre domaine (ex. `deliaden.ca`)
+4. Application root : `deliaden`
+5. Application URL : `deliaden.ca`
 6. **Application startup file** : `server.cjs`
 7. **Save**
 
-## 4. Variables d'environnement
+## 5. Variables d'environnement
 
-Toujours dans **Setup Node.js App**, section *Environment variables*, ajoutez :
+Dans **Setup Node.js App** → *Environment variables* :
 
 ```
 PORT=3000
+
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=USER_deliaden_app
+DB_PASSWORD=<mot de passe MySQL>
+DB_NAME=USER_deliaden
+
 SMTP_HOST=mail.deliaden.ca
 SMTP_PORT=465
 SMTP_SECURE=true
 SMTP_USER=notify@deliaden.ca
-SMTP_PASS=<votre mot de passe email>
+SMTP_PASS=<mot de passe email>
 FROM_EMAIL=notify@deliaden.ca
 RESTAURANT_EMAIL=orders@deliaden.ca
+
 ADMIN_PASSWORD=<mot de passe admin fort>
 ```
 
-(Si vous préférez, créez un fichier `.env` dans le dossier de l'app — `dotenv`
-le chargera automatiquement.)
+## 6. Installer les dépendances et démarrer
 
-## 5. Installer les dépendances
-
-Dans cPanel → Setup Node.js App, cliquez **Run NPM Install**.
-
-Si l'installation de `better-sqlite3` échoue (besoin de compilation native),
-contactez le support MochaHost pour activer `python` + `make` + `g++`, ou
-basculez vers `sqlite3` (changez l'import dans `server.cjs`).
-
-## 6. Démarrer / Redémarrer
-
-Cliquez **Restart** dans Setup Node.js App.
+Dans cPanel → Setup Node.js App, cliquez :
+1. **Run NPM Install**
+2. **Restart**
 
 ## 7. Tests
 
-- **Health check** : `https://deliaden.ca/api/health`
-  → doit renvoyer `{"ok":true,"message":"Deli Aden ordering system running"}`
-- **Site** : `https://deliaden.ca/` → page d'accueil
-- **Menu / Panier / Checkout** : passez une commande de test → vous devez
-  recevoir un email à `orders@deliaden.ca`.
-- **Admin** : `https://deliaden.ca/admin` → entrez `ADMIN_PASSWORD`.
+- **Health** : `https://deliaden.ca/api/health`
+  → `{"ok":true,"message":"...","db":"mysql"}` (ou `"db":"sqlite"`)
+- **Site** : `https://deliaden.ca/`
+- **Commande** : menu → panier → checkout → email arrive à `orders@deliaden.ca`
+- **Admin** : `https://deliaden.ca/admin`
 
-## 8. Mises à jour
+## 8. Performances et fiabilité (intégrées)
 
-Pour redéployer après modification :
+- **MySQL pool** (10 connexions) avec index sur `order_number`, `status`,
+  `created_at`, `customer_phone`.
+- **compression** (gzip) sur toutes les réponses.
+- **helmet** pour les en-têtes de sécurité.
+- **Cache statique 1 an** pour les assets hashés Vite, `no-cache` sur
+  `index.html`.
+- **Email non-bloquant** : la commande est toujours enregistrée même si SMTP
+  échoue ; chaque envoi est journalisé dans la table `email_logs`
+  (`sent` / `failed` / `skipped`).
+- **Pool SMTP** Nodemailer pour réutiliser les connexions.
+- **Logs structurés** JSON pour chaque appel `/api/*` (méthode, chemin,
+  statut, durée ms).
+- **`order_events`** : chaque changement de statut crée une trace.
+
+## 9. Admin amélioré
+
+- Auto-rafraîchissement **toutes les 10 secondes**.
+- **Alerte sonore + toast** sur nouvelle commande.
+- Statuts clairs : Nouvelle → Acceptée → En préparation → Prête →
+  **Expédiée** → Terminée.
+- **Filtres par date** (du / au), statut, recherche.
+- **Export CSV** des commandes filtrées.
+- Impression reçu cuisine.
+
+## 10. Mises à jour
 
 ```bash
 npm run build
@@ -83,24 +119,20 @@ npm run build
 # cPanel → Restart
 ```
 
-## 9. Sauvegarde de la base de données
+## 11. Sauvegarde
 
-La base SQLite vit par défaut dans `./data/deli-aden.db` (relatif au dossier
-de l'app). Sauvegardez ce fichier régulièrement via cPanel ou cron.
+- **MySQL** : utiliser cPanel → **Backup** ou `mysqldump` via cron.
+- **SQLite** (fallback) : copier `data/deli-aden.db` régulièrement.
 
-## 10. Notes production
+## 12. Notes production
 
-- **Node.js 20+** requis (testé sur 20.x).
-- **Sauvegarde** : copier `data/deli-aden.db` (et `data/deli-aden.db-wal` si présent) régulièrement.
-- **better-sqlite3** : si l'installation échoue sur MochaHost (besoin de
-  compilation native C++), ouvrir un ticket support pour activer
-  `python` + `make` + `g++` sur le compte. Alternative : remplacer par
-  `sqlite3` (driver pur JS plus lent) dans `server.cjs`.
-- **SMTP optionnel** : si les variables SMTP sont absentes ou erronées, les
-  commandes sont quand même enregistrées en base et le client reçoit sa
-  confirmation — seul l'email vers `orders@deliaden.ca` est ignoré (erreur
-  loggée dans la console cPanel). La commande n'échoue jamais à cause d'un
-  problème email.
-- **ADMIN_PASSWORD** : impérativement défini en variable d'environnement
-  avant la mise en production (sinon valeur par défaut faible utilisée).
-
+- **Node.js 20+** requis.
+- **`mysql2`** est en pur JavaScript : aucune compilation native sur MochaHost.
+- **`better-sqlite3`** (fallback) nécessite `python` + `make` + `g++` ; si
+  l'installation échoue et que vous utilisez MySQL, ce package est inutilisé
+  côté runtime — vous pouvez le retirer du `package.json` pour éviter
+  l'erreur d'install.
+- **`ADMIN_PASSWORD`** impérativement défini en env avant la production.
+- **SMTP** : si les variables manquent ou échouent, les commandes sont
+  enregistrées normalement, seul l'email est ignoré (loggé dans
+  `email_logs`).
