@@ -141,5 +141,16 @@ export type AdminOrder = {
   qst: number;
   total: number;
   special_notes: string | null;
+  admin_notes: string | null;
+  cancel_reason: string | null;
+  dispatched_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+};
+
+export type OrderEvent = {
+  id: number;
+  event: string;
+  meta: string | null;
   created_at: string;
 };
