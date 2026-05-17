@@ -136,3 +136,47 @@ npm run build
 - **SMTP** : si les variables manquent ou échouent, les commandes sont
   enregistrées normalement, seul l'email est ignoré (loggé dans
   `email_logs`).
+
+## 13. Dépannage (Troubleshooting)
+
+### `/api/health` ne répond pas
+- L'app Node.js est-elle démarrée ? cPanel → Setup Node.js App → état **Running**
+- Le fichier de démarrage est-il bien `server.cjs` ?
+- Consultez les logs cPanel : `~/logs/` ou onglet **Errors** de l'app Node.js
+- Si réponse `{ "ok": false, "db": { "connected": false } }` : la base est inaccessible
+  (vérifier `DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, privilèges MySQL)
+- Le port est-il occupé ? Définir `PORT=3000` (ou un port libre)
+
+### Les emails n'arrivent pas
+- Vérifier `/api/health` → `smtp.configured: true` ET `smtp.verified: true`
+- Si `verified: false` : identifiants SMTP incorrects, port bloqué, ou
+  SSL requis (`SMTP_SECURE=true` sur port 465, `false` sur 587)
+- Consulter la table `email_logs` :
+  ```sql
+  SELECT created_at, recipient, status, error
+  FROM email_logs ORDER BY id DESC LIMIT 20;
+  ```
+- `status = 'failed'` → lire la colonne `error`
+- `status = 'skipped'` → SMTP non configuré (ajouter les vars `SMTP_*` puis Restart)
+- Les commandes sont **toujours enregistrées** même si l'email échoue.
+
+### Connexion admin impossible
+- Vérifier que `ADMIN_PASSWORD` est défini dans **Environment variables**
+- En production, le serveur **refuse de démarrer** si `ADMIN_PASSWORD` < 8 caractères
+- Limite : **10 tentatives par 15 min par IP**. Si bloqué (429), attendre 15 min
+- Vider le `localStorage` du navigateur (`deli-aden-admin-pwd`) si mot de passe en cache obsolète
+- Tester manuellement :
+  ```bash
+  curl -X POST https://deliaden.ca/api/admin/verify \
+    -H "Content-Type: application/json" -d '{"password":"VOTRE_MDP"}'
+  ```
+
+### MySQL ne se connecte pas après un Restart
+- MochaHost recycle parfois les connexions. Le pool a `enableKeepAlive: true`
+  et se reconnecte automatiquement. Si le problème persiste, **Restart** l'app.
+- Vérifier dans cPanel → MySQL Databases que l'utilisateur a toujours `ALL PRIVILEGES`.
+
+### Le frontend affiche une page blanche après build
+- Vérifier que `dist/index.html` existe (`npm run build` a-t-il réussi ?)
+- Helmet est configuré sans CSP : les assets Vite hashés doivent charger sans erreur
+- Inspecter la console navigateur — un 404 sur `/assets/*.js` indique un `dist/` manquant
