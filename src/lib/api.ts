@@ -94,11 +94,21 @@ export const api = {
     return `/api/orders.csv?${qs.toString()}`;
   },
 
-  adminUpdateStatus: (password: string, id: string | number, status: string) =>
+  adminUpdateStatus: (
+    password: string,
+    id: string | number,
+    status: string,
+    extras: { note?: string; reason?: string } = {}
+  ) =>
     request<{ ok: true }>(`/api/orders/${id}/status`, {
       method: "PATCH",
       headers: { "X-Admin-Password": password },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, ...extras }),
+    }),
+
+  adminListEvents: (password: string, id: number) =>
+    request<{ events: OrderEvent[] }>(`/api/orders/${id}/events`, {
+      headers: { "X-Admin-Password": password },
     }),
 
   submitContact: (data: { name: string; phone?: string; email: string; message: string }) =>
@@ -131,5 +141,16 @@ export type AdminOrder = {
   qst: number;
   total: number;
   special_notes: string | null;
+  admin_notes: string | null;
+  cancel_reason: string | null;
+  dispatched_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+};
+
+export type OrderEvent = {
+  id: number;
+  event: string;
+  meta: string | null;
   created_at: string;
 };
