@@ -53,6 +53,29 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 export const api = {
   health: () => request<{ ok: boolean; message: string }>("/api/health"),
 
+  getSettings: () => request<{ settings: PublicSettings }>("/api/settings"),
+
+  getMenuOverrides: () => request<{ overrides: MenuOverride[] }>("/api/menu/overrides"),
+
+  adminGetSettings: (password: string) =>
+    request<{ settings: PublicSettings }>("/api/admin/settings", {
+      headers: { "X-Admin-Password": password },
+    }),
+
+  adminUpdateSettings: (password: string, patch: Partial<PublicSettings>) =>
+    request<{ ok: true; settings: PublicSettings }>("/api/admin/settings", {
+      method: "PATCH",
+      headers: { "X-Admin-Password": password },
+      body: JSON.stringify(patch),
+    }),
+
+  adminUpsertMenuOverride: (password: string, itemId: string, o: Partial<MenuOverride>) =>
+    request<{ ok: true }>(`/api/admin/menu/${encodeURIComponent(itemId)}`, {
+      method: "PUT",
+      headers: { "X-Admin-Password": password },
+      body: JSON.stringify(o),
+    }),
+
   createOrder: (payload: CreateOrderPayload) =>
     request<{ orderNumber: string; id: number }>("/api/orders", {
       method: "POST",
@@ -140,6 +163,7 @@ export type AdminOrder = {
   gst: number;
   qst: number;
   total: number;
+  delivery_fee?: number;
   special_notes: string | null;
   admin_notes: string | null;
   cancel_reason: string | null;
@@ -153,4 +177,28 @@ export type OrderEvent = {
   event: string;
   meta: string | null;
   created_at: string;
+};
+
+export type PublicSettings = {
+  is_open: boolean;
+  orders_paused: boolean;
+  pickup_enabled: boolean;
+  delivery_enabled: boolean;
+  est_pickup_min: number;
+  est_delivery_min: number;
+  min_order: number;
+  delivery_fee: number;
+  free_delivery_threshold: number;
+  gst_rate: number;
+  qst_rate: number;
+  restaurant_phone: string;
+  closed_message: string;
+};
+
+export type MenuOverride = {
+  item_id: string;
+  available: boolean;
+  price_override: number | null;
+  description_override: string | null;
+  image_override: string | null;
 };

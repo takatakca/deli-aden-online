@@ -30,8 +30,26 @@ const EFFECTIVE_ADMIN_PASSWORD = ADMIN_PASSWORD || "deli-aden-admin";
 
 const RESTAURANT_EMAIL = process.env.RESTAURANT_EMAIL || "orders@deliaden.ca";
 const FROM_EMAIL = process.env.FROM_EMAIL || "notify@deliaden.ca";
+const RESTAURANT_PHONE = process.env.RESTAURANT_PHONE || "";
 const USE_MYSQL = Boolean(process.env.DB_HOST);
 const STARTED_AT = Date.now();
+
+// Default restaurant operations settings (overridable via DB)
+const DEFAULT_SETTINGS = {
+  is_open: true,
+  orders_paused: false,
+  pickup_enabled: true,
+  delivery_enabled: true,
+  est_pickup_min: 20,
+  est_delivery_min: 45,
+  min_order: 0,
+  delivery_fee: 5,
+  free_delivery_threshold: 0,
+  gst_rate: 0.05,
+  qst_rate: 0.09975,
+  restaurant_phone: RESTAURANT_PHONE,
+  closed_message: "Le restaurant est actuellement fermé. Merci de revenir pendant les heures d'ouverture.",
+};
 
 // =====================================================================
 // Helpers — sanitization, escaping, CSV injection guard
@@ -149,6 +167,7 @@ if (USE_MYSQL) {
         "ADD COLUMN cancel_reason TEXT",
         "ADD COLUMN dispatched_at DATETIME NULL",
         "ADD COLUMN completed_at DATETIME NULL",
+        "ADD COLUMN delivery_fee DECIMAL(10,2) NOT NULL DEFAULT 0",
       ]) {
         try { await conn.query(`ALTER TABLE orders ${col}`); } catch (_) { /* exists */ }
       }
@@ -176,6 +195,21 @@ if (USE_MYSQL) {
         status VARCHAR(20) NOT NULL, error TEXT,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_email_status (status), INDEX idx_email_created (created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
+      await conn.query(`CREATE TABLE IF NOT EXISTS settings (
+        k VARCHAR(64) PRIMARY KEY,
+        v LONGTEXT NOT NULL,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
+      await conn.query(`CREATE TABLE IF NOT EXISTS menu_overrides (
+        item_id VARCHAR(64) PRIMARY KEY,
+        available TINYINT(1) NOT NULL DEFAULT 1,
+        price_override DECIMAL(10,2) NULL,
+        description_override TEXT NULL,
+        image_override TEXT NULL,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
       await conn.query(`CREATE TABLE IF NOT EXISTS counters (
@@ -206,11 +240,11 @@ if (USE_MYSQL) {
     async insertOrder(o) {
       const [r] = await mysqlPool.query(
         `INSERT INTO orders (order_number, customer_name, customer_phone, customer_email, order_type,
-          delivery_address, preferred_time, payment_method, items_json, subtotal, gst, qst, total, special_notes)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          delivery_address, preferred_time, payment_method, items_json, subtotal, gst, qst, total, special_notes, delivery_fee)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [o.order_number, o.customer_name, o.customer_phone, o.customer_email, o.order_type,
          o.delivery_address, o.preferred_time, o.payment_method, o.items_json,
-         o.subtotal, o.gst, o.qst, o.total, o.special_notes]
+         o.subtotal, o.gst, o.qst, o.total, o.special_notes, o.delivery_fee || 0]
       );
       await mysqlPool.query("INSERT INTO order_events (order_id, event, meta) VALUES (?, ?, ?)",
         [r.insertId, "created", "new"]);
@@ -252,6 +286,44 @@ if (USE_MYSQL) {
       try { await mysqlPool.query("INSERT INTO email_logs (recipient, subject, status, error) VALUES (?,?,?,?)",
         [recipient, subject, status, error || null]); }
       catch (e) { console.error("[email_log] insert failed", e.message); }
+    },
+    async getSettings() {
+      const [rows] = await mysqlPool.query("SELECT k, v FROM settings");
+      const out = {};
+      for (const r of rows) { try { out[r.k] = JSON.parse(r.v); } catch { out[r.k] = r.v; } }
+      return out;
+    },
+    async setSettings(obj) {
+      for (const [k, v] of Object.entries(obj)) {
+        await mysqlPool.query(
+          "INSERT INTO settings (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)",
+          [k, JSON.stringify(v)]
+        );
+      }
+    },
+    async getMenuOverrides() {
+      const [rows] = await mysqlPool.query("SELECT * FROM menu_overrides");
+      return rows.map((r) => ({
+        item_id: r.item_id,
+        available: r.available === 1 || r.available === true,
+        price_override: r.price_override != null ? Number(r.price_override) : null,
+        description_override: r.description_override,
+        image_override: r.image_override,
+      }));
+    },
+    async upsertMenuOverride(itemId, o) {
+      await mysqlPool.query(
+        `INSERT INTO menu_overrides (item_id, available, price_override, description_override, image_override)
+         VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE available = VALUES(available),
+           price_override = VALUES(price_override),
+           description_override = VALUES(description_override),
+           image_override = VALUES(image_override)`,
+        [itemId, o.available ? 1 : 0,
+         o.price_override == null ? null : Number(o.price_override),
+         o.description_override || null,
+         o.image_override || null]
+      );
     },
   };
 } else {
@@ -298,6 +370,18 @@ if (USE_MYSQL) {
     );
     CREATE TABLE IF NOT EXISTS counters (name TEXT PRIMARY KEY, value INTEGER NOT NULL);
     INSERT OR IGNORE INTO counters (name, value) VALUES ('order_number', 1000);
+    CREATE TABLE IF NOT EXISTS settings (
+      k TEXT PRIMARY KEY, v TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS menu_overrides (
+      item_id TEXT PRIMARY KEY,
+      available INTEGER NOT NULL DEFAULT 1,
+      price_override REAL,
+      description_override TEXT,
+      image_override TEXT,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
   // Best-effort migrations for existing dbs
   for (const col of [
@@ -305,6 +389,7 @@ if (USE_MYSQL) {
     "ALTER TABLE orders ADD COLUMN cancel_reason TEXT",
     "ALTER TABLE orders ADD COLUMN dispatched_at TEXT",
     "ALTER TABLE orders ADD COLUMN completed_at TEXT",
+    "ALTER TABLE orders ADD COLUMN delivery_fee REAL NOT NULL DEFAULT 0",
   ]) { try { sqliteDb.exec(col); } catch (_) {} }
   dbConnected = true;
 
@@ -323,11 +408,11 @@ if (USE_MYSQL) {
     async insertOrder(o) {
       const r = sqliteDb.prepare(
         `INSERT INTO orders (order_number, customer_name, customer_phone, customer_email, order_type,
-          delivery_address, preferred_time, payment_method, items_json, subtotal, gst, qst, total, special_notes)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+          delivery_address, preferred_time, payment_method, items_json, subtotal, gst, qst, total, special_notes, delivery_fee)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
       ).run(o.order_number, o.customer_name, o.customer_phone, o.customer_email, o.order_type,
         o.delivery_address, o.preferred_time, o.payment_method, o.items_json,
-        o.subtotal, o.gst, o.qst, o.total, o.special_notes);
+        o.subtotal, o.gst, o.qst, o.total, o.special_notes, o.delivery_fee || 0);
       sqliteDb.prepare("INSERT INTO order_events (order_id, event, meta) VALUES (?,?,?)")
         .run(r.lastInsertRowid, "created", "new");
       return r.lastInsertRowid;
@@ -368,6 +453,43 @@ if (USE_MYSQL) {
         .run(recipient, subject, status, error || null); }
       catch (e) { console.error("[email_log] insert failed", e.message); }
     },
+    async getSettings() {
+      const rows = sqliteDb.prepare("SELECT k, v FROM settings").all();
+      const out = {};
+      for (const r of rows) { try { out[r.k] = JSON.parse(r.v); } catch { out[r.k] = r.v; } }
+      return out;
+    },
+    async setSettings(obj) {
+      const stmt = sqliteDb.prepare(
+        "INSERT INTO settings (k, v, updated_at) VALUES (?, ?, datetime('now')) " +
+        "ON CONFLICT(k) DO UPDATE SET v = excluded.v, updated_at = datetime('now')"
+      );
+      for (const [k, v] of Object.entries(obj)) stmt.run(k, JSON.stringify(v));
+    },
+    async getMenuOverrides() {
+      return sqliteDb.prepare("SELECT * FROM menu_overrides").all().map((r) => ({
+        item_id: r.item_id,
+        available: r.available === 1,
+        price_override: r.price_override != null ? Number(r.price_override) : null,
+        description_override: r.description_override,
+        image_override: r.image_override,
+      }));
+    },
+    async upsertMenuOverride(itemId, o) {
+      sqliteDb.prepare(
+        `INSERT INTO menu_overrides (item_id, available, price_override, description_override, image_override, updated_at)
+         VALUES (?, ?, ?, ?, ?, datetime('now'))
+         ON CONFLICT(item_id) DO UPDATE SET
+           available = excluded.available,
+           price_override = excluded.price_override,
+           description_override = excluded.description_override,
+           image_override = excluded.image_override,
+           updated_at = datetime('now')`
+      ).run(itemId, o.available ? 1 : 0,
+        o.price_override == null ? null : Number(o.price_override),
+        o.description_override || null,
+        o.image_override || null);
+    },
   };
 }
 
@@ -380,6 +502,7 @@ function rowToOrder(row) {
     preferred_time: row.preferred_time, payment_method: row.payment_method,
     items: typeof row.items_json === "string" ? JSON.parse(row.items_json) : row.items_json,
     subtotal: Number(row.subtotal), gst: Number(row.gst), qst: Number(row.qst), total: Number(row.total),
+    delivery_fee: row.delivery_fee != null ? Number(row.delivery_fee) : 0,
     special_notes: row.special_notes,
     admin_notes: row.admin_notes || null,
     cancel_reason: row.cancel_reason || null,
@@ -387,6 +510,41 @@ function rowToOrder(row) {
     completed_at: row.completed_at instanceof Date ? row.completed_at.toISOString() : (row.completed_at || null),
     created_at: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
   };
+}
+
+// =====================================================================
+// Settings cache — refreshed on every PATCH, fetched on boot
+// =====================================================================
+let SETTINGS = { ...DEFAULT_SETTINGS };
+async function loadSettings() {
+  try {
+    const stored = await dbApi.getSettings();
+    SETTINGS = { ...DEFAULT_SETTINGS, ...stored };
+  } catch (e) { console.warn("[settings] load failed", e.message); }
+}
+function publicSettings() {
+  // Exposed to unauthenticated frontend — safe subset
+  return {
+    is_open: !!SETTINGS.is_open,
+    orders_paused: !!SETTINGS.orders_paused,
+    pickup_enabled: !!SETTINGS.pickup_enabled,
+    delivery_enabled: !!SETTINGS.delivery_enabled,
+    est_pickup_min: Number(SETTINGS.est_pickup_min) || 0,
+    est_delivery_min: Number(SETTINGS.est_delivery_min) || 0,
+    min_order: Number(SETTINGS.min_order) || 0,
+    delivery_fee: Number(SETTINGS.delivery_fee) || 0,
+    free_delivery_threshold: Number(SETTINGS.free_delivery_threshold) || 0,
+    gst_rate: Number(SETTINGS.gst_rate) || 0,
+    qst_rate: Number(SETTINGS.qst_rate) || 0,
+    restaurant_phone: String(SETTINGS.restaurant_phone || ""),
+    closed_message: String(SETTINGS.closed_message || ""),
+  };
+}
+function computeDeliveryFee(orderType, subtotal) {
+  if (orderType !== "delivery") return 0;
+  const free = Number(SETTINGS.free_delivery_threshold) || 0;
+  if (free > 0 && subtotal >= free) return 0;
+  return Number(SETTINGS.delivery_fee) || 0;
 }
 
 // =====================================================================
@@ -514,31 +672,104 @@ app.get("/api/health", async (_req, res) => {
   });
 });
 
+// ---- Settings (public read) ----
+app.get("/api/settings", (_req, res) => {
+  res.json({ settings: publicSettings() });
+});
+
+// ---- Settings (admin read full + update) ----
+app.get("/api/admin/settings", requireAdmin, (_req, res) => {
+  res.json({ settings: { ...DEFAULT_SETTINGS, ...SETTINGS } });
+});
+app.patch("/api/admin/settings", requireAdmin, async (req, res) => {
+  try {
+    const incoming = req.body || {};
+    const allowedKeys = Object.keys(DEFAULT_SETTINGS);
+    const out = {};
+    for (const k of allowedKeys) {
+      if (!(k in incoming)) continue;
+      const v = incoming[k];
+      if (typeof DEFAULT_SETTINGS[k] === "boolean") out[k] = Boolean(v);
+      else if (typeof DEFAULT_SETTINGS[k] === "number") out[k] = Math.max(0, Number(v) || 0);
+      else out[k] = clean(String(v ?? ""), 500);
+    }
+    await dbApi.setSettings(out);
+    SETTINGS = { ...SETTINGS, ...out };
+    res.json({ ok: true, settings: { ...DEFAULT_SETTINGS, ...SETTINGS } });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+
+// ---- Menu overrides ----
+app.get("/api/menu/overrides", async (_req, res) => {
+  try { res.json({ overrides: await dbApi.getMenuOverrides() }); }
+  catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.put("/api/admin/menu/:itemId", requireAdmin, async (req, res) => {
+  try {
+    const itemId = clean(req.params.itemId, 64);
+    if (!itemId) return res.status(400).json({ error: "itemId requis" });
+    const b = req.body || {};
+    await dbApi.upsertMenuOverride(itemId, {
+      available: b.available !== false,
+      price_override: b.price_override === "" || b.price_override == null ? null : Number(b.price_override),
+      description_override: clean(b.description_override, 800) || null,
+      image_override: clean(b.image_override, 500) || null,
+    });
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+
 // ---- Create order ----
 app.post("/api/orders", orderLimiter, async (req, res) => {
   try {
     const b = req.body || {};
     const c = b.customer || {};
     const name = clean(c.name, 160), phone = clean(c.phone, 40), email = clean(c.email, 200);
+
+    // Enforce restaurant settings
+    if (!SETTINGS.is_open) return res.status(409).json({ error: SETTINGS.closed_message || "Restaurant fermé" });
+    if (SETTINGS.orders_paused) return res.status(409).json({ error: "Les commandes sont temporairement suspendues. Merci de réessayer dans quelques minutes." });
+
     if (!name || !phone) return res.status(400).json({ error: "Nom et téléphone requis" });
     if (!["pickup", "delivery"].includes(b.orderType)) return res.status(400).json({ error: "Type invalide" });
+    if (b.orderType === "pickup" && !SETTINGS.pickup_enabled) return res.status(409).json({ error: "Le ramassage n'est pas disponible actuellement." });
+    if (b.orderType === "delivery" && !SETTINGS.delivery_enabled) return res.status(409).json({ error: "La livraison n'est pas disponible actuellement." });
     if (b.orderType === "delivery" && !clean(b.deliveryAddress, 500)) return res.status(400).json({ error: "Adresse requise" });
     if (!Array.isArray(b.items) || b.items.length === 0) return res.status(400).json({ error: "Panier vide" });
     if (b.items.length > 100) return res.status(400).json({ error: "Trop d'articles" });
 
-    // Sanitize items
-    const items = b.items.map((it) => ({
-      itemId: clean(it.itemId, 64),
-      name: clean(it.name, 160),
-      unitPrice: Number(it.unitPrice) || 0,
-      quantity: Math.max(1, Math.min(99, parseInt(it.quantity, 10) || 1)),
-      options: Array.isArray(it.options) ? it.options.slice(0, 20).map((o) => ({
-        groupLabel: clean(o.groupLabel, 80),
-        values: Array.isArray(o.values) ? o.values.slice(0, 20).map((v) => clean(v, 80)) : [],
-      })) : [],
-      combo: Boolean(it.combo),
-      notes: clean(it.notes, 300),
-    }));
+    // Sanitize items and recompute totals server-side
+    const overrides = await dbApi.getMenuOverrides();
+    const ovMap = new Map(overrides.map((o) => [o.item_id, o]));
+    const items = b.items.map((it) => {
+      const itemId = clean(it.itemId, 64);
+      const ov = ovMap.get(itemId);
+      if (ov && ov.available === false) {
+        const err = new Error(`Article indisponible : ${clean(it.name, 80)}`);
+        err.statusCode = 409; throw err;
+      }
+      return {
+        itemId,
+        name: clean(it.name, 160),
+        unitPrice: Number(it.unitPrice) || 0,
+        quantity: Math.max(1, Math.min(99, parseInt(it.quantity, 10) || 1)),
+        options: Array.isArray(it.options) ? it.options.slice(0, 20).map((o) => ({
+          groupLabel: clean(o.groupLabel, 80),
+          values: Array.isArray(o.values) ? o.values.slice(0, 20).map((v) => clean(v, 80)) : [],
+        })) : [],
+        combo: Boolean(it.combo),
+        notes: clean(it.notes, 300),
+      };
+    });
+
+    const subtotal = +items.reduce((s, i) => s + i.unitPrice * i.quantity, 0).toFixed(2);
+    if (subtotal < (Number(SETTINGS.min_order) || 0)) {
+      return res.status(409).json({ error: `Minimum de commande : ${fmtMoney(SETTINGS.min_order)}` });
+    }
+    const deliveryFee = computeDeliveryFee(b.orderType, subtotal);
+    const gst = +(subtotal * (Number(SETTINGS.gst_rate) || 0)).toFixed(2);
+    const qst = +(subtotal * (Number(SETTINGS.qst_rate) || 0)).toFixed(2);
+    const total = +(subtotal + gst + qst + deliveryFee).toFixed(2);
 
     const orderNumber = await dbApi.nextOrderNumber();
     const id = await dbApi.insertOrder({
@@ -549,13 +780,15 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
       preferred_time: clean(b.preferredTime, 60) || "ASAP",
       payment_method: clean(b.paymentMethod, 40) || "pay_at_restaurant",
       items_json: JSON.stringify(items),
-      subtotal: Number(b.subtotal || 0), gst: Number(b.gst || 0), qst: Number(b.qst || 0), total: Number(b.total || 0),
+      subtotal, gst, qst, total, delivery_fee: deliveryFee,
       special_notes: clean(b.specialNotes, 500) || null,
     });
     const order = rowToOrder(await dbApi.getOrderById(id));
     sendOrderEmail(order).catch((e) => console.error("[mail] async", e.message));
     res.json({ orderNumber, id });
   } catch (err) {
+    const code = err && err.statusCode ? err.statusCode : 500;
+    if (code !== 500) return res.status(code).json({ error: err.message });
     console.error("[orders] create failed", err);
     res.status(500).json({ error: "Impossible de créer la commande" });
   }
@@ -595,11 +828,11 @@ app.get("/api/orders.csv", requireAdmin, async (req, res) => {
       from: req.query.from, to: req.query.to, limit: 5000,
     });
     const orders = rows.map(rowToOrder);
-    const header = ["order_number","created_at","status","order_type","customer_name","customer_phone","customer_email","delivery_address","preferred_time","payment_method","subtotal","gst","qst","total","items","special_notes","admin_notes","cancel_reason","dispatched_at","completed_at"];
+    const header = ["order_number","created_at","status","order_type","customer_name","customer_phone","customer_email","delivery_address","preferred_time","payment_method","subtotal","gst","qst","delivery_fee","total","items","special_notes","admin_notes","cancel_reason","dispatched_at","completed_at"];
     const lines = [header.join(",")];
     for (const o of orders) {
       const items = o.items.map((i) => `${i.quantity}x ${i.name}`).join(" | ");
-      lines.push([o.order_number,o.created_at,o.status,o.order_type,o.customer_name,o.customer_phone,o.customer_email||"",o.delivery_address||"",o.preferred_time,o.payment_method,o.subtotal,o.gst,o.qst,o.total,items,o.special_notes||"",o.admin_notes||"",o.cancel_reason||"",o.dispatched_at||"",o.completed_at||""].map(csvCell).join(","));
+      lines.push([o.order_number,o.created_at,o.status,o.order_type,o.customer_name,o.customer_phone,o.customer_email||"",o.delivery_address||"",o.preferred_time,o.payment_method,o.subtotal,o.gst,o.qst,o.delivery_fee||0,o.total,items,o.special_notes||"",o.admin_notes||"",o.cancel_reason||"",o.dispatched_at||"",o.completed_at||""].map(csvCell).join(","));
     }
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="orders-${new Date().toISOString().slice(0,10)}.csv"`);
@@ -663,6 +896,7 @@ app.use((err, _req, res, _next) => {
 let server;
 (async () => {
   try { await dbApi.init(); } catch (e) { console.error("[db] init failed", e); process.exit(1); }
+  await loadSettings();
   getTransporter(); // warm + verify SMTP
   server = app.listen(PORT, () => {
     const smtpConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);

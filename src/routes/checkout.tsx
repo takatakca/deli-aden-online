@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCart, cartStore, computeTotals, fmt } from "@/lib/cart-store";
-import { api } from "@/lib/api";
+import { api, type PublicSettings } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,19 +25,53 @@ export const Route = createFileRoute("/checkout")({
 
 function CheckoutPage() {
   const cart = useCart();
-  const totals = computeTotals(cart);
+  const baseTotals = computeTotals(cart);
   const navigate = useNavigate();
+
+  const [settings, setSettings] = useState<PublicSettings | null>(null);
+  useEffect(() => {
+    api.getSettings().then((r) => setSettings(r.settings)).catch(() => setSettings(null));
+  }, []);
+
+  const allowPickup = settings?.pickup_enabled !== false;
+  const allowDelivery = settings?.delivery_enabled !== false;
+  const closed = settings ? !settings.is_open : false;
+  const paused = settings?.orders_paused === true;
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [orderType, setOrderType] = useState<"pickup" | "delivery">("pickup");
+  const [orderType, setOrderType] = useState<"pickup" | "delivery">(allowPickup ? "pickup" : "delivery");
   const [address, setAddress] = useState("");
   const [time, setTime] = useState("ASAP");
   const [scheduledTime, setScheduledTime] = useState("");
   const [payment, setPayment] = useState<"pay_at_restaurant" | "cash" | "card_on_arrival">("pay_at_restaurant");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!settings) return;
+    if (orderType === "pickup" && !allowPickup && allowDelivery) setOrderType("delivery");
+    if (orderType === "delivery" && !allowDelivery && allowPickup) setOrderType("pickup");
+  }, [settings, allowPickup, allowDelivery, orderType]);
+
+  const deliveryFee = useMemo(() => {
+    if (!settings || orderType !== "delivery") return 0;
+    if (settings.free_delivery_threshold > 0 && baseTotals.subtotal >= settings.free_delivery_threshold) return 0;
+    return settings.delivery_fee || 0;
+  }, [settings, orderType, baseTotals.subtotal]);
+
+  const totals = useMemo(() => ({
+    ...baseTotals,
+    total: +(baseTotals.total + deliveryFee).toFixed(2),
+  }), [baseTotals, deliveryFee]);
+
+  const minOrder = settings?.min_order || 0;
+  const belowMin = minOrder > 0 && baseTotals.subtotal < minOrder;
+  const estimatedMin = orderType === "delivery"
+    ? (settings?.est_delivery_min || 0)
+    : (settings?.est_pickup_min || 0);
+
 
   if (cart.length === 0) {
     return (
@@ -95,6 +129,23 @@ function CheckoutPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
       <h1 className="mb-6 font-display text-3xl font-bold">Finaliser la commande</h1>
+
+      {closed && (
+        <div className="mb-6 rounded-2xl border border-destructive bg-destructive/10 p-4 text-destructive">
+          <strong>Restaurant fermé.</strong> {settings?.closed_message}
+        </div>
+      )}
+      {!closed && paused && (
+        <div className="mb-6 rounded-2xl border border-amber-500 bg-amber-50 p-4 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          <strong>Commandes temporairement suspendues.</strong> Merci de réessayer dans quelques minutes.
+        </div>
+      )}
+      {!closed && !paused && estimatedMin > 0 && (
+        <div className="mb-6 rounded-2xl border border-border bg-secondary/50 p-3 text-sm">
+          Temps estimé : <strong>~{estimatedMin} min</strong> ({orderType === "delivery" ? "livraison" : "ramassage"})
+        </div>
+      )}
+
       <form onSubmit={onSubmit} className="grid gap-8 md:grid-cols-[1fr_360px]">
         <div className="space-y-6">
           <Section title="Vos coordonnées">
@@ -105,8 +156,8 @@ function CheckoutPage() {
 
           <Section title="Mode de récupération">
             <RadioGroup value={orderType} onValueChange={(v) => setOrderType(v as "pickup" | "delivery")} className="grid grid-cols-2 gap-3">
-              <RadioCard value="pickup" current={orderType} label="Ramassage" desc="Récupérer au restaurant" />
-              <RadioCard value="delivery" current={orderType} label="Livraison" desc="Livré à votre adresse" />
+              {allowPickup && <RadioCard value="pickup" current={orderType} label="Ramassage" desc="Récupérer au restaurant" />}
+              {allowDelivery && <RadioCard value="delivery" current={orderType} label="Livraison" desc="Livré à votre adresse" />}
             </RadioGroup>
             {orderType === "delivery" && (
               <Field label="Adresse de livraison *">
@@ -151,15 +202,26 @@ function CheckoutPage() {
             ))}
           </ul>
           <dl className="mt-4 space-y-1.5 border-t border-border pt-4 text-sm">
-            <div className="flex justify-between"><dt className="text-muted-foreground">Sous-total</dt><dd>{fmt(totals.subtotal)}</dd></div>
-            <div className="flex justify-between"><dt className="text-muted-foreground">TPS (5%)</dt><dd>{fmt(totals.gst)}</dd></div>
-            <div className="flex justify-between"><dt className="text-muted-foreground">TVQ (9.975%)</dt><dd>{fmt(totals.qst)}</dd></div>
+            <div className="flex justify-between"><dt className="text-muted-foreground">Sous-total</dt><dd>{fmt(baseTotals.subtotal)}</dd></div>
+            <div className="flex justify-between"><dt className="text-muted-foreground">TPS</dt><dd>{fmt(baseTotals.gst)}</dd></div>
+            <div className="flex justify-between"><dt className="text-muted-foreground">TVQ</dt><dd>{fmt(baseTotals.qst)}</dd></div>
+            {orderType === "delivery" && (
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Livraison</dt>
+                <dd>{deliveryFee === 0 ? "Gratuit" : fmt(deliveryFee)}</dd>
+              </div>
+            )}
             <div className="mt-2 flex justify-between border-t border-border pt-2 text-base font-bold">
               <dt>Total</dt><dd className="text-primary">{fmt(totals.total)}</dd>
             </div>
           </dl>
-          <Button type="submit" size="lg" className="mt-5 w-full" disabled={loading}>
-            {loading ? "Envoi..." : "Confirmer la commande"}
+          {belowMin && (
+            <p className="mt-3 text-xs text-destructive">
+              Minimum de commande : {fmt(minOrder)}. Ajoutez {fmt(minOrder - baseTotals.subtotal)} pour continuer.
+            </p>
+          )}
+          <Button type="submit" size="lg" className="mt-5 w-full" disabled={loading || closed || paused || belowMin}>
+            {closed ? "Fermé" : paused ? "Suspendu" : loading ? "Envoi..." : "Confirmer la commande"}
           </Button>
         </aside>
       </form>
