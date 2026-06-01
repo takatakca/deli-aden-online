@@ -370,6 +370,18 @@ if (USE_MYSQL) {
     );
     CREATE TABLE IF NOT EXISTS counters (name TEXT PRIMARY KEY, value INTEGER NOT NULL);
     INSERT OR IGNORE INTO counters (name, value) VALUES ('order_number', 1000);
+    CREATE TABLE IF NOT EXISTS settings (
+      k TEXT PRIMARY KEY, v TEXT NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS menu_overrides (
+      item_id TEXT PRIMARY KEY,
+      available INTEGER NOT NULL DEFAULT 1,
+      price_override REAL,
+      description_override TEXT,
+      image_override TEXT,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
   `);
   // Best-effort migrations for existing dbs
   for (const col of [
@@ -377,6 +389,7 @@ if (USE_MYSQL) {
     "ALTER TABLE orders ADD COLUMN cancel_reason TEXT",
     "ALTER TABLE orders ADD COLUMN dispatched_at TEXT",
     "ALTER TABLE orders ADD COLUMN completed_at TEXT",
+    "ALTER TABLE orders ADD COLUMN delivery_fee REAL NOT NULL DEFAULT 0",
   ]) { try { sqliteDb.exec(col); } catch (_) {} }
   dbConnected = true;
 
