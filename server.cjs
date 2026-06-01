@@ -672,31 +672,104 @@ app.get("/api/health", async (_req, res) => {
   });
 });
 
+// ---- Settings (public read) ----
+app.get("/api/settings", (_req, res) => {
+  res.json({ settings: publicSettings() });
+});
+
+// ---- Settings (admin read full + update) ----
+app.get("/api/admin/settings", requireAdmin, (_req, res) => {
+  res.json({ settings: { ...DEFAULT_SETTINGS, ...SETTINGS } });
+});
+app.patch("/api/admin/settings", requireAdmin, async (req, res) => {
+  try {
+    const incoming = req.body || {};
+    const allowedKeys = Object.keys(DEFAULT_SETTINGS);
+    const out = {};
+    for (const k of allowedKeys) {
+      if (!(k in incoming)) continue;
+      const v = incoming[k];
+      if (typeof DEFAULT_SETTINGS[k] === "boolean") out[k] = Boolean(v);
+      else if (typeof DEFAULT_SETTINGS[k] === "number") out[k] = Math.max(0, Number(v) || 0);
+      else out[k] = clean(String(v ?? ""), 500);
+    }
+    await dbApi.setSettings(out);
+    SETTINGS = { ...SETTINGS, ...out };
+    res.json({ ok: true, settings: { ...DEFAULT_SETTINGS, ...SETTINGS } });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+
+// ---- Menu overrides ----
+app.get("/api/menu/overrides", async (_req, res) => {
+  try { res.json({ overrides: await dbApi.getMenuOverrides() }); }
+  catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.put("/api/admin/menu/:itemId", requireAdmin, async (req, res) => {
+  try {
+    const itemId = clean(req.params.itemId, 64);
+    if (!itemId) return res.status(400).json({ error: "itemId requis" });
+    const b = req.body || {};
+    await dbApi.upsertMenuOverride(itemId, {
+      available: b.available !== false,
+      price_override: b.price_override === "" || b.price_override == null ? null : Number(b.price_override),
+      description_override: clean(b.description_override, 800) || null,
+      image_override: clean(b.image_override, 500) || null,
+    });
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+
 // ---- Create order ----
 app.post("/api/orders", orderLimiter, async (req, res) => {
   try {
     const b = req.body || {};
     const c = b.customer || {};
     const name = clean(c.name, 160), phone = clean(c.phone, 40), email = clean(c.email, 200);
+
+    // Enforce restaurant settings
+    if (!SETTINGS.is_open) return res.status(409).json({ error: SETTINGS.closed_message || "Restaurant fermé" });
+    if (SETTINGS.orders_paused) return res.status(409).json({ error: "Les commandes sont temporairement suspendues. Merci de réessayer dans quelques minutes." });
+
     if (!name || !phone) return res.status(400).json({ error: "Nom et téléphone requis" });
     if (!["pickup", "delivery"].includes(b.orderType)) return res.status(400).json({ error: "Type invalide" });
+    if (b.orderType === "pickup" && !SETTINGS.pickup_enabled) return res.status(409).json({ error: "Le ramassage n'est pas disponible actuellement." });
+    if (b.orderType === "delivery" && !SETTINGS.delivery_enabled) return res.status(409).json({ error: "La livraison n'est pas disponible actuellement." });
     if (b.orderType === "delivery" && !clean(b.deliveryAddress, 500)) return res.status(400).json({ error: "Adresse requise" });
     if (!Array.isArray(b.items) || b.items.length === 0) return res.status(400).json({ error: "Panier vide" });
     if (b.items.length > 100) return res.status(400).json({ error: "Trop d'articles" });
 
-    // Sanitize items
-    const items = b.items.map((it) => ({
-      itemId: clean(it.itemId, 64),
-      name: clean(it.name, 160),
-      unitPrice: Number(it.unitPrice) || 0,
-      quantity: Math.max(1, Math.min(99, parseInt(it.quantity, 10) || 1)),
-      options: Array.isArray(it.options) ? it.options.slice(0, 20).map((o) => ({
-        groupLabel: clean(o.groupLabel, 80),
-        values: Array.isArray(o.values) ? o.values.slice(0, 20).map((v) => clean(v, 80)) : [],
-      })) : [],
-      combo: Boolean(it.combo),
-      notes: clean(it.notes, 300),
-    }));
+    // Sanitize items and recompute totals server-side
+    const overrides = await dbApi.getMenuOverrides();
+    const ovMap = new Map(overrides.map((o) => [o.item_id, o]));
+    const items = b.items.map((it) => {
+      const itemId = clean(it.itemId, 64);
+      const ov = ovMap.get(itemId);
+      if (ov && ov.available === false) {
+        const err = new Error(`Article indisponible : ${clean(it.name, 80)}`);
+        err.statusCode = 409; throw err;
+      }
+      return {
+        itemId,
+        name: clean(it.name, 160),
+        unitPrice: Number(it.unitPrice) || 0,
+        quantity: Math.max(1, Math.min(99, parseInt(it.quantity, 10) || 1)),
+        options: Array.isArray(it.options) ? it.options.slice(0, 20).map((o) => ({
+          groupLabel: clean(o.groupLabel, 80),
+          values: Array.isArray(o.values) ? o.values.slice(0, 20).map((v) => clean(v, 80)) : [],
+        })) : [],
+        combo: Boolean(it.combo),
+        notes: clean(it.notes, 300),
+      };
+    });
+
+    const subtotal = +items.reduce((s, i) => s + i.unitPrice * i.quantity, 0).toFixed(2);
+    if (subtotal < (Number(SETTINGS.min_order) || 0)) {
+      return res.status(409).json({ error: `Minimum de commande : ${fmtMoney(SETTINGS.min_order)}` });
+    }
+    const deliveryFee = computeDeliveryFee(b.orderType, subtotal);
+    const gst = +(subtotal * (Number(SETTINGS.gst_rate) || 0)).toFixed(2);
+    const qst = +(subtotal * (Number(SETTINGS.qst_rate) || 0)).toFixed(2);
+    const total = +(subtotal + gst + qst + deliveryFee).toFixed(2);
 
     const orderNumber = await dbApi.nextOrderNumber();
     const id = await dbApi.insertOrder({
@@ -707,13 +780,15 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
       preferred_time: clean(b.preferredTime, 60) || "ASAP",
       payment_method: clean(b.paymentMethod, 40) || "pay_at_restaurant",
       items_json: JSON.stringify(items),
-      subtotal: Number(b.subtotal || 0), gst: Number(b.gst || 0), qst: Number(b.qst || 0), total: Number(b.total || 0),
+      subtotal, gst, qst, total, delivery_fee: deliveryFee,
       special_notes: clean(b.specialNotes, 500) || null,
     });
     const order = rowToOrder(await dbApi.getOrderById(id));
     sendOrderEmail(order).catch((e) => console.error("[mail] async", e.message));
     res.json({ orderNumber, id });
   } catch (err) {
+    const code = err && err.statusCode ? err.statusCode : 500;
+    if (code !== 500) return res.status(code).json({ error: err.message });
     console.error("[orders] create failed", err);
     res.status(500).json({ error: "Impossible de créer la commande" });
   }
