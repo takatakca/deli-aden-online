@@ -453,6 +453,43 @@ if (USE_MYSQL) {
         .run(recipient, subject, status, error || null); }
       catch (e) { console.error("[email_log] insert failed", e.message); }
     },
+    async getSettings() {
+      const rows = sqliteDb.prepare("SELECT k, v FROM settings").all();
+      const out = {};
+      for (const r of rows) { try { out[r.k] = JSON.parse(r.v); } catch { out[r.k] = r.v; } }
+      return out;
+    },
+    async setSettings(obj) {
+      const stmt = sqliteDb.prepare(
+        "INSERT INTO settings (k, v, updated_at) VALUES (?, ?, datetime('now')) " +
+        "ON CONFLICT(k) DO UPDATE SET v = excluded.v, updated_at = datetime('now')"
+      );
+      for (const [k, v] of Object.entries(obj)) stmt.run(k, JSON.stringify(v));
+    },
+    async getMenuOverrides() {
+      return sqliteDb.prepare("SELECT * FROM menu_overrides").all().map((r) => ({
+        item_id: r.item_id,
+        available: r.available === 1,
+        price_override: r.price_override != null ? Number(r.price_override) : null,
+        description_override: r.description_override,
+        image_override: r.image_override,
+      }));
+    },
+    async upsertMenuOverride(itemId, o) {
+      sqliteDb.prepare(
+        `INSERT INTO menu_overrides (item_id, available, price_override, description_override, image_override, updated_at)
+         VALUES (?, ?, ?, ?, ?, datetime('now'))
+         ON CONFLICT(item_id) DO UPDATE SET
+           available = excluded.available,
+           price_override = excluded.price_override,
+           description_override = excluded.description_override,
+           image_override = excluded.image_override,
+           updated_at = datetime('now')`
+      ).run(itemId, o.available ? 1 : 0,
+        o.price_override == null ? null : Number(o.price_override),
+        o.description_override || null,
+        o.image_override || null);
+    },
   };
 }
 
