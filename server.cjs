@@ -896,6 +896,7 @@ app.use((err, _req, res, _next) => {
 let server;
 (async () => {
   try { await dbApi.init(); } catch (e) { console.error("[db] init failed", e); process.exit(1); }
+  await loadSettings();
   getTransporter(); // warm + verify SMTP
   server = app.listen(PORT, () => {
     const smtpConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
