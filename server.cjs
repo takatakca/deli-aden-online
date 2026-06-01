@@ -502,6 +502,7 @@ function rowToOrder(row) {
     preferred_time: row.preferred_time, payment_method: row.payment_method,
     items: typeof row.items_json === "string" ? JSON.parse(row.items_json) : row.items_json,
     subtotal: Number(row.subtotal), gst: Number(row.gst), qst: Number(row.qst), total: Number(row.total),
+    delivery_fee: row.delivery_fee != null ? Number(row.delivery_fee) : 0,
     special_notes: row.special_notes,
     admin_notes: row.admin_notes || null,
     cancel_reason: row.cancel_reason || null,
@@ -509,6 +510,41 @@ function rowToOrder(row) {
     completed_at: row.completed_at instanceof Date ? row.completed_at.toISOString() : (row.completed_at || null),
     created_at: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
   };
+}
+
+// =====================================================================
+// Settings cache — refreshed on every PATCH, fetched on boot
+// =====================================================================
+let SETTINGS = { ...DEFAULT_SETTINGS };
+async function loadSettings() {
+  try {
+    const stored = await dbApi.getSettings();
+    SETTINGS = { ...DEFAULT_SETTINGS, ...stored };
+  } catch (e) { console.warn("[settings] load failed", e.message); }
+}
+function publicSettings() {
+  // Exposed to unauthenticated frontend — safe subset
+  return {
+    is_open: !!SETTINGS.is_open,
+    orders_paused: !!SETTINGS.orders_paused,
+    pickup_enabled: !!SETTINGS.pickup_enabled,
+    delivery_enabled: !!SETTINGS.delivery_enabled,
+    est_pickup_min: Number(SETTINGS.est_pickup_min) || 0,
+    est_delivery_min: Number(SETTINGS.est_delivery_min) || 0,
+    min_order: Number(SETTINGS.min_order) || 0,
+    delivery_fee: Number(SETTINGS.delivery_fee) || 0,
+    free_delivery_threshold: Number(SETTINGS.free_delivery_threshold) || 0,
+    gst_rate: Number(SETTINGS.gst_rate) || 0,
+    qst_rate: Number(SETTINGS.qst_rate) || 0,
+    restaurant_phone: String(SETTINGS.restaurant_phone || ""),
+    closed_message: String(SETTINGS.closed_message || ""),
+  };
+}
+function computeDeliveryFee(orderType, subtotal) {
+  if (orderType !== "delivery") return 0;
+  const free = Number(SETTINGS.free_delivery_threshold) || 0;
+  if (free > 0 && subtotal >= free) return 0;
+  return Number(SETTINGS.delivery_fee) || 0;
 }
 
 // =====================================================================
