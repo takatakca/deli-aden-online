@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCart, cartStore, computeTotals, fmt } from "@/lib/cart-store";
-import { api } from "@/lib/api";
+import { api, type PublicSettings } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,8 +25,19 @@ export const Route = createFileRoute("/checkout")({
 
 function CheckoutPage() {
   const cart = useCart();
-  const totals = computeTotals(cart);
+  const baseTotals = computeTotals(cart);
   const navigate = useNavigate();
+
+  const [settings, setSettings] = useState<PublicSettings | null>(null);
+  useEffect(() => {
+    api.getSettings().then((r) => setSettings(r.settings)).catch(() => setSettings(null));
+  }, []);
+
+  const allowPickup = settings?.pickup_enabled !== false;
+  const allowDelivery = settings?.delivery_enabled !== false;
+  const closed = settings ? !settings.is_open : false;
+  const paused = settings?.orders_paused === true;
+
 
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
