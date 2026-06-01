@@ -177,7 +177,6 @@ export type OrderEvent = {
   event: string;
   meta: string | null;
   created_at: string;
-  created_at: string;
 };
 
 export type PublicSettings = {
