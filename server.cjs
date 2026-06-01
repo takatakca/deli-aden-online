@@ -30,8 +30,26 @@ const EFFECTIVE_ADMIN_PASSWORD = ADMIN_PASSWORD || "deli-aden-admin";
 
 const RESTAURANT_EMAIL = process.env.RESTAURANT_EMAIL || "orders@deliaden.ca";
 const FROM_EMAIL = process.env.FROM_EMAIL || "notify@deliaden.ca";
+const RESTAURANT_PHONE = process.env.RESTAURANT_PHONE || "";
 const USE_MYSQL = Boolean(process.env.DB_HOST);
 const STARTED_AT = Date.now();
+
+// Default restaurant operations settings (overridable via DB)
+const DEFAULT_SETTINGS = {
+  is_open: true,
+  orders_paused: false,
+  pickup_enabled: true,
+  delivery_enabled: true,
+  est_pickup_min: 20,
+  est_delivery_min: 45,
+  min_order: 0,
+  delivery_fee: 5,
+  free_delivery_threshold: 0,
+  gst_rate: 0.05,
+  qst_rate: 0.09975,
+  restaurant_phone: RESTAURANT_PHONE,
+  closed_message: "Le restaurant est actuellement fermé. Merci de revenir pendant les heures d'ouverture.",
+};
 
 // =====================================================================
 // Helpers — sanitization, escaping, CSV injection guard
