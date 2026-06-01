@@ -163,6 +163,7 @@ export type AdminOrder = {
   gst: number;
   qst: number;
   total: number;
+  delivery_fee?: number;
   special_notes: string | null;
   admin_notes: string | null;
   cancel_reason: string | null;
