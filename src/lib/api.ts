@@ -177,4 +177,29 @@ export type OrderEvent = {
   event: string;
   meta: string | null;
   created_at: string;
+  created_at: string;
+};
+
+export type PublicSettings = {
+  is_open: boolean;
+  orders_paused: boolean;
+  pickup_enabled: boolean;
+  delivery_enabled: boolean;
+  est_pickup_min: number;
+  est_delivery_min: number;
+  min_order: number;
+  delivery_fee: number;
+  free_delivery_threshold: number;
+  gst_rate: number;
+  qst_rate: number;
+  restaurant_phone: string;
+  closed_message: string;
+};
+
+export type MenuOverride = {
+  item_id: string;
+  available: boolean;
+  price_override: number | null;
+  description_override: string | null;
+  image_override: string | null;
 };
