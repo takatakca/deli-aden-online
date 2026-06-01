@@ -828,11 +828,11 @@ app.get("/api/orders.csv", requireAdmin, async (req, res) => {
       from: req.query.from, to: req.query.to, limit: 5000,
     });
     const orders = rows.map(rowToOrder);
-    const header = ["order_number","created_at","status","order_type","customer_name","customer_phone","customer_email","delivery_address","preferred_time","payment_method","subtotal","gst","qst","total","items","special_notes","admin_notes","cancel_reason","dispatched_at","completed_at"];
+    const header = ["order_number","created_at","status","order_type","customer_name","customer_phone","customer_email","delivery_address","preferred_time","payment_method","subtotal","gst","qst","delivery_fee","total","items","special_notes","admin_notes","cancel_reason","dispatched_at","completed_at"];
     const lines = [header.join(",")];
     for (const o of orders) {
       const items = o.items.map((i) => `${i.quantity}x ${i.name}`).join(" | ");
-      lines.push([o.order_number,o.created_at,o.status,o.order_type,o.customer_name,o.customer_phone,o.customer_email||"",o.delivery_address||"",o.preferred_time,o.payment_method,o.subtotal,o.gst,o.qst,o.total,items,o.special_notes||"",o.admin_notes||"",o.cancel_reason||"",o.dispatched_at||"",o.completed_at||""].map(csvCell).join(","));
+      lines.push([o.order_number,o.created_at,o.status,o.order_type,o.customer_name,o.customer_phone,o.customer_email||"",o.delivery_address||"",o.preferred_time,o.payment_method,o.subtotal,o.gst,o.qst,o.delivery_fee||0,o.total,items,o.special_notes||"",o.admin_notes||"",o.cancel_reason||"",o.dispatched_at||"",o.completed_at||""].map(csvCell).join(","));
     }
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="orders-${new Date().toISOString().slice(0,10)}.csv"`);
