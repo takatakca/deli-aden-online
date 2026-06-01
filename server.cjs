@@ -240,11 +240,11 @@ if (USE_MYSQL) {
     async insertOrder(o) {
       const [r] = await mysqlPool.query(
         `INSERT INTO orders (order_number, customer_name, customer_phone, customer_email, order_type,
-          delivery_address, preferred_time, payment_method, items_json, subtotal, gst, qst, total, special_notes)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          delivery_address, preferred_time, payment_method, items_json, subtotal, gst, qst, total, special_notes, delivery_fee)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [o.order_number, o.customer_name, o.customer_phone, o.customer_email, o.order_type,
          o.delivery_address, o.preferred_time, o.payment_method, o.items_json,
-         o.subtotal, o.gst, o.qst, o.total, o.special_notes]
+         o.subtotal, o.gst, o.qst, o.total, o.special_notes, o.delivery_fee || 0]
       );
       await mysqlPool.query("INSERT INTO order_events (order_id, event, meta) VALUES (?, ?, ?)",
         [r.insertId, "created", "new"]);
