@@ -53,6 +53,29 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 export const api = {
   health: () => request<{ ok: boolean; message: string }>("/api/health"),
 
+  getSettings: () => request<{ settings: PublicSettings }>("/api/settings"),
+
+  getMenuOverrides: () => request<{ overrides: MenuOverride[] }>("/api/menu/overrides"),
+
+  adminGetSettings: (password: string) =>
+    request<{ settings: PublicSettings }>("/api/admin/settings", {
+      headers: { "X-Admin-Password": password },
+    }),
+
+  adminUpdateSettings: (password: string, patch: Partial<PublicSettings>) =>
+    request<{ ok: true; settings: PublicSettings }>("/api/admin/settings", {
+      method: "PATCH",
+      headers: { "X-Admin-Password": password },
+      body: JSON.stringify(patch),
+    }),
+
+  adminUpsertMenuOverride: (password: string, itemId: string, o: Partial<MenuOverride>) =>
+    request<{ ok: true }>(`/api/admin/menu/${encodeURIComponent(itemId)}`, {
+      method: "PUT",
+      headers: { "X-Admin-Password": password },
+      body: JSON.stringify(o),
+    }),
+
   createOrder: (payload: CreateOrderPayload) =>
     request<{ orderNumber: string; id: number }>("/api/orders", {
       method: "POST",
