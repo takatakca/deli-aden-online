@@ -167,6 +167,7 @@ if (USE_MYSQL) {
         "ADD COLUMN cancel_reason TEXT",
         "ADD COLUMN dispatched_at DATETIME NULL",
         "ADD COLUMN completed_at DATETIME NULL",
+        "ADD COLUMN delivery_fee DECIMAL(10,2) NOT NULL DEFAULT 0",
       ]) {
         try { await conn.query(`ALTER TABLE orders ${col}`); } catch (_) { /* exists */ }
       }
@@ -194,6 +195,21 @@ if (USE_MYSQL) {
         status VARCHAR(20) NOT NULL, error TEXT,
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_email_status (status), INDEX idx_email_created (created_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
+      await conn.query(`CREATE TABLE IF NOT EXISTS settings (
+        k VARCHAR(64) PRIMARY KEY,
+        v LONGTEXT NOT NULL,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
+      await conn.query(`CREATE TABLE IF NOT EXISTS menu_overrides (
+        item_id VARCHAR(64) PRIMARY KEY,
+        available TINYINT(1) NOT NULL DEFAULT 1,
+        price_override DECIMAL(10,2) NULL,
+        description_override TEXT NULL,
+        image_override TEXT NULL,
+        updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
 
       await conn.query(`CREATE TABLE IF NOT EXISTS counters (
