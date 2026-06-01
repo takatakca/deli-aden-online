@@ -287,6 +287,44 @@ if (USE_MYSQL) {
         [recipient, subject, status, error || null]); }
       catch (e) { console.error("[email_log] insert failed", e.message); }
     },
+    async getSettings() {
+      const [rows] = await mysqlPool.query("SELECT k, v FROM settings");
+      const out = {};
+      for (const r of rows) { try { out[r.k] = JSON.parse(r.v); } catch { out[r.k] = r.v; } }
+      return out;
+    },
+    async setSettings(obj) {
+      for (const [k, v] of Object.entries(obj)) {
+        await mysqlPool.query(
+          "INSERT INTO settings (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)",
+          [k, JSON.stringify(v)]
+        );
+      }
+    },
+    async getMenuOverrides() {
+      const [rows] = await mysqlPool.query("SELECT * FROM menu_overrides");
+      return rows.map((r) => ({
+        item_id: r.item_id,
+        available: r.available === 1 || r.available === true,
+        price_override: r.price_override != null ? Number(r.price_override) : null,
+        description_override: r.description_override,
+        image_override: r.image_override,
+      }));
+    },
+    async upsertMenuOverride(itemId, o) {
+      await mysqlPool.query(
+        `INSERT INTO menu_overrides (item_id, available, price_override, description_override, image_override)
+         VALUES (?, ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE available = VALUES(available),
+           price_override = VALUES(price_override),
+           description_override = VALUES(description_override),
+           image_override = VALUES(image_override)`,
+        [itemId, o.available ? 1 : 0,
+         o.price_override == null ? null : Number(o.price_override),
+         o.description_override || null,
+         o.image_override || null]
+      );
+    },
   };
 } else {
   let Database;
