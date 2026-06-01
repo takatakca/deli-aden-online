@@ -38,17 +38,40 @@ function CheckoutPage() {
   const closed = settings ? !settings.is_open : false;
   const paused = settings?.orders_paused === true;
 
-
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [orderType, setOrderType] = useState<"pickup" | "delivery">("pickup");
+  const [orderType, setOrderType] = useState<"pickup" | "delivery">(allowPickup ? "pickup" : "delivery");
   const [address, setAddress] = useState("");
   const [time, setTime] = useState("ASAP");
   const [scheduledTime, setScheduledTime] = useState("");
   const [payment, setPayment] = useState<"pay_at_restaurant" | "cash" | "card_on_arrival">("pay_at_restaurant");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!settings) return;
+    if (orderType === "pickup" && !allowPickup && allowDelivery) setOrderType("delivery");
+    if (orderType === "delivery" && !allowDelivery && allowPickup) setOrderType("pickup");
+  }, [settings, allowPickup, allowDelivery, orderType]);
+
+  const deliveryFee = useMemo(() => {
+    if (!settings || orderType !== "delivery") return 0;
+    if (settings.free_delivery_threshold > 0 && baseTotals.subtotal >= settings.free_delivery_threshold) return 0;
+    return settings.delivery_fee || 0;
+  }, [settings, orderType, baseTotals.subtotal]);
+
+  const totals = useMemo(() => ({
+    ...baseTotals,
+    total: +(baseTotals.total + deliveryFee).toFixed(2),
+  }), [baseTotals, deliveryFee]);
+
+  const minOrder = settings?.min_order || 0;
+  const belowMin = minOrder > 0 && baseTotals.subtotal < minOrder;
+  const estimatedMin = orderType === "delivery"
+    ? (settings?.est_delivery_min || 0)
+    : (settings?.est_pickup_min || 0);
+
 
   if (cart.length === 0) {
     return (
