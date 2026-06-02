@@ -19,6 +19,7 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ConfirmationOrderNumberRouteImport } from './routes/confirmation.$orderNumber'
+import { Route as AdminKitchenRouteImport } from './routes/admin.kitchen'
 import { Route as AdminBoardRouteImport } from './routes/admin.board'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -71,6 +72,11 @@ const ConfirmationOrderNumberRoute = ConfirmationOrderNumberRouteImport.update({
   path: '/confirmation/$orderNumber',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminKitchenRoute = AdminKitchenRouteImport.update({
+  id: '/kitchen',
+  path: '/kitchen',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminBoardRoute = AdminBoardRouteImport.update({
   id: '/board',
   path: '/board',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/menu': typeof MenuRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/board': typeof AdminBoardRoute
+  '/admin/kitchen': typeof AdminKitchenRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -99,6 +106,7 @@ export interface FileRoutesByTo {
   '/menu': typeof MenuRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/board': typeof AdminBoardRoute
+  '/admin/kitchen': typeof AdminKitchenRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
   '/admin': typeof AdminIndexRoute
 }
@@ -113,6 +121,7 @@ export interface FileRoutesById {
   '/menu': typeof MenuRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/board': typeof AdminBoardRoute
+  '/admin/kitchen': typeof AdminKitchenRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/sitemap.xml'
     | '/admin/board'
+    | '/admin/kitchen'
     | '/confirmation/$orderNumber'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -140,6 +150,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/sitemap.xml'
     | '/admin/board'
+    | '/admin/kitchen'
     | '/confirmation/$orderNumber'
     | '/admin'
   id:
@@ -153,6 +164,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/sitemap.xml'
     | '/admin/board'
+    | '/admin/kitchen'
     | '/confirmation/$orderNumber'
     | '/admin/'
   fileRoutesById: FileRoutesById
@@ -241,6 +253,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfirmationOrderNumberRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/kitchen': {
+      id: '/admin/kitchen'
+      path: '/kitchen'
+      fullPath: '/admin/kitchen'
+      preLoaderRoute: typeof AdminKitchenRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/board': {
       id: '/admin/board'
       path: '/board'
@@ -253,11 +272,13 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminBoardRoute: typeof AdminBoardRoute
+  AdminKitchenRoute: typeof AdminKitchenRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBoardRoute: AdminBoardRoute,
+  AdminKitchenRoute: AdminKitchenRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
