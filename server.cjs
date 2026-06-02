@@ -352,6 +352,65 @@ if (USE_MYSQL) {
          o.image_override || null]
       );
     },
+    async listDrivers({ activeOnly = false } = {}) {
+      const sql = activeOnly ? "SELECT * FROM drivers WHERE active=1 ORDER BY name" : "SELECT * FROM drivers ORDER BY name";
+      const [r] = await mysqlPool.query(sql); return r;
+    },
+    async createDriver({ name, phone, active = true }) {
+      const [r] = await mysqlPool.query("INSERT INTO drivers (name, phone, active) VALUES (?,?,?)", [name, phone || null, active ? 1 : 0]);
+      return r.insertId;
+    },
+    async updateDriver(id, { name, phone, active }) {
+      const sets = []; const params = [];
+      if (name != null) { sets.push("name=?"); params.push(name); }
+      if (phone != null) { sets.push("phone=?"); params.push(phone); }
+      if (active != null) { sets.push("active=?"); params.push(active ? 1 : 0); }
+      if (!sets.length) return;
+      params.push(id);
+      await mysqlPool.query(`UPDATE drivers SET ${sets.join(",")} WHERE id=?`, params);
+    },
+    async deleteDriver(id) { await mysqlPool.query("DELETE FROM drivers WHERE id=?", [id]); },
+    async assignDriver(orderId, driverId, notes) {
+      const [r] = await mysqlPool.query("INSERT INTO driver_assignments (order_id, driver_id, notes) VALUES (?,?,?)", [orderId, driverId, notes || null]);
+      return r.insertId;
+    },
+    async markAssignmentDelivered(orderId) {
+      await mysqlPool.query("UPDATE driver_assignments SET delivered_at=CURRENT_TIMESTAMP WHERE order_id=? AND delivered_at IS NULL", [orderId]);
+    },
+    async listAssignments({ activeOnly = false } = {}) {
+      const where = activeOnly ? "WHERE a.delivered_at IS NULL" : "";
+      const [r] = await mysqlPool.query(`SELECT a.*, d.name AS driver_name, d.phone AS driver_phone, o.order_number, o.customer_name, o.customer_phone, o.delivery_address, o.total
+        FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id JOIN orders o ON o.id=a.order_id ${where} ORDER BY a.assigned_at DESC LIMIT 200`);
+      return r;
+    },
+    async getOrderAssignment(orderId) {
+      const [r] = await mysqlPool.query("SELECT a.*, d.name AS driver_name, d.phone AS driver_phone FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id WHERE a.order_id=? ORDER BY a.assigned_at DESC LIMIT 1", [orderId]);
+      return r[0] || null;
+    },
+    async metrics() {
+      const [byStatus] = await mysqlPool.query("SELECT status, COUNT(*) c FROM orders GROUP BY status");
+      const today = new Date(); today.setHours(0,0,0,0);
+      const weekStart = new Date(today); weekStart.setDate(weekStart.getDate() - 6);
+      const monthStart = new Date(today); monthStart.setDate(monthStart.getDate() - 29);
+      const fmtD = (d) => d.toISOString().slice(0,19).replace("T"," ");
+      const [revT] = await mysqlPool.query("SELECT COALESCE(SUM(total),0) s, COUNT(*) c FROM orders WHERE created_at >= ? AND status != 'cancelled'", [fmtD(today)]);
+      const [revW] = await mysqlPool.query("SELECT COALESCE(SUM(total),0) s FROM orders WHERE created_at >= ? AND status != 'cancelled'", [fmtD(weekStart)]);
+      const [revM] = await mysqlPool.query("SELECT COALESCE(SUM(total),0) s FROM orders WHERE created_at >= ? AND status != 'cancelled'", [fmtD(monthStart)]);
+      const [series] = await mysqlPool.query(
+        "SELECT DATE(created_at) d, COUNT(*) orders, COALESCE(SUM(total),0) revenue FROM orders WHERE created_at >= ? AND status != 'cancelled' GROUP BY DATE(created_at) ORDER BY d ASC",
+        [fmtD(new Date(Date.now() - 13*24*3600*1000))]
+      );
+      return {
+        by_status: Object.fromEntries(byStatus.map((r) => [r.status, Number(r.c)])),
+        today: { orders: Number(revT[0].c), revenue: Number(revT[0].s) },
+        week_revenue: Number(revW[0].s),
+        month_revenue: Number(revM[0].s),
+        series: series.map((r) => ({
+          date: r.d instanceof Date ? r.d.toISOString().slice(0,10) : String(r.d).slice(0,10),
+          orders: Number(r.orders), revenue: Number(r.revenue),
+        })),
+      };
+    },
   };
 } else {
   let Database;
