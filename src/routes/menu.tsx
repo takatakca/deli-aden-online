@@ -68,7 +68,7 @@ function MenuPage() {
       {/* Sticky tabs */}
       <nav className="sticky top-16 z-30 -mx-4 mb-6 overflow-x-auto border-y border-border bg-background/90 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-7xl gap-2">
-          {MENU.map((c) => (
+          {visibleMenu.map((c) => (
             <a
               key={c.id}
               href={`#${c.id}`}
@@ -81,7 +81,7 @@ function MenuPage() {
         </div>
       </nav>
 
-      {MENU.map((cat) => (
+      {visibleMenu.map((cat) => (
         <section key={cat.id} id={cat.id} className="scroll-mt-32 py-8">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -90,7 +90,7 @@ function MenuPage() {
             </div>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {cat.items.map((i) => <MenuItemCard key={i.id} item={i} />)}
+            {cat.items.map((i) => <MenuItemCard key={i.id} item={i} override={ovMap.get(i.id)} />)}
           </div>
         </section>
       ))}
