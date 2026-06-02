@@ -18,6 +18,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as TrackOrderNumberRouteImport } from './routes/track.$orderNumber'
 import { Route as ConfirmationOrderNumberRouteImport } from './routes/confirmation.$orderNumber'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminMetricsRouteImport } from './routes/admin.metrics'
@@ -71,6 +72,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const TrackOrderNumberRoute = TrackOrderNumberRouteImport.update({
+  id: '/track/$orderNumber',
+  path: '/track/$orderNumber',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConfirmationOrderNumberRoute = ConfirmationOrderNumberRouteImport.update({
   id: '/confirmation/$orderNumber',
   path: '/confirmation/$orderNumber',
@@ -123,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/admin/metrics': typeof AdminMetricsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
+  '/track/$orderNumber': typeof TrackOrderNumberRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
@@ -140,6 +147,7 @@ export interface FileRoutesByTo {
   '/admin/metrics': typeof AdminMetricsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
+  '/track/$orderNumber': typeof TrackOrderNumberRoute
   '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/admin/metrics': typeof AdminMetricsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
+  '/track/$orderNumber': typeof TrackOrderNumberRoute
   '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
@@ -179,6 +188,7 @@ export interface FileRouteTypes {
     | '/admin/metrics'
     | '/admin/settings'
     | '/confirmation/$orderNumber'
+    | '/track/$orderNumber'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/admin/metrics'
     | '/admin/settings'
     | '/confirmation/$orderNumber'
+    | '/track/$orderNumber'
     | '/admin'
   id:
     | '__root__'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/admin/metrics'
     | '/admin/settings'
     | '/confirmation/$orderNumber'
+    | '/track/$orderNumber'
     | '/admin/'
   fileRoutesById: FileRoutesById
 }
@@ -227,6 +239,7 @@ export interface RootRouteChildren {
   MenuRoute: typeof MenuRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ConfirmationOrderNumberRoute: typeof ConfirmationOrderNumberRoute
+  TrackOrderNumberRoute: typeof TrackOrderNumberRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -293,6 +306,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/track/$orderNumber': {
+      id: '/track/$orderNumber'
+      path: '/track/$orderNumber'
+      fullPath: '/track/$orderNumber'
+      preLoaderRoute: typeof TrackOrderNumberRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/confirmation/$orderNumber': {
       id: '/confirmation/$orderNumber'
@@ -378,6 +398,7 @@ const rootRouteChildren: RootRouteChildren = {
   MenuRoute: MenuRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ConfirmationOrderNumberRoute: ConfirmationOrderNumberRoute,
+  TrackOrderNumberRoute: TrackOrderNumberRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
