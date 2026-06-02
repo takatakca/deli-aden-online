@@ -8,7 +8,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminLayout,
 });
 
-const NAV = [
+const NAV: Array<{ to: string; label: string; icon: typeof LogOut; exact?: boolean }> = [
   { to: "/admin", label: "Commandes", icon: ListOrdered, exact: true },
   { to: "/admin/board", label: "Tableau", icon: LayoutDashboard },
   { to: "/admin/kitchen", label: "Cuisine", icon: ChefHat },
@@ -16,7 +16,7 @@ const NAV = [
   { to: "/admin/menu", label: "Menu", icon: KanbanSquare },
   { to: "/admin/metrics", label: "Statistiques", icon: BarChart3 },
   { to: "/admin/settings", label: "Réglages", icon: Settings },
-] as const;
+];
 
 function AdminLayout() {
   const { authed, ready, login, logout } = useAdminAuth();
