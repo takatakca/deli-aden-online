@@ -47,8 +47,15 @@ const DEFAULT_SETTINGS = {
   free_delivery_threshold: 0,
   gst_rate: 0.05,
   qst_rate: 0.09975,
+  restaurant_name: "Les Délices d'Aden",
   restaurant_phone: RESTAURANT_PHONE,
+  restaurant_address: "",
+  restaurant_email: RESTAURANT_EMAIL,
+  google_maps_url: "",
+  opening_hours: "Lun-Dim : 11h00 – 22h00",
+  order_pause_message: "Les commandes sont temporairement suspendues. Merci de réessayer dans quelques minutes.",
   closed_message: "Le restaurant est actuellement fermé. Merci de revenir pendant les heures d'ouverture.",
+  hidden_categories: "",
 };
 
 // =====================================================================
