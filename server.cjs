@@ -223,6 +223,26 @@ if (USE_MYSQL) {
         name VARCHAR(40) PRIMARY KEY, value INT NOT NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
       await conn.query("INSERT IGNORE INTO counters (name, value) VALUES ('order_number', 1000)");
+
+      await conn.query(`CREATE TABLE IF NOT EXISTS drivers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(160) NOT NULL,
+        phone VARCHAR(40),
+        active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
+      await conn.query(`CREATE TABLE IF NOT EXISTS driver_assignments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        order_id INT NOT NULL,
+        driver_id INT NOT NULL,
+        notes TEXT,
+        assigned_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        delivered_at DATETIME NULL,
+        INDEX idx_assign_order (order_id),
+        INDEX idx_assign_driver (driver_id),
+        INDEX idx_assign_delivered (delivered_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
       dbConnected = true;
     } finally {
       conn.release();
