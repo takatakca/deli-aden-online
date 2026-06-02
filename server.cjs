@@ -47,8 +47,15 @@ const DEFAULT_SETTINGS = {
   free_delivery_threshold: 0,
   gst_rate: 0.05,
   qst_rate: 0.09975,
+  restaurant_name: "Les Délices d'Aden",
   restaurant_phone: RESTAURANT_PHONE,
+  restaurant_address: "",
+  restaurant_email: RESTAURANT_EMAIL,
+  google_maps_url: "",
+  opening_hours: "Lun-Dim : 11h00 – 22h00",
+  order_pause_message: "Les commandes sont temporairement suspendues. Merci de réessayer dans quelques minutes.",
   closed_message: "Le restaurant est actuellement fermé. Merci de revenir pendant les heures d'ouverture.",
+  hidden_categories: "",
 };
 
 // =====================================================================
@@ -216,6 +223,26 @@ if (USE_MYSQL) {
         name VARCHAR(40) PRIMARY KEY, value INT NOT NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
       await conn.query("INSERT IGNORE INTO counters (name, value) VALUES ('order_number', 1000)");
+
+      await conn.query(`CREATE TABLE IF NOT EXISTS drivers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(160) NOT NULL,
+        phone VARCHAR(40),
+        active TINYINT(1) NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+
+      await conn.query(`CREATE TABLE IF NOT EXISTS driver_assignments (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        order_id INT NOT NULL,
+        driver_id INT NOT NULL,
+        notes TEXT,
+        assigned_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        delivered_at DATETIME NULL,
+        INDEX idx_assign_order (order_id),
+        INDEX idx_assign_driver (driver_id),
+        INDEX idx_assign_delivered (delivered_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
       dbConnected = true;
     } finally {
       conn.release();
@@ -325,6 +352,65 @@ if (USE_MYSQL) {
          o.image_override || null]
       );
     },
+    async listDrivers({ activeOnly = false } = {}) {
+      const sql = activeOnly ? "SELECT * FROM drivers WHERE active=1 ORDER BY name" : "SELECT * FROM drivers ORDER BY name";
+      const [r] = await mysqlPool.query(sql); return r;
+    },
+    async createDriver({ name, phone, active = true }) {
+      const [r] = await mysqlPool.query("INSERT INTO drivers (name, phone, active) VALUES (?,?,?)", [name, phone || null, active ? 1 : 0]);
+      return r.insertId;
+    },
+    async updateDriver(id, { name, phone, active }) {
+      const sets = []; const params = [];
+      if (name != null) { sets.push("name=?"); params.push(name); }
+      if (phone != null) { sets.push("phone=?"); params.push(phone); }
+      if (active != null) { sets.push("active=?"); params.push(active ? 1 : 0); }
+      if (!sets.length) return;
+      params.push(id);
+      await mysqlPool.query(`UPDATE drivers SET ${sets.join(",")} WHERE id=?`, params);
+    },
+    async deleteDriver(id) { await mysqlPool.query("DELETE FROM drivers WHERE id=?", [id]); },
+    async assignDriver(orderId, driverId, notes) {
+      const [r] = await mysqlPool.query("INSERT INTO driver_assignments (order_id, driver_id, notes) VALUES (?,?,?)", [orderId, driverId, notes || null]);
+      return r.insertId;
+    },
+    async markAssignmentDelivered(orderId) {
+      await mysqlPool.query("UPDATE driver_assignments SET delivered_at=CURRENT_TIMESTAMP WHERE order_id=? AND delivered_at IS NULL", [orderId]);
+    },
+    async listAssignments({ activeOnly = false } = {}) {
+      const where = activeOnly ? "WHERE a.delivered_at IS NULL" : "";
+      const [r] = await mysqlPool.query(`SELECT a.*, d.name AS driver_name, d.phone AS driver_phone, o.order_number, o.customer_name, o.customer_phone, o.delivery_address, o.total
+        FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id JOIN orders o ON o.id=a.order_id ${where} ORDER BY a.assigned_at DESC LIMIT 200`);
+      return r;
+    },
+    async getOrderAssignment(orderId) {
+      const [r] = await mysqlPool.query("SELECT a.*, d.name AS driver_name, d.phone AS driver_phone FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id WHERE a.order_id=? ORDER BY a.assigned_at DESC LIMIT 1", [orderId]);
+      return r[0] || null;
+    },
+    async metrics() {
+      const [byStatus] = await mysqlPool.query("SELECT status, COUNT(*) c FROM orders GROUP BY status");
+      const today = new Date(); today.setHours(0,0,0,0);
+      const weekStart = new Date(today); weekStart.setDate(weekStart.getDate() - 6);
+      const monthStart = new Date(today); monthStart.setDate(monthStart.getDate() - 29);
+      const fmtD = (d) => d.toISOString().slice(0,19).replace("T"," ");
+      const [revT] = await mysqlPool.query("SELECT COALESCE(SUM(total),0) s, COUNT(*) c FROM orders WHERE created_at >= ? AND status != 'cancelled'", [fmtD(today)]);
+      const [revW] = await mysqlPool.query("SELECT COALESCE(SUM(total),0) s FROM orders WHERE created_at >= ? AND status != 'cancelled'", [fmtD(weekStart)]);
+      const [revM] = await mysqlPool.query("SELECT COALESCE(SUM(total),0) s FROM orders WHERE created_at >= ? AND status != 'cancelled'", [fmtD(monthStart)]);
+      const [series] = await mysqlPool.query(
+        "SELECT DATE(created_at) d, COUNT(*) orders, COALESCE(SUM(total),0) revenue FROM orders WHERE created_at >= ? AND status != 'cancelled' GROUP BY DATE(created_at) ORDER BY d ASC",
+        [fmtD(new Date(Date.now() - 13*24*3600*1000))]
+      );
+      return {
+        by_status: Object.fromEntries(byStatus.map((r) => [r.status, Number(r.c)])),
+        today: { orders: Number(revT[0].c), revenue: Number(revT[0].s) },
+        week_revenue: Number(revW[0].s),
+        month_revenue: Number(revM[0].s),
+        series: series.map((r) => ({
+          date: r.d instanceof Date ? r.d.toISOString().slice(0,10) : String(r.d).slice(0,10),
+          orders: Number(r.orders), revenue: Number(r.revenue),
+        })),
+      };
+    },
   };
 } else {
   let Database;
@@ -382,6 +468,19 @@ if (USE_MYSQL) {
       image_override TEXT,
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+    CREATE TABLE IF NOT EXISTS drivers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL, phone TEXT, active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS driver_assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL, driver_id INTEGER NOT NULL, notes TEXT,
+      assigned_at TEXT NOT NULL DEFAULT (datetime('now')),
+      delivered_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_assign_order ON driver_assignments(order_id);
+    CREATE INDEX IF NOT EXISTS idx_assign_driver ON driver_assignments(driver_id);
   `);
   // Best-effort migrations for existing dbs
   for (const col of [
@@ -490,6 +589,60 @@ if (USE_MYSQL) {
         o.description_override || null,
         o.image_override || null);
     },
+    async listDrivers({ activeOnly = false } = {}) {
+      return activeOnly
+        ? sqliteDb.prepare("SELECT * FROM drivers WHERE active=1 ORDER BY name").all()
+        : sqliteDb.prepare("SELECT * FROM drivers ORDER BY name").all();
+    },
+    async createDriver({ name, phone, active = true }) {
+      const r = sqliteDb.prepare("INSERT INTO drivers (name, phone, active) VALUES (?,?,?)").run(name, phone || null, active ? 1 : 0);
+      return r.lastInsertRowid;
+    },
+    async updateDriver(id, { name, phone, active }) {
+      const sets = []; const params = [];
+      if (name != null) { sets.push("name=?"); params.push(name); }
+      if (phone != null) { sets.push("phone=?"); params.push(phone); }
+      if (active != null) { sets.push("active=?"); params.push(active ? 1 : 0); }
+      if (!sets.length) return;
+      params.push(id);
+      sqliteDb.prepare(`UPDATE drivers SET ${sets.join(",")} WHERE id=?`).run(...params);
+    },
+    async deleteDriver(id) { sqliteDb.prepare("DELETE FROM drivers WHERE id=?").run(id); },
+    async assignDriver(orderId, driverId, notes) {
+      const r = sqliteDb.prepare("INSERT INTO driver_assignments (order_id, driver_id, notes) VALUES (?,?,?)").run(orderId, driverId, notes || null);
+      return r.lastInsertRowid;
+    },
+    async markAssignmentDelivered(orderId) {
+      sqliteDb.prepare("UPDATE driver_assignments SET delivered_at=datetime('now') WHERE order_id=? AND delivered_at IS NULL").run(orderId);
+    },
+    async listAssignments({ activeOnly = false } = {}) {
+      const where = activeOnly ? "WHERE a.delivered_at IS NULL" : "";
+      return sqliteDb.prepare(`SELECT a.*, d.name AS driver_name, d.phone AS driver_phone, o.order_number, o.customer_name, o.customer_phone, o.delivery_address, o.total
+        FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id JOIN orders o ON o.id=a.order_id ${where} ORDER BY a.assigned_at DESC LIMIT 200`).all();
+    },
+    async getOrderAssignment(orderId) {
+      return sqliteDb.prepare("SELECT a.*, d.name AS driver_name, d.phone AS driver_phone FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id WHERE a.order_id=? ORDER BY a.assigned_at DESC LIMIT 1").get(orderId) || null;
+    },
+    async metrics() {
+      const byStatus = sqliteDb.prepare("SELECT status, COUNT(*) c FROM orders GROUP BY status").all();
+      const today = new Date(); today.setHours(0,0,0,0);
+      const weekStart = new Date(today); weekStart.setDate(weekStart.getDate() - 6);
+      const monthStart = new Date(today); monthStart.setDate(monthStart.getDate() - 29);
+      const fmtD = (d) => d.toISOString().slice(0,19).replace("T"," ");
+      const revT = sqliteDb.prepare("SELECT COALESCE(SUM(total),0) s, COUNT(*) c FROM orders WHERE created_at >= ? AND status != 'cancelled'").get(fmtD(today));
+      const revW = sqliteDb.prepare("SELECT COALESCE(SUM(total),0) s FROM orders WHERE created_at >= ? AND status != 'cancelled'").get(fmtD(weekStart));
+      const revM = sqliteDb.prepare("SELECT COALESCE(SUM(total),0) s FROM orders WHERE created_at >= ? AND status != 'cancelled'").get(fmtD(monthStart));
+      const series = sqliteDb.prepare(
+        "SELECT substr(created_at,1,10) d, COUNT(*) orders, COALESCE(SUM(total),0) revenue FROM orders WHERE created_at >= ? AND status != 'cancelled' GROUP BY substr(created_at,1,10) ORDER BY d ASC"
+      ).all(fmtD(new Date(Date.now() - 13*24*3600*1000)));
+      return {
+        by_status: Object.fromEntries(byStatus.map((r) => [r.status, Number(r.c)])),
+        today: { orders: Number(revT.c), revenue: Number(revT.s) },
+        week_revenue: Number(revW.s),
+        month_revenue: Number(revM.s),
+        series: series.map((r) => ({ date: String(r.d).slice(0,10), orders: Number(r.orders), revenue: Number(r.revenue) })),
+      };
+    },
   };
 }
 
@@ -536,8 +689,15 @@ function publicSettings() {
     free_delivery_threshold: Number(SETTINGS.free_delivery_threshold) || 0,
     gst_rate: Number(SETTINGS.gst_rate) || 0,
     qst_rate: Number(SETTINGS.qst_rate) || 0,
+    restaurant_name: String(SETTINGS.restaurant_name || ""),
     restaurant_phone: String(SETTINGS.restaurant_phone || ""),
+    restaurant_address: String(SETTINGS.restaurant_address || ""),
+    restaurant_email: String(SETTINGS.restaurant_email || ""),
+    google_maps_url: String(SETTINGS.google_maps_url || ""),
+    opening_hours: String(SETTINGS.opening_hours || ""),
+    order_pause_message: String(SETTINGS.order_pause_message || ""),
     closed_message: String(SETTINGS.closed_message || ""),
+    hidden_categories: String(SETTINGS.hidden_categories || ""),
   };
 }
 function computeDeliveryFee(orderType, subtotal) {
@@ -851,6 +1011,94 @@ app.patch("/api/orders/:id/status", requireAdmin, async (req, res) => {
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
+
+// ---- Drivers ----
+app.get("/api/admin/drivers", requireAdmin, async (req, res) => {
+  try { res.json({ drivers: await dbApi.listDrivers({ activeOnly: req.query.active === "1" }) }); }
+  catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.post("/api/admin/drivers", requireAdmin, async (req, res) => {
+  try {
+    const name = clean(req.body?.name, 160);
+    if (!name) return res.status(400).json({ error: "Nom requis" });
+    const id = await dbApi.createDriver({ name, phone: clean(req.body?.phone, 40), active: req.body?.active !== false });
+    res.json({ ok: true, id });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.patch("/api/admin/drivers/:id", requireAdmin, async (req, res) => {
+  try {
+    await dbApi.updateDriver(parseInt(req.params.id, 10), {
+      name: req.body?.name != null ? clean(req.body.name, 160) : undefined,
+      phone: req.body?.phone != null ? clean(req.body.phone, 40) : undefined,
+      active: req.body?.active != null ? Boolean(req.body.active) : undefined,
+    });
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.delete("/api/admin/drivers/:id", requireAdmin, async (req, res) => {
+  try { await dbApi.deleteDriver(parseInt(req.params.id, 10)); res.json({ ok: true }); }
+  catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+
+// ---- Assignments ----
+app.get("/api/admin/assignments", requireAdmin, async (req, res) => {
+  try { res.json({ assignments: (await dbApi.listAssignments({ activeOnly: req.query.active === "1" })).map((a) => ({
+    ...a,
+    assigned_at: a.assigned_at instanceof Date ? a.assigned_at.toISOString() : a.assigned_at,
+    delivered_at: a.delivered_at instanceof Date ? a.delivered_at.toISOString() : a.delivered_at,
+  })) }); }
+  catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.post("/api/admin/orders/:id/assign", requireAdmin, async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id, 10);
+    const driverId = parseInt(req.body?.driver_id, 10);
+    if (!orderId || !driverId) return res.status(400).json({ error: "order_id et driver_id requis" });
+    await dbApi.assignDriver(orderId, driverId, clean(req.body?.notes, 500));
+    await dbApi.updateOrder(orderId, "dispatched", { note: `Assigné au livreur #${driverId}` });
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.post("/api/admin/orders/:id/delivered", requireAdmin, async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id, 10);
+    await dbApi.markAssignmentDelivered(orderId);
+    await dbApi.updateOrder(orderId, "completed", { note: "Livraison confirmée" });
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+
+// ---- Metrics ----
+app.get("/api/admin/metrics", requireAdmin, async (_req, res) => {
+  try { res.json(await dbApi.metrics()); }
+  catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+
+// ---- Menu admin list + bulk category toggle ----
+app.get("/api/admin/menu", requireAdmin, async (_req, res) => {
+  try { res.json({ overrides: await dbApi.getMenuOverrides() }); }
+  catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.post("/api/admin/menu/bulk", requireAdmin, async (req, res) => {
+  try {
+    const items = Array.isArray(req.body?.items) ? req.body.items : [];
+    if (!items.length) return res.status(400).json({ error: "items requis" });
+    const available = Boolean(req.body?.available);
+    for (const id of items) {
+      const itemId = clean(id, 64); if (!itemId) continue;
+      const existing = (await dbApi.getMenuOverrides()).find((o) => o.item_id === itemId) || {};
+      await dbApi.upsertMenuOverride(itemId, {
+        available,
+        price_override: existing.price_override ?? null,
+        description_override: existing.description_override ?? null,
+        image_override: existing.image_override ?? null,
+      });
+    }
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+
+
 
 app.post("/api/admin/verify", loginLimiter, (req, res) => {
   const pwd = req.body && req.body.password;

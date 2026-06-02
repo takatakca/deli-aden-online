@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MENU } from "@/lib/menu";
-import { MenuItemCard } from "@/components/MenuItemCard";
+import { MenuItemCard, type MenuItemOverride } from "@/components/MenuItemCard";
 import { useCart, fmt, computeTotals } from "@/lib/cart-store";
 import { ShoppingBag } from "lucide-react";
+import { api, type MenuOverride, type PublicSettings } from "@/lib/api";
 
 export const Route = createFileRoute("/menu")({
   head: () => ({
@@ -24,17 +25,37 @@ function MenuPage() {
   const cart = useCart();
   const totals = computeTotals(cart);
   const count = cart.reduce((s, i) => s + i.quantity, 0);
+  const [overrides, setOverrides] = useState<MenuOverride[]>([]);
+  const [settings, setSettings] = useState<PublicSettings | null>(null);
 
-  // Sync active tab from hash
+  useEffect(() => {
+    api.getMenuOverrides().then((r) => setOverrides(r.overrides)).catch(() => {});
+    api.getSettings().then((r) => setSettings(r.settings)).catch(() => {});
+  }, []);
+
+  const ovMap = useMemo(() => {
+    const m = new Map<string, MenuItemOverride>();
+    for (const o of overrides) m.set(o.item_id, {
+      available: o.available, priceOverride: o.price_override,
+      descriptionOverride: o.description_override, imageOverride: o.image_override,
+    });
+    return m;
+  }, [overrides]);
+
+  const hiddenCats = useMemo(() => new Set(
+    (settings?.hidden_categories || "").split(",").map((s) => s.trim()).filter(Boolean)
+  ), [settings]);
+  const visibleMenu = MENU.filter((c) => !hiddenCats.has(c.id));
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const hash = window.location.hash.slice(1);
-    if (MENU.some((c) => c.id === hash)) {
+    if (visibleMenu.some((c) => c.id === hash)) {
       setActive(hash);
       const el = document.getElementById(hash);
       el?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  }, []);
+  }, [visibleMenu]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 pb-32">
@@ -47,7 +68,7 @@ function MenuPage() {
       {/* Sticky tabs */}
       <nav className="sticky top-16 z-30 -mx-4 mb-6 overflow-x-auto border-y border-border bg-background/90 px-4 py-3 backdrop-blur">
         <div className="mx-auto flex max-w-7xl gap-2">
-          {MENU.map((c) => (
+          {visibleMenu.map((c) => (
             <a
               key={c.id}
               href={`#${c.id}`}
@@ -60,7 +81,7 @@ function MenuPage() {
         </div>
       </nav>
 
-      {MENU.map((cat) => (
+      {visibleMenu.map((cat) => (
         <section key={cat.id} id={cat.id} className="scroll-mt-32 py-8">
           <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
             <div>
@@ -69,7 +90,7 @@ function MenuPage() {
             </div>
           </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {cat.items.map((i) => <MenuItemCard key={i.id} item={i} />)}
+            {cat.items.map((i) => <MenuItemCard key={i.id} item={i} override={ovMap.get(i.id)} />)}
           </div>
         </section>
       ))}

@@ -17,7 +17,15 @@ import { Route as CartRouteImport } from './routes/cart'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as TrackOrderNumberRouteImport } from './routes/track.$orderNumber'
 import { Route as ConfirmationOrderNumberRouteImport } from './routes/confirmation.$orderNumber'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminMetricsRouteImport } from './routes/admin.metrics'
+import { Route as AdminMenuRouteImport } from './routes/admin.menu'
+import { Route as AdminKitchenRouteImport } from './routes/admin.kitchen'
+import { Route as AdminDispatchRouteImport } from './routes/admin.dispatch'
+import { Route as AdminBoardRouteImport } from './routes/admin.board'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -59,45 +67,108 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const TrackOrderNumberRoute = TrackOrderNumberRouteImport.update({
+  id: '/track/$orderNumber',
+  path: '/track/$orderNumber',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConfirmationOrderNumberRoute = ConfirmationOrderNumberRouteImport.update({
   id: '/confirmation/$orderNumber',
   path: '/confirmation/$orderNumber',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMetricsRoute = AdminMetricsRouteImport.update({
+  id: '/metrics',
+  path: '/metrics',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMenuRoute = AdminMenuRouteImport.update({
+  id: '/menu',
+  path: '/menu',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminKitchenRoute = AdminKitchenRouteImport.update({
+  id: '/kitchen',
+  path: '/kitchen',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDispatchRoute = AdminDispatchRouteImport.update({
+  id: '/dispatch',
+  path: '/dispatch',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBoardRoute = AdminBoardRouteImport.update({
+  id: '/board',
+  path: '/board',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/menu': typeof MenuRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/board': typeof AdminBoardRoute
+  '/admin/dispatch': typeof AdminDispatchRoute
+  '/admin/kitchen': typeof AdminKitchenRoute
+  '/admin/menu': typeof AdminMenuRoute
+  '/admin/metrics': typeof AdminMetricsRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
+  '/track/$orderNumber': typeof TrackOrderNumberRoute
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/menu': typeof MenuRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/board': typeof AdminBoardRoute
+  '/admin/dispatch': typeof AdminDispatchRoute
+  '/admin/kitchen': typeof AdminKitchenRoute
+  '/admin/menu': typeof AdminMenuRoute
+  '/admin/metrics': typeof AdminMetricsRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
+  '/track/$orderNumber': typeof TrackOrderNumberRoute
+  '/admin': typeof AdminIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/cart': typeof CartRoute
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/menu': typeof MenuRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/board': typeof AdminBoardRoute
+  '/admin/dispatch': typeof AdminDispatchRoute
+  '/admin/kitchen': typeof AdminKitchenRoute
+  '/admin/menu': typeof AdminMenuRoute
+  '/admin/metrics': typeof AdminMetricsRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
+  '/track/$orderNumber': typeof TrackOrderNumberRoute
+  '/admin/': typeof AdminIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -110,18 +181,33 @@ export interface FileRouteTypes {
     | '/contact'
     | '/menu'
     | '/sitemap.xml'
+    | '/admin/board'
+    | '/admin/dispatch'
+    | '/admin/kitchen'
+    | '/admin/menu'
+    | '/admin/metrics'
+    | '/admin/settings'
     | '/confirmation/$orderNumber'
+    | '/track/$orderNumber'
+    | '/admin/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
-    | '/admin'
     | '/cart'
     | '/checkout'
     | '/contact'
     | '/menu'
     | '/sitemap.xml'
+    | '/admin/board'
+    | '/admin/dispatch'
+    | '/admin/kitchen'
+    | '/admin/menu'
+    | '/admin/metrics'
+    | '/admin/settings'
     | '/confirmation/$orderNumber'
+    | '/track/$orderNumber'
+    | '/admin'
   id:
     | '__root__'
     | '/'
@@ -132,19 +218,28 @@ export interface FileRouteTypes {
     | '/contact'
     | '/menu'
     | '/sitemap.xml'
+    | '/admin/board'
+    | '/admin/dispatch'
+    | '/admin/kitchen'
+    | '/admin/menu'
+    | '/admin/metrics'
+    | '/admin/settings'
     | '/confirmation/$orderNumber'
+    | '/track/$orderNumber'
+    | '/admin/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   CartRoute: typeof CartRoute
   CheckoutRoute: typeof CheckoutRoute
   ContactRoute: typeof ContactRoute
   MenuRoute: typeof MenuRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ConfirmationOrderNumberRoute: typeof ConfirmationOrderNumberRoute
+  TrackOrderNumberRoute: typeof TrackOrderNumberRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -205,6 +300,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/track/$orderNumber': {
+      id: '/track/$orderNumber'
+      path: '/track/$orderNumber'
+      fullPath: '/track/$orderNumber'
+      preLoaderRoute: typeof TrackOrderNumberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/confirmation/$orderNumber': {
       id: '/confirmation/$orderNumber'
       path: '/confirmation/$orderNumber'
@@ -212,30 +321,85 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfirmationOrderNumberRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/metrics': {
+      id: '/admin/metrics'
+      path: '/metrics'
+      fullPath: '/admin/metrics'
+      preLoaderRoute: typeof AdminMetricsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/menu': {
+      id: '/admin/menu'
+      path: '/menu'
+      fullPath: '/admin/menu'
+      preLoaderRoute: typeof AdminMenuRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/kitchen': {
+      id: '/admin/kitchen'
+      path: '/kitchen'
+      fullPath: '/admin/kitchen'
+      preLoaderRoute: typeof AdminKitchenRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/dispatch': {
+      id: '/admin/dispatch'
+      path: '/dispatch'
+      fullPath: '/admin/dispatch'
+      preLoaderRoute: typeof AdminDispatchRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/board': {
+      id: '/admin/board'
+      path: '/board'
+      fullPath: '/admin/board'
+      preLoaderRoute: typeof AdminBoardRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
+
+interface AdminRouteChildren {
+  AdminBoardRoute: typeof AdminBoardRoute
+  AdminDispatchRoute: typeof AdminDispatchRoute
+  AdminKitchenRoute: typeof AdminKitchenRoute
+  AdminMenuRoute: typeof AdminMenuRoute
+  AdminMetricsRoute: typeof AdminMetricsRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminBoardRoute: AdminBoardRoute,
+  AdminDispatchRoute: AdminDispatchRoute,
+  AdminKitchenRoute: AdminKitchenRoute,
+  AdminMenuRoute: AdminMenuRoute,
+  AdminMetricsRoute: AdminMetricsRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   CartRoute: CartRoute,
   CheckoutRoute: CheckoutRoute,
   ContactRoute: ContactRoute,
   MenuRoute: MenuRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ConfirmationOrderNumberRoute: ConfirmationOrderNumberRoute,
+  TrackOrderNumberRoute: TrackOrderNumberRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

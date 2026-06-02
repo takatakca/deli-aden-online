@@ -102,7 +102,10 @@ function ConfirmationPage() {
         </dl>
       </div>
 
-      <div className="mt-6 text-center">
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <Link to="/track/$orderNumber" params={{ orderNumber: order.order_number }}>
+          <Button>Suivre ma commande en direct</Button>
+        </Link>
         <Link to="/"><Button variant="outline">Retour à l'accueil</Button></Link>
       </div>
     </div>

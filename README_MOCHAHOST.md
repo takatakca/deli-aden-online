@@ -180,3 +180,32 @@ npm run build
 - Vérifier que `dist/index.html` existe (`npm run build` a-t-il réussi ?)
 - Helmet est configuré sans CSP : les assets Vite hashés doivent charger sans erreur
 - Inspecter la console navigateur — un 404 sur `/assets/*.js` indique un `dist/` manquant
+
+---
+
+## Workflow restaurant (admin)
+
+L'administration est accessible à `/admin` (mot de passe `ADMIN_PASSWORD`).
+
+### Écrans
+- **`/admin`** — Liste détaillée des commandes, filtres, export CSV, historique, impression.
+- **`/admin/board`** — Tableau kanban (5 colonnes) avec auto-rafraîchissement 5 s et chime sur nouvelles commandes.
+- **`/admin/kitchen`** — Mode cuisine plein écran (fond sombre, grosses cartes, son d'alerte). À afficher sur un écran en cuisine.
+- **`/admin/dispatch`** — Gestion des livreurs (CRUD) + assignation des commandes prêtes + bouton « Livrée ».
+- **`/admin/menu`** — Gestion par article : disponibilité, prix, description, image. Activation/désactivation par catégorie.
+- **`/admin/metrics`** — Cartes (nouvelles / en prép / prêtes / expédiées), revenus jour/semaine/mois, courbes 14 jours.
+- **`/admin/settings`** — Tous les réglages du restaurant : ouvert/fermé, pause, modes, frais, taxes, coordonnées, horaires, masquage de catégories.
+
+### Statuts (workflow)
+`new → accepted → preparing → ready → dispatched → completed` (+ `cancelled` à tout moment). Chaque changement est journalisé dans `order_events`.
+
+### Tracking client
+Lien public (sans login) sur la confirmation : `/track/<numéro>` — état en direct, ETA, bouton Appeler, bouton Itinéraire Google Maps.
+
+### Journée type
+1. **Ouverture** — `/admin/settings` → activer « Ouvert », vérifier pause OFF, ajuster temps estimés.
+2. **Réception** — afficher `/admin/kitchen` en cuisine. Le son alerte chaque nouvelle commande.
+3. **Préparation** — un clic suffit pour faire avancer le statut (`Acceptée → En préparation → Prête`).
+4. **Expédition** — `/admin/dispatch` : assigner les commandes Prêtes à un livreur. Marquer « Livrée » au retour.
+5. **Fermeture** — `/admin/settings` → « Ouvert » OFF. Exporter le CSV du jour si besoin.
+

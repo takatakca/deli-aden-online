@@ -16,29 +16,48 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
-export function MenuItemCard({ item }: { item: MenuItem }) {
+export type MenuItemOverride = {
+  available?: boolean;
+  priceOverride?: number | null;
+  descriptionOverride?: string | null;
+  imageOverride?: string | null;
+};
+
+export function MenuItemCard({ item, override }: { item: MenuItem; override?: MenuItemOverride }) {
+  const available = override?.available !== false;
+  const price = override?.priceOverride ?? item.price;
+  const description = override?.descriptionOverride ?? item.description;
+  const image = override?.imageOverride ?? item.image;
+  const effective: MenuItem = { ...item, price, description, image };
   const hasOptions = (item.options && item.options.length > 0) || item.combo;
   return (
-    <article className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+    <article className={`group relative flex flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg ${!available ? "opacity-60" : ""}`}>
       <div className="aspect-[4/3] overflow-hidden bg-muted">
         <img
-          src={item.image}
+          src={image}
           alt={`${item.name} — plat servi aux Délices d'Aden`}
           loading="lazy"
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
         />
       </div>
+      {!available && (
+        <span className="absolute right-3 top-3 rounded-full bg-destructive px-3 py-1 text-xs font-semibold text-destructive-foreground shadow">
+          Indisponible
+        </span>
+      )}
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex items-start justify-between gap-3">
           <h3 className="font-display text-lg font-semibold leading-tight text-foreground">{item.name}</h3>
-          <span className="shrink-0 font-display text-base font-bold text-primary">{fmt(item.price)}</span>
+          <span className="shrink-0 font-display text-base font-bold text-primary">{fmt(price)}</span>
         </div>
-        {item.description && (
-          <p className="text-sm leading-relaxed text-muted-foreground">{item.description}</p>
+        {description && (
+          <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>
         )}
         <div className="mt-auto pt-2">
-          {hasOptions ? (
-            <CustomizeDialog item={item} />
+          {!available ? (
+            <Button className="w-full" disabled>Indisponible</Button>
+          ) : hasOptions ? (
+            <CustomizeDialog item={effective} />
           ) : (
             <Button
               className="w-full"
@@ -46,9 +65,9 @@ export function MenuItemCard({ item }: { item: MenuItem }) {
                 cartStore.add({
                   itemId: item.id,
                   name: item.name,
-                  unitPrice: item.price,
+                  unitPrice: price,
                   quantity: 1,
-                  image: item.image,
+                  image,
                 });
                 toast.success(`${item.name} ajouté au panier`);
               }}
