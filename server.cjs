@@ -409,6 +409,19 @@ if (USE_MYSQL) {
       image_override TEXT,
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
+    CREATE TABLE IF NOT EXISTS drivers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL, phone TEXT, active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+    CREATE TABLE IF NOT EXISTS driver_assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      order_id INTEGER NOT NULL, driver_id INTEGER NOT NULL, notes TEXT,
+      assigned_at TEXT NOT NULL DEFAULT (datetime('now')),
+      delivered_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_assign_order ON driver_assignments(order_id);
+    CREATE INDEX IF NOT EXISTS idx_assign_driver ON driver_assignments(driver_id);
   `);
   // Best-effort migrations for existing dbs
   for (const col of [
