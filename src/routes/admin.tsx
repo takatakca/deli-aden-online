@@ -40,13 +40,13 @@ function AdminLayout() {
         {NAV.map(({ to, label, icon: Icon, exact }) => {
           const active = exact ? path === to : path.startsWith(to);
           return (
-            <Link
+            <a
               key={to}
-              to={to}
+              href={to}
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card hover:border-primary/40"}`}
             >
               <Icon className="h-4 w-4" /> {label}
-            </Link>
+            </a>
           );
         })}
       </nav>
