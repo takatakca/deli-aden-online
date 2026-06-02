@@ -1012,6 +1012,94 @@ app.patch("/api/orders/:id/status", requireAdmin, async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
 
+// ---- Drivers ----
+app.get("/api/admin/drivers", requireAdmin, async (req, res) => {
+  try { res.json({ drivers: await dbApi.listDrivers({ activeOnly: req.query.active === "1" }) }); }
+  catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.post("/api/admin/drivers", requireAdmin, async (req, res) => {
+  try {
+    const name = clean(req.body?.name, 160);
+    if (!name) return res.status(400).json({ error: "Nom requis" });
+    const id = await dbApi.createDriver({ name, phone: clean(req.body?.phone, 40), active: req.body?.active !== false });
+    res.json({ ok: true, id });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.patch("/api/admin/drivers/:id", requireAdmin, async (req, res) => {
+  try {
+    await dbApi.updateDriver(parseInt(req.params.id, 10), {
+      name: req.body?.name != null ? clean(req.body.name, 160) : undefined,
+      phone: req.body?.phone != null ? clean(req.body.phone, 40) : undefined,
+      active: req.body?.active != null ? Boolean(req.body.active) : undefined,
+    });
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.delete("/api/admin/drivers/:id", requireAdmin, async (req, res) => {
+  try { await dbApi.deleteDriver(parseInt(req.params.id, 10)); res.json({ ok: true }); }
+  catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+
+// ---- Assignments ----
+app.get("/api/admin/assignments", requireAdmin, async (req, res) => {
+  try { res.json({ assignments: (await dbApi.listAssignments({ activeOnly: req.query.active === "1" })).map((a) => ({
+    ...a,
+    assigned_at: a.assigned_at instanceof Date ? a.assigned_at.toISOString() : a.assigned_at,
+    delivered_at: a.delivered_at instanceof Date ? a.delivered_at.toISOString() : a.delivered_at,
+  })) }); }
+  catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.post("/api/admin/orders/:id/assign", requireAdmin, async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id, 10);
+    const driverId = parseInt(req.body?.driver_id, 10);
+    if (!orderId || !driverId) return res.status(400).json({ error: "order_id et driver_id requis" });
+    await dbApi.assignDriver(orderId, driverId, clean(req.body?.notes, 500));
+    await dbApi.updateOrder(orderId, "dispatched", { note: `Assigné au livreur #${driverId}` });
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.post("/api/admin/orders/:id/delivered", requireAdmin, async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id, 10);
+    await dbApi.markAssignmentDelivered(orderId);
+    await dbApi.updateOrder(orderId, "completed", { note: "Livraison confirmée" });
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+
+// ---- Metrics ----
+app.get("/api/admin/metrics", requireAdmin, async (_req, res) => {
+  try { res.json(await dbApi.metrics()); }
+  catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+
+// ---- Menu admin list + bulk category toggle ----
+app.get("/api/admin/menu", requireAdmin, async (_req, res) => {
+  try { res.json({ overrides: await dbApi.getMenuOverrides() }); }
+  catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.post("/api/admin/menu/bulk", requireAdmin, async (req, res) => {
+  try {
+    const items = Array.isArray(req.body?.items) ? req.body.items : [];
+    if (!items.length) return res.status(400).json({ error: "items requis" });
+    const available = Boolean(req.body?.available);
+    for (const id of items) {
+      const itemId = clean(id, 64); if (!itemId) continue;
+      const existing = (await dbApi.getMenuOverrides()).find((o) => o.item_id === itemId) || {};
+      await dbApi.upsertMenuOverride(itemId, {
+        available,
+        price_override: existing.price_override ?? null,
+        description_override: existing.description_override ?? null,
+        image_override: existing.image_override ?? null,
+      });
+    }
+    res.json({ ok: true });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+
+
+
 app.post("/api/admin/verify", loginLimiter, (req, res) => {
   const pwd = req.body && req.body.password;
   res.json({ ok: pwd === EFFECTIVE_ADMIN_PASSWORD });
