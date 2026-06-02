@@ -1,9 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MENU } from "@/lib/menu";
-import { MenuItemCard } from "@/components/MenuItemCard";
+import { MenuItemCard, type MenuItemOverride } from "@/components/MenuItemCard";
 import { useCart, fmt, computeTotals } from "@/lib/cart-store";
 import { ShoppingBag } from "lucide-react";
+import { api, type MenuOverride, type PublicSettings } from "@/lib/api";
 
 export const Route = createFileRoute("/menu")({
   head: () => ({
@@ -24,17 +25,37 @@ function MenuPage() {
   const cart = useCart();
   const totals = computeTotals(cart);
   const count = cart.reduce((s, i) => s + i.quantity, 0);
+  const [overrides, setOverrides] = useState<MenuOverride[]>([]);
+  const [settings, setSettings] = useState<PublicSettings | null>(null);
 
-  // Sync active tab from hash
+  useEffect(() => {
+    api.getMenuOverrides().then((r) => setOverrides(r.overrides)).catch(() => {});
+    api.getSettings().then((r) => setSettings(r.settings)).catch(() => {});
+  }, []);
+
+  const ovMap = useMemo(() => {
+    const m = new Map<string, MenuItemOverride>();
+    for (const o of overrides) m.set(o.item_id, {
+      available: o.available, priceOverride: o.price_override,
+      descriptionOverride: o.description_override, imageOverride: o.image_override,
+    });
+    return m;
+  }, [overrides]);
+
+  const hiddenCats = useMemo(() => new Set(
+    (settings?.hidden_categories || "").split(",").map((s) => s.trim()).filter(Boolean)
+  ), [settings]);
+  const visibleMenu = MENU.filter((c) => !hiddenCats.has(c.id));
+
   useEffect(() => {
     if (typeof window === "undefined") return;
     const hash = window.location.hash.slice(1);
-    if (MENU.some((c) => c.id === hash)) {
+    if (visibleMenu.some((c) => c.id === hash)) {
       setActive(hash);
       const el = document.getElementById(hash);
       el?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
-  }, []);
+  }, [visibleMenu]);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 pb-32">
