@@ -20,6 +20,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as ConfirmationOrderNumberRouteImport } from './routes/confirmation.$orderNumber'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminMetricsRouteImport } from './routes/admin.metrics'
 import { Route as AdminMenuRouteImport } from './routes/admin.menu'
 import { Route as AdminKitchenRouteImport } from './routes/admin.kitchen'
 import { Route as AdminDispatchRouteImport } from './routes/admin.dispatch'
@@ -80,6 +81,11 @@ const AdminSettingsRoute = AdminSettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminMetricsRoute = AdminMetricsRouteImport.update({
+  id: '/metrics',
+  path: '/metrics',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminMenuRoute = AdminMenuRouteImport.update({
   id: '/menu',
   path: '/menu',
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/admin/dispatch': typeof AdminDispatchRoute
   '/admin/kitchen': typeof AdminKitchenRoute
   '/admin/menu': typeof AdminMenuRoute
+  '/admin/metrics': typeof AdminMetricsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
   '/admin/': typeof AdminIndexRoute
@@ -130,6 +137,7 @@ export interface FileRoutesByTo {
   '/admin/dispatch': typeof AdminDispatchRoute
   '/admin/kitchen': typeof AdminKitchenRoute
   '/admin/menu': typeof AdminMenuRoute
+  '/admin/metrics': typeof AdminMetricsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
   '/admin': typeof AdminIndexRoute
@@ -148,6 +156,7 @@ export interface FileRoutesById {
   '/admin/dispatch': typeof AdminDispatchRoute
   '/admin/kitchen': typeof AdminKitchenRoute
   '/admin/menu': typeof AdminMenuRoute
+  '/admin/metrics': typeof AdminMetricsRoute
   '/admin/settings': typeof AdminSettingsRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
   '/admin/': typeof AdminIndexRoute
@@ -167,6 +176,7 @@ export interface FileRouteTypes {
     | '/admin/dispatch'
     | '/admin/kitchen'
     | '/admin/menu'
+    | '/admin/metrics'
     | '/admin/settings'
     | '/confirmation/$orderNumber'
     | '/admin/'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/admin/dispatch'
     | '/admin/kitchen'
     | '/admin/menu'
+    | '/admin/metrics'
     | '/admin/settings'
     | '/confirmation/$orderNumber'
     | '/admin'
@@ -200,6 +211,7 @@ export interface FileRouteTypes {
     | '/admin/dispatch'
     | '/admin/kitchen'
     | '/admin/menu'
+    | '/admin/metrics'
     | '/admin/settings'
     | '/confirmation/$orderNumber'
     | '/admin/'
@@ -296,6 +308,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSettingsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/metrics': {
+      id: '/admin/metrics'
+      path: '/metrics'
+      fullPath: '/admin/metrics'
+      preLoaderRoute: typeof AdminMetricsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/menu': {
       id: '/admin/menu'
       path: '/menu'
@@ -332,6 +351,7 @@ interface AdminRouteChildren {
   AdminDispatchRoute: typeof AdminDispatchRoute
   AdminKitchenRoute: typeof AdminKitchenRoute
   AdminMenuRoute: typeof AdminMenuRoute
+  AdminMetricsRoute: typeof AdminMetricsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
@@ -341,6 +361,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminDispatchRoute: AdminDispatchRoute,
   AdminKitchenRoute: AdminKitchenRoute,
   AdminMenuRoute: AdminMenuRoute,
+  AdminMetricsRoute: AdminMetricsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
