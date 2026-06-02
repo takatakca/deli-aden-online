@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { useAdminAuth, AdminLogin } from "@/lib/admin-shared";
 import { LogOut, LayoutDashboard, ChefHat, KanbanSquare, Settings, ListOrdered, Truck, BarChart3 } from "lucide-react";
