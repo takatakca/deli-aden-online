@@ -689,8 +689,15 @@ function publicSettings() {
     free_delivery_threshold: Number(SETTINGS.free_delivery_threshold) || 0,
     gst_rate: Number(SETTINGS.gst_rate) || 0,
     qst_rate: Number(SETTINGS.qst_rate) || 0,
+    restaurant_name: String(SETTINGS.restaurant_name || ""),
     restaurant_phone: String(SETTINGS.restaurant_phone || ""),
+    restaurant_address: String(SETTINGS.restaurant_address || ""),
+    restaurant_email: String(SETTINGS.restaurant_email || ""),
+    google_maps_url: String(SETTINGS.google_maps_url || ""),
+    opening_hours: String(SETTINGS.opening_hours || ""),
+    order_pause_message: String(SETTINGS.order_pause_message || ""),
     closed_message: String(SETTINGS.closed_message || ""),
+    hidden_categories: String(SETTINGS.hidden_categories || ""),
   };
 }
 function computeDeliveryFee(orderType, subtotal) {
