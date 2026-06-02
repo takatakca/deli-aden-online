@@ -589,6 +589,60 @@ if (USE_MYSQL) {
         o.description_override || null,
         o.image_override || null);
     },
+    async listDrivers({ activeOnly = false } = {}) {
+      return activeOnly
+        ? sqliteDb.prepare("SELECT * FROM drivers WHERE active=1 ORDER BY name").all()
+        : sqliteDb.prepare("SELECT * FROM drivers ORDER BY name").all();
+    },
+    async createDriver({ name, phone, active = true }) {
+      const r = sqliteDb.prepare("INSERT INTO drivers (name, phone, active) VALUES (?,?,?)").run(name, phone || null, active ? 1 : 0);
+      return r.lastInsertRowid;
+    },
+    async updateDriver(id, { name, phone, active }) {
+      const sets = []; const params = [];
+      if (name != null) { sets.push("name=?"); params.push(name); }
+      if (phone != null) { sets.push("phone=?"); params.push(phone); }
+      if (active != null) { sets.push("active=?"); params.push(active ? 1 : 0); }
+      if (!sets.length) return;
+      params.push(id);
+      sqliteDb.prepare(`UPDATE drivers SET ${sets.join(",")} WHERE id=?`).run(...params);
+    },
+    async deleteDriver(id) { sqliteDb.prepare("DELETE FROM drivers WHERE id=?").run(id); },
+    async assignDriver(orderId, driverId, notes) {
+      const r = sqliteDb.prepare("INSERT INTO driver_assignments (order_id, driver_id, notes) VALUES (?,?,?)").run(orderId, driverId, notes || null);
+      return r.lastInsertRowid;
+    },
+    async markAssignmentDelivered(orderId) {
+      sqliteDb.prepare("UPDATE driver_assignments SET delivered_at=datetime('now') WHERE order_id=? AND delivered_at IS NULL").run(orderId);
+    },
+    async listAssignments({ activeOnly = false } = {}) {
+      const where = activeOnly ? "WHERE a.delivered_at IS NULL" : "";
+      return sqliteDb.prepare(`SELECT a.*, d.name AS driver_name, d.phone AS driver_phone, o.order_number, o.customer_name, o.customer_phone, o.delivery_address, o.total
+        FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id JOIN orders o ON o.id=a.order_id ${where} ORDER BY a.assigned_at DESC LIMIT 200`).all();
+    },
+    async getOrderAssignment(orderId) {
+      return sqliteDb.prepare("SELECT a.*, d.name AS driver_name, d.phone AS driver_phone FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id WHERE a.order_id=? ORDER BY a.assigned_at DESC LIMIT 1").get(orderId) || null;
+    },
+    async metrics() {
+      const byStatus = sqliteDb.prepare("SELECT status, COUNT(*) c FROM orders GROUP BY status").all();
+      const today = new Date(); today.setHours(0,0,0,0);
+      const weekStart = new Date(today); weekStart.setDate(weekStart.getDate() - 6);
+      const monthStart = new Date(today); monthStart.setDate(monthStart.getDate() - 29);
+      const fmtD = (d) => d.toISOString().slice(0,19).replace("T"," ");
+      const revT = sqliteDb.prepare("SELECT COALESCE(SUM(total),0) s, COUNT(*) c FROM orders WHERE created_at >= ? AND status != 'cancelled'").get(fmtD(today));
+      const revW = sqliteDb.prepare("SELECT COALESCE(SUM(total),0) s FROM orders WHERE created_at >= ? AND status != 'cancelled'").get(fmtD(weekStart));
+      const revM = sqliteDb.prepare("SELECT COALESCE(SUM(total),0) s FROM orders WHERE created_at >= ? AND status != 'cancelled'").get(fmtD(monthStart));
+      const series = sqliteDb.prepare(
+        "SELECT substr(created_at,1,10) d, COUNT(*) orders, COALESCE(SUM(total),0) revenue FROM orders WHERE created_at >= ? AND status != 'cancelled' GROUP BY substr(created_at,1,10) ORDER BY d ASC"
+      ).all(fmtD(new Date(Date.now() - 13*24*3600*1000)));
+      return {
+        by_status: Object.fromEntries(byStatus.map((r) => [r.status, Number(r.c)])),
+        today: { orders: Number(revT.c), revenue: Number(revT.s) },
+        week_revenue: Number(revW.s),
+        month_revenue: Number(revM.s),
+        series: series.map((r) => ({ date: String(r.d).slice(0,10), orders: Number(r.orders), revenue: Number(r.revenue) })),
+      };
+    },
   };
 }
 
