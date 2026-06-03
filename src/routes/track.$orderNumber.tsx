@@ -93,6 +93,18 @@ function TrackPage() {
         </div>
       )}
 
+      {order.order_type === "delivery" && order.driver_name && (
+        <div className="mt-6 rounded-2xl border border-emerald-500/40 bg-emerald-50 p-4 dark:bg-emerald-950/30">
+          <div className="text-xs uppercase tracking-wide text-muted-foreground">Votre livreur</div>
+          <div className="mt-1 font-display text-lg font-semibold">🚚 {order.driver_name}</div>
+          {order.driver_phone && (
+            <a href={`tel:${order.driver_phone}`} className="mt-2 inline-block">
+              <Button variant="outline" size="sm"><Phone className="mr-2 h-4 w-4" /> Appeler le livreur — {order.driver_phone}</Button>
+            </a>
+          )}
+        </div>
+      )}
+
       {settings && (settings.restaurant_phone || settings.google_maps_url || settings.restaurant_address) && (
         <div className="mt-6 grid gap-2 sm:grid-cols-2">
           {settings.restaurant_phone && (
