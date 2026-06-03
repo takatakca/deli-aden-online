@@ -665,10 +665,14 @@ if (USE_MYSQL) {
 
 function rowToOrder(row) {
   if (!row) return null;
+  const iso = (v) => v instanceof Date ? v.toISOString() : (v || null);
   return {
     id: row.id, order_number: row.order_number, status: row.status,
     customer_name: row.customer_name, customer_phone: row.customer_phone, customer_email: row.customer_email,
     order_type: row.order_type, delivery_address: row.delivery_address,
+    delivery_unit: row.delivery_unit || null,
+    delivery_door_code: row.delivery_door_code || null,
+    delivery_instructions: row.delivery_instructions || null,
     preferred_time: row.preferred_time, payment_method: row.payment_method,
     items: typeof row.items_json === "string" ? JSON.parse(row.items_json) : row.items_json,
     subtotal: Number(row.subtotal), gst: Number(row.gst), qst: Number(row.qst), total: Number(row.total),
@@ -676,9 +680,11 @@ function rowToOrder(row) {
     special_notes: row.special_notes,
     admin_notes: row.admin_notes || null,
     cancel_reason: row.cancel_reason || null,
-    dispatched_at: row.dispatched_at instanceof Date ? row.dispatched_at.toISOString() : (row.dispatched_at || null),
-    completed_at: row.completed_at instanceof Date ? row.completed_at.toISOString() : (row.completed_at || null),
-    created_at: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+    dispatched_at: iso(row.dispatched_at),
+    completed_at: iso(row.completed_at),
+    estimated_ready_time: iso(row.estimated_ready_time),
+    estimated_delivery_time: iso(row.estimated_delivery_time),
+    created_at: iso(row.created_at),
   };
 }
 
