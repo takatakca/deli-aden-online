@@ -15,6 +15,7 @@ export function SiteFooter() {
           <div className="mb-3 font-display font-semibold text-accent">Navigation</div>
           <ul className="space-y-2 text-sm opacity-90">
             <li><Link to="/menu">Menu</Link></li>
+            <li><Link to="/delivery">Livraison</Link></li>
             <li><Link to="/about">À propos</Link></li>
             <li><Link to="/contact">Contact</Link></li>
           </ul>
