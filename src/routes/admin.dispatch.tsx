@@ -114,27 +114,44 @@ function DispatchPage() {
           <p className="text-sm text-muted-foreground">Aucune livraison à expédier.</p>
         ) : (
           <ul className="space-y-2">
-            {readyOrders.map((o) => (
-              <li key={o.id} className="rounded-lg border border-border p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <strong>{o.order_number}</strong> — {o.customer_name} • {o.customer_phone}
-                    <div className="text-xs text-muted-foreground">📍 {o.delivery_address}</div>
-                    <div className="text-xs text-muted-foreground">{o.total.toFixed(2)}$ • {o.preferred_time}</div>
+            {readyOrders.map((o) => {
+              const mapsHref = o.delivery_address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.delivery_address)}` : "";
+              return (
+                <li key={o.id} className="rounded-lg border border-border p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div><strong>{o.order_number}</strong> — {o.customer_name} • <a href={`tel:${o.customer_phone}`} className="text-primary underline">{o.customer_phone}</a></div>
+                      <div className="mt-1 text-xs text-muted-foreground">📍 {o.delivery_address}</div>
+                      {(o.delivery_unit || o.delivery_door_code) && (
+                        <div className="text-xs text-muted-foreground">
+                          {o.delivery_unit && <>App./Unité : <strong>{o.delivery_unit}</strong> </>}
+                          {o.delivery_door_code && <>• Code : <strong>{o.delivery_door_code}</strong></>}
+                        </div>
+                      )}
+                      {o.delivery_instructions && (
+                        <div className="text-xs italic text-muted-foreground">📝 {o.delivery_instructions}</div>
+                      )}
+                      <div className="mt-1 text-xs text-muted-foreground">{o.total.toFixed(2)}$ • {o.preferred_time}</div>
+                    </div>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      {mapsHref && (
+                        <a href={mapsHref} target="_blank" rel="noreferrer">
+                          <Button variant="outline" size="sm"><MapPin className="mr-1 h-4 w-4" /> Maps</Button>
+                        </a>
+                      )}
+                      <Select value={pick[o.id]?.toString() || ""} onValueChange={(v) => setPick((p) => ({ ...p, [o.id]: Number(v) }))}>
+                        <SelectTrigger className="w-44"><SelectValue placeholder="Choisir livreur" /></SelectTrigger>
+                        <SelectContent>
+                          {activeDrivers.length === 0 && <div className="p-2 text-xs text-muted-foreground">Aucun livreur actif</div>}
+                          {activeDrivers.map((d) => <SelectItem key={d.id} value={d.id.toString()}>{d.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Button onClick={() => assign(o.id)} disabled={!pick[o.id]}><Truck className="mr-1 h-4 w-4" /> Assigner</Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Select value={pick[o.id]?.toString() || ""} onValueChange={(v) => setPick((p) => ({ ...p, [o.id]: Number(v) }))}>
-                      <SelectTrigger className="w-44"><SelectValue placeholder="Choisir livreur" /></SelectTrigger>
-                      <SelectContent>
-                        {activeDrivers.length === 0 && <div className="p-2 text-xs text-muted-foreground">Aucun livreur actif</div>}
-                        {activeDrivers.map((d) => <SelectItem key={d.id} value={d.id.toString()}>{d.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    <Button onClick={() => assign(o.id)} disabled={!pick[o.id]}><Truck className="mr-1 h-4 w-4" /> Assigner</Button>
-                  </div>
-                </div>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
@@ -145,19 +162,32 @@ function DispatchPage() {
           <p className="text-sm text-muted-foreground">Aucune livraison en cours.</p>
         ) : (
           <ul className="space-y-2">
-            {assignments.map((a) => (
-              <li key={a.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border p-3">
-                <div>
-                  <strong>{a.order_number}</strong> → 🚚 <strong>{a.driver_name}</strong>
-                  <div className="text-xs text-muted-foreground">{a.customer_name} • {a.customer_phone}</div>
-                  <div className="text-xs text-muted-foreground">📍 {a.delivery_address}</div>
-                  <div className="text-xs text-muted-foreground">Assigné à {new Date(a.assigned_at).toLocaleTimeString("fr-CA")}</div>
-                </div>
-                <Button onClick={() => markDelivered(a.order_id)} variant="default" className="bg-emerald-600 hover:bg-emerald-700">
-                  <CheckCircle2 className="mr-1 h-4 w-4" /> Livrée
-                </Button>
-              </li>
-            ))}
+            {assignments.map((a) => {
+              const mapsHref = a.delivery_address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.delivery_address)}` : "";
+              return (
+                <li key={a.id} className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-border p-3">
+                  <div className="min-w-0 flex-1">
+                    <div><strong>{a.order_number}</strong> → 🚚 <strong>{a.driver_name}</strong>{a.driver_phone && <> • <a href={`tel:${a.driver_phone}`} className="text-primary underline"><Phone className="inline h-3 w-3" /> {a.driver_phone}</a></>}</div>
+                    <div className="text-xs text-muted-foreground">{a.customer_name} • <a href={`tel:${a.customer_phone}`} className="text-primary underline">{a.customer_phone}</a></div>
+                    <div className="text-xs text-muted-foreground">📍 {a.delivery_address}</div>
+                    {a.notes && <div className="text-xs italic text-muted-foreground">📝 {a.notes}</div>}
+                    <div className="text-xs text-muted-foreground">Assigné à {new Date(a.assigned_at).toLocaleTimeString("fr-CA")}{a.delivered_at && <> • Livrée à {new Date(a.delivered_at).toLocaleTimeString("fr-CA")}</>}</div>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    {mapsHref && (
+                      <a href={mapsHref} target="_blank" rel="noreferrer">
+                        <Button variant="outline" size="sm"><MapPin className="mr-1 h-4 w-4" /> Maps</Button>
+                      </a>
+                    )}
+                    {!a.delivered_at && (
+                      <Button onClick={() => markDelivered(a.order_id)} className="bg-emerald-600 hover:bg-emerald-700">
+                        <CheckCircle2 className="mr-1 h-4 w-4" /> Livrée
+                      </Button>
+                    )}
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
