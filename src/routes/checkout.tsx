@@ -166,9 +166,28 @@ function CheckoutPage() {
               {allowDelivery && <RadioCard value="delivery" current={orderType} label="Livraison" desc="Livré à votre adresse" />}
             </RadioGroup>
             {orderType === "delivery" && (
-              <Field label="Adresse de livraison *">
-                <Textarea required value={address} onChange={(e) => setAddress(e.target.value)} maxLength={400} />
-              </Field>
+              <>
+                <Field label="Adresse de livraison *">
+                  <Textarea required value={address} onChange={(e) => setAddress(e.target.value)} maxLength={400} placeholder="Rue, ville, code postal" />
+                </Field>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Appartement / Unité (optionnel)">
+                    <Input value={unit} onChange={(e) => setUnit(e.target.value)} maxLength={80} placeholder="App. 12" />
+                  </Field>
+                  <Field label="Code de porte (optionnel)">
+                    <Input value={doorCode} onChange={(e) => setDoorCode(e.target.value)} maxLength={40} placeholder="#1234" />
+                  </Field>
+                </div>
+                <Field label="Instructions pour le livreur (optionnel)">
+                  <Textarea value={deliveryInstructions} onChange={(e) => setDeliveryInstructions(e.target.value)} maxLength={500} placeholder="Sonner deux fois, laisser à la porte..." rows={2} />
+                </Field>
+                {settings?.delivery_zone_text && (
+                  <p className="text-xs text-muted-foreground">📍 {settings.delivery_zone_text}</p>
+                )}
+                {settings && settings.free_delivery_threshold > 0 && (
+                  <p className="text-xs text-muted-foreground">🚚 Livraison gratuite à partir de {fmt(settings.free_delivery_threshold)}.</p>
+                )}
+              </>
             )}
           </Section>
 
