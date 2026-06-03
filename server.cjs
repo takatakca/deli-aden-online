@@ -957,7 +957,9 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
 app.get("/api/orders/:orderNumber", async (req, res) => {
   try {
     const row = await dbApi.getOrderByNumber(req.params.orderNumber);
-    res.json({ order: rowToOrder(row) });
+    const order = rowToOrder(row);
+    if (order) { delete order.admin_notes; }
+    res.json({ order });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
 
