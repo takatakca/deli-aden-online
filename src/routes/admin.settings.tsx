@@ -61,6 +61,9 @@ function SettingsPage() {
         <Field label="Livraison gratuite à partir de ($, 0 = jamais)">
           <Input type="number" step="0.01" value={s.free_delivery_threshold} onChange={(e) => update("free_delivery_threshold", Number(e.target.value))} />
         </Field>
+        <Field label="Zone de livraison (texte affiché aux clients)">
+          <Textarea value={s.delivery_zone_text} onChange={(e) => update("delivery_zone_text", e.target.value)} rows={2} placeholder="Livraison disponible dans un rayon de 8 km autour du restaurant." />
+        </Field>
       </Section>
 
       <Section title="Taxes">

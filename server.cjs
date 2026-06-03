@@ -56,6 +56,7 @@ const DEFAULT_SETTINGS = {
   order_pause_message: "Les commandes sont temporairement suspendues. Merci de réessayer dans quelques minutes.",
   closed_message: "Le restaurant est actuellement fermé. Merci de revenir pendant les heures d'ouverture.",
   hidden_categories: "",
+  delivery_zone_text: "Livraison disponible dans un rayon de 8 km autour du restaurant.",
 };
 
 // =====================================================================
@@ -175,6 +176,11 @@ if (USE_MYSQL) {
         "ADD COLUMN dispatched_at DATETIME NULL",
         "ADD COLUMN completed_at DATETIME NULL",
         "ADD COLUMN delivery_fee DECIMAL(10,2) NOT NULL DEFAULT 0",
+        "ADD COLUMN delivery_unit VARCHAR(80) NULL",
+        "ADD COLUMN delivery_door_code VARCHAR(40) NULL",
+        "ADD COLUMN delivery_instructions TEXT NULL",
+        "ADD COLUMN estimated_ready_time DATETIME NULL",
+        "ADD COLUMN estimated_delivery_time DATETIME NULL",
       ]) {
         try { await conn.query(`ALTER TABLE orders ${col}`); } catch (_) { /* exists */ }
       }
@@ -267,11 +273,14 @@ if (USE_MYSQL) {
     async insertOrder(o) {
       const [r] = await mysqlPool.query(
         `INSERT INTO orders (order_number, customer_name, customer_phone, customer_email, order_type,
-          delivery_address, preferred_time, payment_method, items_json, subtotal, gst, qst, total, special_notes, delivery_fee)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          delivery_address, preferred_time, payment_method, items_json, subtotal, gst, qst, total, special_notes, delivery_fee,
+          delivery_unit, delivery_door_code, delivery_instructions, estimated_ready_time, estimated_delivery_time)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [o.order_number, o.customer_name, o.customer_phone, o.customer_email, o.order_type,
          o.delivery_address, o.preferred_time, o.payment_method, o.items_json,
-         o.subtotal, o.gst, o.qst, o.total, o.special_notes, o.delivery_fee || 0]
+         o.subtotal, o.gst, o.qst, o.total, o.special_notes, o.delivery_fee || 0,
+         o.delivery_unit || null, o.delivery_door_code || null, o.delivery_instructions || null,
+         o.estimated_ready_time || null, o.estimated_delivery_time || null]
       );
       await mysqlPool.query("INSERT INTO order_events (order_id, event, meta) VALUES (?, ?, ?)",
         [r.insertId, "created", "new"]);
@@ -489,6 +498,11 @@ if (USE_MYSQL) {
     "ALTER TABLE orders ADD COLUMN dispatched_at TEXT",
     "ALTER TABLE orders ADD COLUMN completed_at TEXT",
     "ALTER TABLE orders ADD COLUMN delivery_fee REAL NOT NULL DEFAULT 0",
+    "ALTER TABLE orders ADD COLUMN delivery_unit TEXT",
+    "ALTER TABLE orders ADD COLUMN delivery_door_code TEXT",
+    "ALTER TABLE orders ADD COLUMN delivery_instructions TEXT",
+    "ALTER TABLE orders ADD COLUMN estimated_ready_time TEXT",
+    "ALTER TABLE orders ADD COLUMN estimated_delivery_time TEXT",
   ]) { try { sqliteDb.exec(col); } catch (_) {} }
   dbConnected = true;
 
@@ -507,11 +521,14 @@ if (USE_MYSQL) {
     async insertOrder(o) {
       const r = sqliteDb.prepare(
         `INSERT INTO orders (order_number, customer_name, customer_phone, customer_email, order_type,
-          delivery_address, preferred_time, payment_method, items_json, subtotal, gst, qst, total, special_notes, delivery_fee)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
+          delivery_address, preferred_time, payment_method, items_json, subtotal, gst, qst, total, special_notes, delivery_fee,
+          delivery_unit, delivery_door_code, delivery_instructions, estimated_ready_time, estimated_delivery_time)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
       ).run(o.order_number, o.customer_name, o.customer_phone, o.customer_email, o.order_type,
         o.delivery_address, o.preferred_time, o.payment_method, o.items_json,
-        o.subtotal, o.gst, o.qst, o.total, o.special_notes, o.delivery_fee || 0);
+        o.subtotal, o.gst, o.qst, o.total, o.special_notes, o.delivery_fee || 0,
+        o.delivery_unit || null, o.delivery_door_code || null, o.delivery_instructions || null,
+        o.estimated_ready_time || null, o.estimated_delivery_time || null);
       sqliteDb.prepare("INSERT INTO order_events (order_id, event, meta) VALUES (?,?,?)")
         .run(r.lastInsertRowid, "created", "new");
       return r.lastInsertRowid;
@@ -648,10 +665,14 @@ if (USE_MYSQL) {
 
 function rowToOrder(row) {
   if (!row) return null;
+  const iso = (v) => v instanceof Date ? v.toISOString() : (v || null);
   return {
     id: row.id, order_number: row.order_number, status: row.status,
     customer_name: row.customer_name, customer_phone: row.customer_phone, customer_email: row.customer_email,
     order_type: row.order_type, delivery_address: row.delivery_address,
+    delivery_unit: row.delivery_unit || null,
+    delivery_door_code: row.delivery_door_code || null,
+    delivery_instructions: row.delivery_instructions || null,
     preferred_time: row.preferred_time, payment_method: row.payment_method,
     items: typeof row.items_json === "string" ? JSON.parse(row.items_json) : row.items_json,
     subtotal: Number(row.subtotal), gst: Number(row.gst), qst: Number(row.qst), total: Number(row.total),
@@ -659,9 +680,11 @@ function rowToOrder(row) {
     special_notes: row.special_notes,
     admin_notes: row.admin_notes || null,
     cancel_reason: row.cancel_reason || null,
-    dispatched_at: row.dispatched_at instanceof Date ? row.dispatched_at.toISOString() : (row.dispatched_at || null),
-    completed_at: row.completed_at instanceof Date ? row.completed_at.toISOString() : (row.completed_at || null),
-    created_at: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+    dispatched_at: iso(row.dispatched_at),
+    completed_at: iso(row.completed_at),
+    estimated_ready_time: iso(row.estimated_ready_time),
+    estimated_delivery_time: iso(row.estimated_delivery_time),
+    created_at: iso(row.created_at),
   };
 }
 
@@ -698,6 +721,7 @@ function publicSettings() {
     order_pause_message: String(SETTINGS.order_pause_message || ""),
     closed_message: String(SETTINGS.closed_message || ""),
     hidden_categories: String(SETTINGS.hidden_categories || ""),
+    delivery_zone_text: String(SETTINGS.delivery_zone_text || ""),
   };
 }
 function computeDeliveryFee(orderType, subtotal) {
@@ -734,20 +758,29 @@ function buildOrderEmailHtml(order) {
     const note = it.notes ? `<div style="font-size:12px;color:#888"><em>Note: ${escapeHtml(it.notes)}</em></div>` : "";
     return `<tr><td style="padding:8px;border-bottom:1px solid #eee"><strong>${escapeHtml(it.quantity)}× ${escapeHtml(it.name)}</strong>${opts}${note}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${fmtMoney(Number(it.unitPrice) * Number(it.quantity))}</td></tr>`;
   }).join("");
+  const isDelivery = order.order_type === "delivery";
+  const etaIso = isDelivery ? order.estimated_delivery_time : order.estimated_ready_time;
+  const etaStr = etaIso ? new Date(etaIso).toLocaleString("fr-CA") : "";
   return `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#222;max-width:600px;margin:0 auto">
     <h2 style="background:#9F1115;color:#FFF8E6;padding:16px;border-radius:8px;margin:0 0 16px">Nouvelle commande ${escapeHtml(order.order_number)}</h2>
     <p><strong>Date :</strong> ${escapeHtml(new Date(order.created_at).toLocaleString("fr-CA"))}</p>
     <p><strong>Client :</strong> ${escapeHtml(order.customer_name)}<br/><strong>Téléphone :</strong> ${escapeHtml(order.customer_phone)}<br/>
       ${order.customer_email ? `<strong>Email :</strong> ${escapeHtml(order.customer_email)}<br/>` : ""}
-      <strong>Type :</strong> ${order.order_type === "pickup" ? "Ramassage" : "Livraison"}<br/>
+      <strong>Type :</strong> ${isDelivery ? "Livraison" : "Ramassage"}<br/>
       ${order.delivery_address ? `<strong>Adresse :</strong> ${escapeHtml(order.delivery_address)}<br/>` : ""}
-      <strong>Heure :</strong> ${escapeHtml(order.preferred_time)}<br/><strong>Paiement :</strong> ${escapeHtml(order.payment_method)}</p>
+      ${order.delivery_unit ? `<strong>App./Unité :</strong> ${escapeHtml(order.delivery_unit)}<br/>` : ""}
+      ${order.delivery_door_code ? `<strong>Code de porte :</strong> ${escapeHtml(order.delivery_door_code)}<br/>` : ""}
+      ${order.delivery_instructions ? `<strong>Instructions livraison :</strong> ${escapeHtml(order.delivery_instructions)}<br/>` : ""}
+      <strong>Heure :</strong> ${escapeHtml(order.preferred_time)}<br/>
+      ${etaStr ? `<strong>${isDelivery ? "Livraison estimée" : "Prêt vers"} :</strong> ${escapeHtml(etaStr)}<br/>` : ""}
+      <strong>Paiement :</strong> ${escapeHtml(order.payment_method)}</p>
     ${order.special_notes ? `<p style="background:#FFF8E6;padding:10px;border-radius:6px"><strong>Instructions :</strong> ${escapeHtml(order.special_notes)}</p>` : ""}
     <table style="width:100%;border-collapse:collapse;margin-top:12px">${itemRows}</table>
     <table style="width:100%;margin-top:12px">
       <tr><td>Sous-total</td><td style="text-align:right">${fmtMoney(order.subtotal)}</td></tr>
       <tr><td>TPS</td><td style="text-align:right">${fmtMoney(order.gst)}</td></tr>
       <tr><td>TVQ</td><td style="text-align:right">${fmtMoney(order.qst)}</td></tr>
+      ${isDelivery ? `<tr><td>Frais de livraison</td><td style="text-align:right">${fmtMoney(order.delivery_fee || 0)}</td></tr>` : ""}
       <tr><td><strong>Total</strong></td><td style="text-align:right"><strong>${fmtMoney(order.total)}</strong></td></tr>
     </table></body></html>`;
 }
@@ -931,17 +964,32 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
     const qst = +(subtotal * (Number(SETTINGS.qst_rate) || 0)).toFixed(2);
     const total = +(subtotal + gst + qst + deliveryFee).toFixed(2);
 
+    // Format datetime for both MySQL DATETIME and SQLite TEXT (YYYY-MM-DD HH:MM:SS UTC)
+    const fmtDT = (d) => d.toISOString().slice(0, 19).replace("T", " ");
+    const etaMin = b.orderType === "delivery"
+      ? (Number(SETTINGS.est_delivery_min) || 0)
+      : (Number(SETTINGS.est_pickup_min) || 0);
+    const readyMin = Number(SETTINGS.est_pickup_min) || 0;
+    const now = Date.now();
+    const estimated_ready_time = readyMin > 0 ? fmtDT(new Date(now + readyMin * 60000)) : null;
+    const estimated_delivery_time = b.orderType === "delivery" && etaMin > 0
+      ? fmtDT(new Date(now + etaMin * 60000)) : null;
+
     const orderNumber = await dbApi.nextOrderNumber();
     const id = await dbApi.insertOrder({
       order_number: orderNumber,
       customer_name: name, customer_phone: phone, customer_email: email || null,
       order_type: b.orderType,
       delivery_address: clean(b.deliveryAddress, 500) || null,
+      delivery_unit: b.orderType === "delivery" ? (clean(b.deliveryUnit, 80) || null) : null,
+      delivery_door_code: b.orderType === "delivery" ? (clean(b.deliveryDoorCode, 40) || null) : null,
+      delivery_instructions: b.orderType === "delivery" ? (clean(b.deliveryInstructions, 500) || null) : null,
       preferred_time: clean(b.preferredTime, 60) || "ASAP",
       payment_method: clean(b.paymentMethod, 40) || "pay_at_restaurant",
       items_json: JSON.stringify(items),
       subtotal, gst, qst, total, delivery_fee: deliveryFee,
       special_notes: clean(b.specialNotes, 500) || null,
+      estimated_ready_time, estimated_delivery_time,
     });
     const order = rowToOrder(await dbApi.getOrderById(id));
     sendOrderEmail(order).catch((e) => console.error("[mail] async", e.message));
@@ -958,7 +1006,21 @@ app.get("/api/orders/:orderNumber", async (req, res) => {
   try {
     const row = await dbApi.getOrderByNumber(req.params.orderNumber);
     const order = rowToOrder(row);
-    if (order) { delete order.admin_notes; }
+    if (order) {
+      delete order.admin_notes;
+      // Attach driver info for delivery tracking (public-safe fields only)
+      if (order.order_type === "delivery") {
+        try {
+          const a = await dbApi.getOrderAssignment(order.id);
+          if (a) {
+            order.driver_name = a.driver_name || null;
+            order.driver_phone = a.driver_phone || null;
+            order.assigned_at = a.assigned_at instanceof Date ? a.assigned_at.toISOString() : (a.assigned_at || null);
+            order.delivered_at = a.delivered_at instanceof Date ? a.delivered_at.toISOString() : (a.delivered_at || null);
+          }
+        } catch (_) {}
+      }
+    }
     res.json({ order });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
@@ -990,11 +1052,11 @@ app.get("/api/orders.csv", requireAdmin, async (req, res) => {
       from: req.query.from, to: req.query.to, limit: 5000,
     });
     const orders = rows.map(rowToOrder);
-    const header = ["order_number","created_at","status","order_type","customer_name","customer_phone","customer_email","delivery_address","preferred_time","payment_method","subtotal","gst","qst","delivery_fee","total","items","special_notes","admin_notes","cancel_reason","dispatched_at","completed_at"];
+    const header = ["order_number","created_at","status","order_type","customer_name","customer_phone","customer_email","delivery_address","delivery_unit","delivery_door_code","delivery_instructions","preferred_time","payment_method","subtotal","gst","qst","delivery_fee","total","items","special_notes","admin_notes","cancel_reason","dispatched_at","completed_at","estimated_ready_time","estimated_delivery_time"];
     const lines = [header.join(",")];
     for (const o of orders) {
       const items = o.items.map((i) => `${i.quantity}x ${i.name}`).join(" | ");
-      lines.push([o.order_number,o.created_at,o.status,o.order_type,o.customer_name,o.customer_phone,o.customer_email||"",o.delivery_address||"",o.preferred_time,o.payment_method,o.subtotal,o.gst,o.qst,o.delivery_fee||0,o.total,items,o.special_notes||"",o.admin_notes||"",o.cancel_reason||"",o.dispatched_at||"",o.completed_at||""].map(csvCell).join(","));
+      lines.push([o.order_number,o.created_at,o.status,o.order_type,o.customer_name,o.customer_phone,o.customer_email||"",o.delivery_address||"",o.delivery_unit||"",o.delivery_door_code||"",o.delivery_instructions||"",o.preferred_time,o.payment_method,o.subtotal,o.gst,o.qst,o.delivery_fee||0,o.total,items,o.special_notes||"",o.admin_notes||"",o.cancel_reason||"",o.dispatched_at||"",o.completed_at||"",o.estimated_ready_time||"",o.estimated_delivery_time||""].map(csvCell).join(","));
     }
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", `attachment; filename="orders-${new Date().toISOString().slice(0,10)}.csv"`);

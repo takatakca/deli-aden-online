@@ -15,6 +15,9 @@ export type CreateOrderPayload = {
   customer: { name: string; phone: string; email?: string };
   orderType: "pickup" | "delivery";
   deliveryAddress?: string;
+  deliveryUnit?: string;
+  deliveryDoorCode?: string;
+  deliveryInstructions?: string;
   preferredTime: string;
   paymentMethod: "pay_at_restaurant" | "cash" | "card_on_arrival";
   specialNotes?: string;
@@ -157,6 +160,9 @@ export type AdminOrder = {
   customer_email: string | null;
   order_type: string;
   delivery_address: string | null;
+  delivery_unit?: string | null;
+  delivery_door_code?: string | null;
+  delivery_instructions?: string | null;
   preferred_time: string;
   payment_method: string;
   items: Array<{
@@ -176,7 +182,14 @@ export type AdminOrder = {
   cancel_reason: string | null;
   dispatched_at: string | null;
   completed_at: string | null;
+  estimated_ready_time?: string | null;
+  estimated_delivery_time?: string | null;
   created_at: string;
+  // Public delivery tracking enrichments (returned by GET /api/orders/:orderNumber for delivery orders)
+  driver_name?: string | null;
+  driver_phone?: string | null;
+  assigned_at?: string | null;
+  delivered_at?: string | null;
 };
 
 export type OrderEvent = {
@@ -207,6 +220,7 @@ export type PublicSettings = {
   order_pause_message: string;
   closed_message: string;
   hidden_categories: string;
+  delivery_zone_text: string;
 };
 
 export type MenuOverride = {
