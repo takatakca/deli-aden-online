@@ -758,20 +758,29 @@ function buildOrderEmailHtml(order) {
     const note = it.notes ? `<div style="font-size:12px;color:#888"><em>Note: ${escapeHtml(it.notes)}</em></div>` : "";
     return `<tr><td style="padding:8px;border-bottom:1px solid #eee"><strong>${escapeHtml(it.quantity)}× ${escapeHtml(it.name)}</strong>${opts}${note}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${fmtMoney(Number(it.unitPrice) * Number(it.quantity))}</td></tr>`;
   }).join("");
+  const isDelivery = order.order_type === "delivery";
+  const etaIso = isDelivery ? order.estimated_delivery_time : order.estimated_ready_time;
+  const etaStr = etaIso ? new Date(etaIso).toLocaleString("fr-CA") : "";
   return `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#222;max-width:600px;margin:0 auto">
     <h2 style="background:#9F1115;color:#FFF8E6;padding:16px;border-radius:8px;margin:0 0 16px">Nouvelle commande ${escapeHtml(order.order_number)}</h2>
     <p><strong>Date :</strong> ${escapeHtml(new Date(order.created_at).toLocaleString("fr-CA"))}</p>
     <p><strong>Client :</strong> ${escapeHtml(order.customer_name)}<br/><strong>Téléphone :</strong> ${escapeHtml(order.customer_phone)}<br/>
       ${order.customer_email ? `<strong>Email :</strong> ${escapeHtml(order.customer_email)}<br/>` : ""}
-      <strong>Type :</strong> ${order.order_type === "pickup" ? "Ramassage" : "Livraison"}<br/>
+      <strong>Type :</strong> ${isDelivery ? "Livraison" : "Ramassage"}<br/>
       ${order.delivery_address ? `<strong>Adresse :</strong> ${escapeHtml(order.delivery_address)}<br/>` : ""}
-      <strong>Heure :</strong> ${escapeHtml(order.preferred_time)}<br/><strong>Paiement :</strong> ${escapeHtml(order.payment_method)}</p>
+      ${order.delivery_unit ? `<strong>App./Unité :</strong> ${escapeHtml(order.delivery_unit)}<br/>` : ""}
+      ${order.delivery_door_code ? `<strong>Code de porte :</strong> ${escapeHtml(order.delivery_door_code)}<br/>` : ""}
+      ${order.delivery_instructions ? `<strong>Instructions livraison :</strong> ${escapeHtml(order.delivery_instructions)}<br/>` : ""}
+      <strong>Heure :</strong> ${escapeHtml(order.preferred_time)}<br/>
+      ${etaStr ? `<strong>${isDelivery ? "Livraison estimée" : "Prêt vers"} :</strong> ${escapeHtml(etaStr)}<br/>` : ""}
+      <strong>Paiement :</strong> ${escapeHtml(order.payment_method)}</p>
     ${order.special_notes ? `<p style="background:#FFF8E6;padding:10px;border-radius:6px"><strong>Instructions :</strong> ${escapeHtml(order.special_notes)}</p>` : ""}
     <table style="width:100%;border-collapse:collapse;margin-top:12px">${itemRows}</table>
     <table style="width:100%;margin-top:12px">
       <tr><td>Sous-total</td><td style="text-align:right">${fmtMoney(order.subtotal)}</td></tr>
       <tr><td>TPS</td><td style="text-align:right">${fmtMoney(order.gst)}</td></tr>
       <tr><td>TVQ</td><td style="text-align:right">${fmtMoney(order.qst)}</td></tr>
+      ${isDelivery ? `<tr><td>Frais de livraison</td><td style="text-align:right">${fmtMoney(order.delivery_fee || 0)}</td></tr>` : ""}
       <tr><td><strong>Total</strong></td><td style="text-align:right"><strong>${fmtMoney(order.total)}</strong></td></tr>
     </table></body></html>`;
 }
