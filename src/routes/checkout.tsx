@@ -43,6 +43,9 @@ function CheckoutPage() {
   const [email, setEmail] = useState("");
   const [orderType, setOrderType] = useState<"pickup" | "delivery">(allowPickup ? "pickup" : "delivery");
   const [address, setAddress] = useState("");
+  const [unit, setUnit] = useState("");
+  const [doorCode, setDoorCode] = useState("");
+  const [deliveryInstructions, setDeliveryInstructions] = useState("");
   const [time, setTime] = useState("ASAP");
   const [scheduledTime, setScheduledTime] = useState("");
   const [payment, setPayment] = useState<"pay_at_restaurant" | "cash" | "card_on_arrival">("pay_at_restaurant");
