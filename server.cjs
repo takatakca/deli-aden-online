@@ -56,6 +56,7 @@ const DEFAULT_SETTINGS = {
   order_pause_message: "Les commandes sont temporairement suspendues. Merci de réessayer dans quelques minutes.",
   closed_message: "Le restaurant est actuellement fermé. Merci de revenir pendant les heures d'ouverture.",
   hidden_categories: "",
+  delivery_zone_text: "Livraison disponible dans un rayon de 8 km autour du restaurant.",
 };
 
 // =====================================================================
