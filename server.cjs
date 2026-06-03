@@ -176,6 +176,11 @@ if (USE_MYSQL) {
         "ADD COLUMN dispatched_at DATETIME NULL",
         "ADD COLUMN completed_at DATETIME NULL",
         "ADD COLUMN delivery_fee DECIMAL(10,2) NOT NULL DEFAULT 0",
+        "ADD COLUMN delivery_unit VARCHAR(80) NULL",
+        "ADD COLUMN delivery_door_code VARCHAR(40) NULL",
+        "ADD COLUMN delivery_instructions TEXT NULL",
+        "ADD COLUMN estimated_ready_time DATETIME NULL",
+        "ADD COLUMN estimated_delivery_time DATETIME NULL",
       ]) {
         try { await conn.query(`ALTER TABLE orders ${col}`); } catch (_) { /* exists */ }
       }
