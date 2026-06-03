@@ -721,6 +721,7 @@ function publicSettings() {
     order_pause_message: String(SETTINGS.order_pause_message || ""),
     closed_message: String(SETTINGS.closed_message || ""),
     hidden_categories: String(SETTINGS.hidden_categories || ""),
+    delivery_zone_text: String(SETTINGS.delivery_zone_text || ""),
   };
 }
 function computeDeliveryFee(orderType, subtotal) {
