@@ -964,17 +964,32 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
     const qst = +(subtotal * (Number(SETTINGS.qst_rate) || 0)).toFixed(2);
     const total = +(subtotal + gst + qst + deliveryFee).toFixed(2);
 
+    // Format datetime for both MySQL DATETIME and SQLite TEXT (YYYY-MM-DD HH:MM:SS UTC)
+    const fmtDT = (d) => d.toISOString().slice(0, 19).replace("T", " ");
+    const etaMin = b.orderType === "delivery"
+      ? (Number(SETTINGS.est_delivery_min) || 0)
+      : (Number(SETTINGS.est_pickup_min) || 0);
+    const readyMin = Number(SETTINGS.est_pickup_min) || 0;
+    const now = Date.now();
+    const estimated_ready_time = readyMin > 0 ? fmtDT(new Date(now + readyMin * 60000)) : null;
+    const estimated_delivery_time = b.orderType === "delivery" && etaMin > 0
+      ? fmtDT(new Date(now + etaMin * 60000)) : null;
+
     const orderNumber = await dbApi.nextOrderNumber();
     const id = await dbApi.insertOrder({
       order_number: orderNumber,
       customer_name: name, customer_phone: phone, customer_email: email || null,
       order_type: b.orderType,
       delivery_address: clean(b.deliveryAddress, 500) || null,
+      delivery_unit: b.orderType === "delivery" ? (clean(b.deliveryUnit, 80) || null) : null,
+      delivery_door_code: b.orderType === "delivery" ? (clean(b.deliveryDoorCode, 40) || null) : null,
+      delivery_instructions: b.orderType === "delivery" ? (clean(b.deliveryInstructions, 500) || null) : null,
       preferred_time: clean(b.preferredTime, 60) || "ASAP",
       payment_method: clean(b.paymentMethod, 40) || "pay_at_restaurant",
       items_json: JSON.stringify(items),
       subtotal, gst, qst, total, delivery_fee: deliveryFee,
       special_notes: clean(b.specialNotes, 500) || null,
+      estimated_ready_time, estimated_delivery_time,
     });
     const order = rowToOrder(await dbApi.getOrderById(id));
     sendOrderEmail(order).catch((e) => console.error("[mail] async", e.message));
@@ -991,7 +1006,21 @@ app.get("/api/orders/:orderNumber", async (req, res) => {
   try {
     const row = await dbApi.getOrderByNumber(req.params.orderNumber);
     const order = rowToOrder(row);
-    if (order) { delete order.admin_notes; }
+    if (order) {
+      delete order.admin_notes;
+      // Attach driver info for delivery tracking (public-safe fields only)
+      if (order.order_type === "delivery") {
+        try {
+          const a = await dbApi.getOrderAssignment(order.id);
+          if (a) {
+            order.driver_name = a.driver_name || null;
+            order.driver_phone = a.driver_phone || null;
+            order.assigned_at = a.assigned_at instanceof Date ? a.assigned_at.toISOString() : (a.assigned_at || null);
+            order.delivered_at = a.delivered_at instanceof Date ? a.delivered_at.toISOString() : (a.delivered_at || null);
+          }
+        } catch (_) {}
+      }
+    }
     res.json({ order });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
