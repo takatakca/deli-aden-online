@@ -220,6 +220,7 @@ export type PublicSettings = {
   order_pause_message: string;
   closed_message: string;
   hidden_categories: string;
+  delivery_zone_text: string;
 };
 
 export type MenuOverride = {
