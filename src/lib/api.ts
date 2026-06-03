@@ -15,6 +15,9 @@ export type CreateOrderPayload = {
   customer: { name: string; phone: string; email?: string };
   orderType: "pickup" | "delivery";
   deliveryAddress?: string;
+  deliveryUnit?: string;
+  deliveryDoorCode?: string;
+  deliveryInstructions?: string;
   preferredTime: string;
   paymentMethod: "pay_at_restaurant" | "cash" | "card_on_arrival";
   specialNotes?: string;
