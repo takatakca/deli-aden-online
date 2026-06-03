@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { PASSWORD_KEY } from "@/lib/admin-shared";
 import { toast } from "sonner";
-import { Trash2, Truck, CheckCircle2 } from "lucide-react";
+import { Trash2, Truck, CheckCircle2, MapPin, Phone } from "lucide-react";
 
 export const Route = createFileRoute("/admin/dispatch")({ component: DispatchPage });
 
