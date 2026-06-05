@@ -48,6 +48,10 @@ function ConfirmationPage() {
     card_on_arrival: "Carte à l'arrivée",
   }[order.payment_method] ?? order.payment_method;
 
+  const eta = order.order_type === "delivery"
+    ? settings?.est_delivery_min
+    : settings?.est_pickup_min;
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
       <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
@@ -57,6 +61,12 @@ function ConfirmationPage() {
         <div className="mt-4 inline-block rounded-full bg-primary px-5 py-2 font-display text-lg font-bold text-primary-foreground">
           N° {order.order_number}
         </div>
+        {eta ? (
+          <p className="mt-3 inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4 text-primary" />
+            {order.order_type === "delivery" ? "Livraison" : "Prêt"} dans environ <strong className="text-foreground">{eta} min</strong>
+          </p>
+        ) : null}
       </div>
 
       <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
