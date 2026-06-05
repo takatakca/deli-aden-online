@@ -117,7 +117,12 @@ function ConfirmationPage() {
         <Link to="/track/$orderNumber" params={{ orderNumber: order.order_number }}>
           <Button>Suivre ma commande en direct</Button>
         </Link>
-        <Link to="/"><Button variant="outline">Retour à l'accueil</Button></Link>
+        {settings?.restaurant_phone && (
+          <a href={`tel:${settings.restaurant_phone}`}>
+            <Button variant="outline"><Phone className="h-4 w-4" /> Appeler le restaurant</Button>
+          </a>
+        )}
+        <Link to="/"><Button variant="ghost">Retour à l'accueil</Button></Link>
       </div>
     </div>
   );
