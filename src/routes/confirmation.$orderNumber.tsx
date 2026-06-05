@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { api, type AdminOrder } from "@/lib/api";
+import { api, type AdminOrder, type PublicSettings } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Clock, Phone } from "lucide-react";
 import { fmt } from "@/lib/cart-store";
 
 export const Route = createFileRoute("/confirmation/$orderNumber")({
@@ -23,13 +23,14 @@ export const Route = createFileRoute("/confirmation/$orderNumber")({
 function ConfirmationPage() {
   const { orderNumber } = Route.useParams();
   const [order, setOrder] = useState<AdminOrder | null>(null);
+  const [settings, setSettings] = useState<PublicSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.getOrder(orderNumber)
-      .then((r) => setOrder(r.order))
-      .catch(() => setOrder(null))
-      .finally(() => setLoading(false));
+    Promise.all([
+      api.getOrder(orderNumber).then((r) => setOrder(r.order)).catch(() => setOrder(null)),
+      api.getSettings().then((r) => setSettings(r.settings)).catch(() => setSettings(null)),
+    ]).finally(() => setLoading(false));
   }, [orderNumber]);
 
   if (loading) return <div className="p-20 text-center text-muted-foreground">Chargement...</div>;
@@ -47,6 +48,10 @@ function ConfirmationPage() {
     card_on_arrival: "Carte à l'arrivée",
   }[order.payment_method] ?? order.payment_method;
 
+  const eta = order.order_type === "delivery"
+    ? settings?.est_delivery_min
+    : settings?.est_pickup_min;
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
       <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
@@ -56,6 +61,12 @@ function ConfirmationPage() {
         <div className="mt-4 inline-block rounded-full bg-primary px-5 py-2 font-display text-lg font-bold text-primary-foreground">
           N° {order.order_number}
         </div>
+        {eta ? (
+          <p className="mt-3 inline-flex items-center gap-2 text-sm text-muted-foreground">
+            <Clock className="h-4 w-4 text-primary" />
+            {order.order_type === "delivery" ? "Livraison" : "Prêt"} dans environ <strong className="text-foreground">{eta} min</strong>
+          </p>
+        ) : null}
       </div>
 
       <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
@@ -106,7 +117,12 @@ function ConfirmationPage() {
         <Link to="/track/$orderNumber" params={{ orderNumber: order.order_number }}>
           <Button>Suivre ma commande en direct</Button>
         </Link>
-        <Link to="/"><Button variant="outline">Retour à l'accueil</Button></Link>
+        {settings?.restaurant_phone && (
+          <a href={`tel:${settings.restaurant_phone}`}>
+            <Button variant="outline"><Phone className="h-4 w-4" /> Appeler le restaurant</Button>
+          </a>
+        )}
+        <Link to="/"><Button variant="ghost">Retour à l'accueil</Button></Link>
       </div>
     </div>
   );
