@@ -1,8 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { api, type AdminOrder } from "@/lib/api";
+import { api, type AdminOrder, type PublicSettings } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Clock, Phone } from "lucide-react";
 import { fmt } from "@/lib/cart-store";
 
 export const Route = createFileRoute("/confirmation/$orderNumber")({
