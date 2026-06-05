@@ -23,13 +23,14 @@ export const Route = createFileRoute("/confirmation/$orderNumber")({
 function ConfirmationPage() {
   const { orderNumber } = Route.useParams();
   const [order, setOrder] = useState<AdminOrder | null>(null);
+  const [settings, setSettings] = useState<PublicSettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.getOrder(orderNumber)
-      .then((r) => setOrder(r.order))
-      .catch(() => setOrder(null))
-      .finally(() => setLoading(false));
+    Promise.all([
+      api.getOrder(orderNumber).then((r) => setOrder(r.order)).catch(() => setOrder(null)),
+      api.getSettings().then((r) => setSettings(r.settings)).catch(() => setSettings(null)),
+    ]).finally(() => setLoading(false));
   }, [orderNumber]);
 
   if (loading) return <div className="p-20 text-center text-muted-foreground">Chargement...</div>;
