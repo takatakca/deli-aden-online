@@ -17,6 +17,7 @@ export type CartItem = {
 const STORAGE_KEY = "deli-aden-cart";
 
 let cart: CartItem[] = [];
+const emptyCartSnapshot: CartItem[] = [];
 const listeners = new Set<() => void>();
 
 function load() {
@@ -82,7 +83,7 @@ export function useCart(): CartItem[] {
   const snap = useSyncExternalStore(
     cartStore.subscribe,
     () => cartStore.getSnapshot(),
-    () => [] as CartItem[]
+    () => emptyCartSnapshot
   );
   return hydrated ? snap : [];
 }
