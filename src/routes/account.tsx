@@ -191,7 +191,7 @@ function OrdersList() {
                 for (const it of o.items) {
                   cartStore.add({
                     itemId: it.itemId, name: it.name, unitPrice: it.unitPrice,
-                    quantity: it.quantity, options: it.options || [], combo: it.combo,
+                    quantity: it.quantity, image: "", options: it.options || [], combo: it.combo,
                     notes: it.notes,
                   });
                 }
@@ -303,7 +303,7 @@ function FavoritesList() {
               cartStore.clear();
               for (const it of f.items) cartStore.add({
                 itemId: it.itemId, name: it.name, unitPrice: it.unitPrice,
-                quantity: it.quantity, options: it.options || [], combo: it.combo, notes: it.notes,
+                quantity: it.quantity, image: "", options: it.options || [], combo: it.combo, notes: it.notes,
               });
               toast.success("Ajouté au panier");
               navigate({ to: "/cart" });
