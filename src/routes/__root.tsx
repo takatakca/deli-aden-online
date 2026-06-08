@@ -67,10 +67,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Cuisine algérienne authentique, grillades, poissons, fast food et desserts faits maison. Commandez en ligne pour ramassage ou livraison.",
       },
-      { property: "og:title", content: "Les Délices d'Aden — Restaurant" },
-      { property: "og:description", content: "Cuisine algérienne authentique. Commandez en ligne." },
+      { property: "og:title", content: "Les Délices d'Aden — Restaurant algérien, commander en ligne" },
+      { property: "og:description", content: "Les Délices d'Aden — Restaurant algérien, commander en ligne" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Les Délices d'Aden — Restaurant algérien, commander en ligne" },
+      { name: "description", content: "Les Délices d'Aden — Restaurant algérien, commander en ligne" },
+      { name: "twitter:description", content: "Les Délices d'Aden — Restaurant algérien, commander en ligne" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/60984ac2-fd40-4a8a-81e4-59488bb0d452/id-preview-7e12d942--f17bf5a0-b328-4c69-849b-9ff879a59797.lovable.app-1780815513858.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/60984ac2-fd40-4a8a-81e4-59488bb0d452/id-preview-7e12d942--f17bf5a0-b328-4c69-849b-9ff879a59797.lovable.app-1780815513858.png" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
