@@ -1210,6 +1210,14 @@ let server;
   try { await dbApi.init(); } catch (e) { console.error("[db] init failed", e); process.exit(1); }
   await loadSettings();
   getTransporter(); // warm + verify SMTP
+  // Phase 2 — customer accounts (must mount BEFORE the SPA fallback at /*).
+  try {
+    const { mountCustomers } = require("./server-customers.cjs");
+    await mountCustomers(app, { kind: dbApi.kind, mysqlPool, sqliteDb, rateLimit, dbApi });
+    console.log("[Deli Aden] Customer accounts module mounted");
+  } catch (e) {
+    console.error("[customers] mount failed", e);
+  }
   server = app.listen(PORT, () => {
     const smtpConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
     console.log(`[Deli Aden] Server running on port ${PORT} (${NODE_ENV})`);
