@@ -214,7 +214,8 @@ async function mountCustomers(app, ctx) {
     }
     next();
   }
-  app.use("/api/orders", optionalCustomer);
+  // NOTE: do not app.use here — order routes are already registered.
+  // server.cjs uses verifyToken() inline in the create-order route instead.
 
   // ---- Rate limiters ----
   const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, keyPrefix: "cust-auth" });
@@ -369,4 +370,4 @@ function publicCustomer(c) {
   };
 }
 
-module.exports = { mountCustomers };
+module.exports = { mountCustomers, verifyToken };
