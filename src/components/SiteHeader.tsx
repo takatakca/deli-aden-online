@@ -1,7 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { ShoppingBag, Menu as MenuIcon, X } from "lucide-react";
+import { ShoppingBag, Menu as MenuIcon, X, User } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/lib/cart-store";
+import { useCustomer } from "@/lib/customer-auth";
 import { Button } from "@/components/ui/button";
 
 const NAV = [
@@ -14,6 +15,7 @@ const NAV = [
 
 export function SiteHeader() {
   const cart = useCart();
+  const { customer } = useCustomer();
   const count = cart.reduce((s, i) => s + i.quantity, 0);
   const [open, setOpen] = useState(false);
   return (
@@ -41,6 +43,12 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          <Link to="/account">
+            <Button variant="ghost" size="sm" className="gap-2">
+              <User className="h-4 w-4" />
+              <span className="hidden sm:inline">{customer ? customer.name.split(" ")[0] : "Compte"}</span>
+            </Button>
+          </Link>
           <Link to="/cart">
             <Button variant="default" size="sm" className="relative gap-2">
               <ShoppingBag className="h-4 w-4" />

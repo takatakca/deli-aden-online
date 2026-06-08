@@ -14,6 +14,7 @@ const express = require("express");
 const compression = require("compression");
 const helmet = require("helmet");
 const nodemailer = require("nodemailer");
+const { verifyToken: verifyCustomerToken } = require("./server-customers.cjs");
 
 const PORT = parseInt(process.env.PORT || "3000", 10);
 const DIST_DIR = path.join(__dirname, "dist");
@@ -991,6 +992,17 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
       special_notes: clean(b.specialNotes, 500) || null,
       estimated_ready_time, estimated_delivery_time,
     });
+    // Phase 2 — if a valid customer token is present, attach the order to the account.
+    try {
+      const h = req.header("authorization") || "";
+      const m = h.match(/^Bearer\s+(.+)$/i);
+      if (m) {
+        const payload = verifyCustomerToken(m[1]);
+        if (payload && payload.sub && typeof dbApi.attachOrderToCustomer === "function") {
+          await dbApi.attachOrderToCustomer(id, parseInt(payload.sub, 10));
+        }
+      }
+    } catch (_) {}
     const order = rowToOrder(await dbApi.getOrderById(id));
     sendOrderEmail(order).catch((e) => console.error("[mail] async", e.message));
     res.json({ orderNumber, id });
@@ -1210,6 +1222,14 @@ let server;
   try { await dbApi.init(); } catch (e) { console.error("[db] init failed", e); process.exit(1); }
   await loadSettings();
   getTransporter(); // warm + verify SMTP
+  // Phase 2 — customer accounts (must mount BEFORE the SPA fallback at /*).
+  try {
+    const { mountCustomers } = require("./server-customers.cjs");
+    await mountCustomers(app, { kind: dbApi.kind, mysqlPool, sqliteDb, rateLimit, dbApi });
+    console.log("[Deli Aden] Customer accounts module mounted");
+  } catch (e) {
+    console.error("[customers] mount failed", e);
+  }
   server = app.listen(PORT, () => {
     const smtpConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
     console.log(`[Deli Aden] Server running on port ${PORT} (${NODE_ENV})`);
