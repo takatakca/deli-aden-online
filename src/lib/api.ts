@@ -71,10 +71,12 @@ export const api = {
       method: "POST", headers: adminHeaders(password), body: JSON.stringify({ items, available }),
     }),
 
-  createOrder: (payload: CreateOrderPayload) =>
-    request<{ orderNumber: string; id: number }>("/api/orders", {
-      method: "POST", body: JSON.stringify(payload),
-    }),
+  createOrder: async (payload: CreateOrderPayload) => {
+    const { getAuthHeader } = await import("@/lib/customer-auth");
+    return request<{ orderNumber: string; id: number }>("/api/orders", {
+      method: "POST", body: JSON.stringify(payload), headers: getAuthHeader(),
+    });
+  },
 
   getOrder: (orderNumber: string) =>
     request<{ order: AdminOrder | null }>(`/api/orders/${encodeURIComponent(orderNumber)}`),
