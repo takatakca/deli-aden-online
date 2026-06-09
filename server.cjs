@@ -836,6 +836,11 @@ app.use(helmet({
   crossOriginResourcePolicy: { policy: "cross-origin" },
 }));
 app.use(compression());
+
+// Stripe webhook MUST be registered BEFORE express.json to receive the raw body
+// for signature verification. The route lazily resolves dbApi/SETTINGS via closure.
+app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), stripeWebhookHandler());
+
 app.use(express.json({ limit: "1mb" }));
 
 // Structured request log
