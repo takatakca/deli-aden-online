@@ -597,10 +597,12 @@ function CheckoutPage() {
             <Button type="button" onClick={goNext} disabled={closed || paused} className="flex-1">
               Continuer <ArrowRight className="h-4 w-4" />
             </Button>
-          ) : (
+          ) : payment !== "online" ? (
             <Button type="button" onClick={(e) => onSubmit(e as unknown as React.FormEvent)} disabled={!canSubmit} className="flex-1">
               {loading ? "Envoi..." : "Confirmer"}
             </Button>
+          ) : (
+            <span className="flex-1 text-right text-xs text-muted-foreground">↑ Complétez le paiement</span>
           )}
         </div>
         {belowMin && (
