@@ -1244,6 +1244,31 @@ let server;
   } catch (e) {
     console.error("[customers] mount failed", e);
   }
+  // Phase 3 — Stripe payments + coupons (must mount BEFORE the SPA fallback at /*).
+  try {
+    await mountPayments(app, {
+      kind: dbApi.kind, mysqlPool, sqliteDb, rateLimit, dbApi, requireAdmin,
+      buildOrderPayload,
+      getSettings: () => SETTINGS,
+      logOrderEvent: (orderId, event, meta) => {
+        try {
+          if (dbApi.kind === "mysql") {
+            mysqlPool.query("INSERT INTO order_events (order_id, event, meta) VALUES (?,?,?)", [orderId, event, meta || null]);
+          } else {
+            sqliteDb.prepare("INSERT INTO order_events (order_id, event, meta) VALUES (?,?,?)").run(orderId, event, meta || null);
+          }
+        } catch (e) { console.error("[event log]", e.message); }
+      },
+      attachCustomerByToken: async (token, orderId) => {
+        const payload = verifyCustomerToken(token);
+        if (payload && payload.sub && typeof dbApi.attachOrderToCustomer === "function") {
+          await dbApi.attachOrderToCustomer(orderId, parseInt(payload.sub, 10));
+        }
+      },
+    });
+  } catch (e) {
+    console.error("[payments] mount failed", e);
+  }
   server = app.listen(PORT, () => {
     const smtpConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
     console.log(`[Deli Aden] Server running on port ${PORT} (${NODE_ENV})`);
