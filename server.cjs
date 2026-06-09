@@ -15,6 +15,7 @@ const compression = require("compression");
 const helmet = require("helmet");
 const nodemailer = require("nodemailer");
 const { verifyToken: verifyCustomerToken } = require("./server-customers.cjs");
+const { mountPayments, webhookHandler: stripeWebhookHandler } = require("./server-payments.cjs");
 
 const PORT = parseInt(process.env.PORT || "3000", 10);
 const DIST_DIR = path.join(__dirname, "dist");
@@ -686,6 +687,10 @@ function rowToOrder(row) {
     estimated_ready_time: iso(row.estimated_ready_time),
     estimated_delivery_time: iso(row.estimated_delivery_time),
     created_at: iso(row.created_at),
+    payment_status: row.payment_status || "unpaid",
+    stripe_payment_intent_id: row.stripe_payment_intent_id || null,
+    coupon_code: row.coupon_code || null,
+    discount: row.discount != null ? Number(row.discount) : 0,
   };
 }
 
