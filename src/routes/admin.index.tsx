@@ -314,22 +314,35 @@ function CounterCard({ label, value, accent }: { label: string; value: number; a
   );
 }
 
+const PAYMENT_BADGE: Record<string, { label: string; cls: string }> = {
+  unpaid:               { label: "Non payée",       cls: "bg-muted text-muted-foreground" },
+  pending:              { label: "Paiement…",       cls: "bg-amber-500 text-white" },
+  paid:                 { label: "Payée",           cls: "bg-emerald-600 text-white" },
+  failed:               { label: "Paiement échoué", cls: "bg-destructive text-destructive-foreground" },
+  refunded:             { label: "Remboursée",      cls: "bg-indigo-600 text-white" },
+  partially_refunded:   { label: "Partiel. remb.", cls: "bg-indigo-400 text-white" },
+};
+
 function OrderCard({
-  order: o, onStatusChange, onSaveNote, onShowHistory, onPrint,
+  order: o, onStatusChange, onSaveNote, onShowHistory, onPrint, onRefund,
 }: {
   order: AdminOrder;
   onStatusChange: (s: string) => void;
   onSaveNote: (n: string) => void;
   onShowHistory: () => void;
   onPrint: () => void;
+  onRefund: () => void;
 }) {
   const [noteOpen, setNoteOpen] = useState(false);
   const [noteText, setNoteText] = useState(o.admin_notes || "");
+  const payStatus = o.payment_status || "unpaid";
+  const payBadge = PAYMENT_BADGE[payStatus] || PAYMENT_BADGE.unpaid;
+  const canRefund = payStatus === "paid" || payStatus === "partially_refunded";
   return (
     <article className={`rounded-2xl border bg-card p-5 shadow-sm transition ${o.status === "new" ? "border-primary ring-2 ring-primary/20" : "border-border"}`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="font-display text-xl font-bold">{o.order_number}</span>
             <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${STATUS_COLORS[o.status] ?? "bg-muted"}`}>
               {STATUS_LABELS[o.status] ?? o.status}
@@ -337,6 +350,10 @@ function OrderCard({
             <span className="rounded-full border border-border px-2 py-0.5 text-xs">
               {o.order_type === "pickup" ? "Ramassage" : "Livraison"}
             </span>
+            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${payBadge.cls}`}>{payBadge.label}</span>
+            {o.coupon_code && (
+              <span className="rounded-full border border-primary/40 bg-primary/5 px-2 py-0.5 text-xs text-primary">{o.coupon_code}</span>
+            )}
           </div>
           <div className="mt-1 text-sm text-muted-foreground">
             {new Date(o.created_at).toLocaleString("fr-CA")} • {o.customer_name} • {o.customer_phone}
@@ -345,6 +362,7 @@ function OrderCard({
           {o.delivery_address && <div className="mt-1 text-sm">📍 {o.delivery_address}</div>}
           <div className="mt-1 text-xs text-muted-foreground">
             Heure: {o.preferred_time} • Paiement: {o.payment_method}
+            {o.discount && o.discount > 0 ? ` • Remise: -${o.discount.toFixed(2)}$` : ""}
             {o.dispatched_at && ` • Expédiée: ${new Date(o.dispatched_at).toLocaleTimeString("fr-CA")}`}
             {o.completed_at && ` • Terminée: ${new Date(o.completed_at).toLocaleTimeString("fr-CA")}`}
           </div>
@@ -364,6 +382,9 @@ function OrderCard({
           <Button variant="outline" size="icon" onClick={onShowHistory} title="Historique"><History className="h-4 w-4" /></Button>
           <Button variant="outline" size="icon" onClick={() => setNoteOpen((v) => !v)} title="Note admin"><StickyNote className="h-4 w-4" /></Button>
           <Button variant="outline" size="icon" onClick={onPrint} title="Imprimer reçu"><Printer className="h-4 w-4" /></Button>
+          {canRefund && (
+            <Button variant="outline" size="icon" onClick={onRefund} title="Rembourser"><RotateCcw className="h-4 w-4" /></Button>
+          )}
         </div>
       </div>
 
