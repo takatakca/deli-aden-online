@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart, cartStore, computeTotals, fmt } from "@/lib/cart-store";
-import { api, type PublicSettings } from "@/lib/api";
+import { api, type PublicSettings, type PaymentQuote, type CreateOrderPayload } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,8 +24,13 @@ import {
   ShieldCheck,
   Clock,
   AlertTriangle,
+  CreditCard,
+  Tag,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { loadStripe, type Stripe as StripeJs } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
