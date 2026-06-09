@@ -490,6 +490,18 @@ function CheckoutPage() {
                 )}
                 <ReviewRow label="Heure" value={time === "scheduled" ? (scheduledTime || "Programmé") : "Dès que possible"} />
               </Section>
+
+              {payment === "online" && publishableKey && canSubmit && (
+                <OnlinePaymentBox
+                  publishableKey={publishableKey}
+                  buildPayload={buildPayload}
+                  total={totals.total}
+                  onSuccess={(orderNumber) => {
+                    cartStore.clear();
+                    navigate({ to: "/confirmation/$orderNumber", params: { orderNumber } });
+                  }}
+                />
+              )}
             </>
           )}
 
@@ -514,11 +526,11 @@ function CheckoutPage() {
               <Button type="button" onClick={goNext} disabled={closed || paused}>
                 Continuer <ArrowRight className="h-4 w-4" />
               </Button>
-            ) : (
+            ) : payment !== "online" ? (
               <Button type="submit" size="lg" disabled={!canSubmit} className="hidden md:inline-flex">
                 {loading ? "Envoi..." : "Confirmer la commande"}
               </Button>
-            )}
+            ) : <span />}
           </div>
         </div>
 
