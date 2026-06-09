@@ -27,6 +27,7 @@ import { Route as AdminMetricsRouteImport } from './routes/admin.metrics'
 import { Route as AdminMenuRouteImport } from './routes/admin.menu'
 import { Route as AdminKitchenRouteImport } from './routes/admin.kitchen'
 import { Route as AdminDispatchRouteImport } from './routes/admin.dispatch'
+import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
 import { Route as AdminBoardRouteImport } from './routes/admin.board'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -119,6 +120,11 @@ const AdminDispatchRoute = AdminDispatchRouteImport.update({
   path: '/dispatch',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCouponsRoute = AdminCouponsRouteImport.update({
+  id: '/coupons',
+  path: '/coupons',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminBoardRoute = AdminBoardRouteImport.update({
   id: '/board',
   path: '/board',
@@ -137,6 +143,7 @@ export interface FileRoutesByFullPath {
   '/menu': typeof MenuRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/board': typeof AdminBoardRoute
+  '/admin/coupons': typeof AdminCouponsRoute
   '/admin/dispatch': typeof AdminDispatchRoute
   '/admin/kitchen': typeof AdminKitchenRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -157,6 +164,7 @@ export interface FileRoutesByTo {
   '/menu': typeof MenuRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/board': typeof AdminBoardRoute
+  '/admin/coupons': typeof AdminCouponsRoute
   '/admin/dispatch': typeof AdminDispatchRoute
   '/admin/kitchen': typeof AdminKitchenRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -179,6 +187,7 @@ export interface FileRoutesById {
   '/menu': typeof MenuRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/board': typeof AdminBoardRoute
+  '/admin/coupons': typeof AdminCouponsRoute
   '/admin/dispatch': typeof AdminDispatchRoute
   '/admin/kitchen': typeof AdminKitchenRoute
   '/admin/menu': typeof AdminMenuRoute
@@ -202,6 +211,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/sitemap.xml'
     | '/admin/board'
+    | '/admin/coupons'
     | '/admin/dispatch'
     | '/admin/kitchen'
     | '/admin/menu'
@@ -222,6 +232,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/sitemap.xml'
     | '/admin/board'
+    | '/admin/coupons'
     | '/admin/dispatch'
     | '/admin/kitchen'
     | '/admin/menu'
@@ -243,6 +254,7 @@ export interface FileRouteTypes {
     | '/menu'
     | '/sitemap.xml'
     | '/admin/board'
+    | '/admin/coupons'
     | '/admin/dispatch'
     | '/admin/kitchen'
     | '/admin/menu'
@@ -396,6 +408,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDispatchRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/coupons': {
+      id: '/admin/coupons'
+      path: '/coupons'
+      fullPath: '/admin/coupons'
+      preLoaderRoute: typeof AdminCouponsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/board': {
       id: '/admin/board'
       path: '/board'
@@ -408,6 +427,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminBoardRoute: typeof AdminBoardRoute
+  AdminCouponsRoute: typeof AdminCouponsRoute
   AdminDispatchRoute: typeof AdminDispatchRoute
   AdminKitchenRoute: typeof AdminKitchenRoute
   AdminMenuRoute: typeof AdminMenuRoute
@@ -418,6 +438,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBoardRoute: AdminBoardRoute,
+  AdminCouponsRoute: AdminCouponsRoute,
   AdminDispatchRoute: AdminDispatchRoute,
   AdminKitchenRoute: AdminKitchenRoute,
   AdminMenuRoute: AdminMenuRoute,
@@ -445,13 +466,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart, cartStore, computeTotals, fmt } from "@/lib/cart-store";
-import { api, type PublicSettings } from "@/lib/api";
+import { api, type PublicSettings, type PaymentQuote, type CreateOrderPayload } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,8 +24,13 @@ import {
   ShieldCheck,
   Clock,
   AlertTriangle,
+  CreditCard,
+  Tag,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { loadStripe, type Stripe as StripeJs } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -88,11 +93,26 @@ function CheckoutPage() {
   const [deliveryInstructions, setDeliveryInstructions] = useState("");
   const [time, setTime] = useState("ASAP");
   const [scheduledTime, setScheduledTime] = useState("");
-  const [payment, setPayment] = useState<"pay_at_restaurant" | "cash" | "card_on_arrival">("pay_at_restaurant");
+  const [payment, setPayment] = useState<"pay_at_restaurant" | "cash" | "card_on_arrival" | "online">("pay_at_restaurant");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [summaryOpen, setSummaryOpen] = useState(false);
+
+  // Phase 3 — coupon + online payment
+  const [couponInput, setCouponInput] = useState("");
+  const [couponApplied, setCouponApplied] = useState<PaymentQuote["coupon"] | null>(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponFreeDelivery, setCouponFreeDelivery] = useState(false);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [paymentsEnabled, setPaymentsEnabled] = useState(false);
+  const [publishableKey, setPublishableKey] = useState<string | null>(null);
+  useEffect(() => {
+    api.paymentsConfig().then((r) => {
+      setPaymentsEnabled(!!r.enabled);
+      setPublishableKey(r.publishableKey);
+    }).catch(() => { setPaymentsEnabled(false); });
+  }, []);
 
   useEffect(() => {
     if (!settings) return;
@@ -100,16 +120,23 @@ function CheckoutPage() {
     if (orderType === "delivery" && !allowDelivery && allowPickup) setOrderType("pickup");
   }, [settings, allowPickup, allowDelivery, orderType]);
 
-  const deliveryFee = useMemo(() => {
+  const baseDeliveryFee = useMemo(() => {
     if (!settings || orderType !== "delivery") return 0;
     if (settings.free_delivery_threshold > 0 && baseTotals.subtotal >= settings.free_delivery_threshold) return 0;
     return settings.delivery_fee || 0;
   }, [settings, orderType, baseTotals.subtotal]);
 
-  const totals = useMemo(() => ({
-    ...baseTotals,
-    total: +(baseTotals.total + deliveryFee).toFixed(2),
-  }), [baseTotals, deliveryFee]);
+  const deliveryFee = couponFreeDelivery ? 0 : baseDeliveryFee;
+
+  const totals = useMemo(() => {
+    const taxable = Math.max(0, baseTotals.subtotal - couponDiscount);
+    const gstRate = settings?.gst_rate ?? 0.05;
+    const qstRate = settings?.qst_rate ?? 0.09975;
+    const gst = +(taxable * gstRate).toFixed(2);
+    const qst = +(taxable * qstRate).toFixed(2);
+    const total = +(taxable + gst + qst + deliveryFee).toFixed(2);
+    return { subtotal: baseTotals.subtotal, gst, qst, total };
+  }, [baseTotals.subtotal, couponDiscount, deliveryFee, settings?.gst_rate, settings?.qst_rate]);
 
   const minOrder = settings?.min_order || 0;
   const belowMin = minOrder > 0 && baseTotals.subtotal < minOrder;
@@ -156,6 +183,47 @@ function CheckoutPage() {
     !loading && !closed && !paused && !belowMin && cart.length > 0 &&
     name.trim() && phoneDigits(phone).length >= 10 &&
     (orderType === "pickup" ? allowPickup : allowDelivery && address.trim());
+
+  // Build the API payload from current form state (used for coupon quote and online intent).
+  const buildPayload = (): CreateOrderPayload & { couponCode?: string } => ({
+    customer: { name: name.trim(), phone: phone.trim(), email: email.trim() || undefined },
+    orderType,
+    deliveryAddress: orderType === "delivery" ? address.trim() : "",
+    deliveryUnit: orderType === "delivery" ? unit.trim() : undefined,
+    deliveryDoorCode: orderType === "delivery" ? doorCode.trim() : undefined,
+    deliveryInstructions: orderType === "delivery" ? deliveryInstructions.trim() : undefined,
+    preferredTime: time === "scheduled" ? scheduledTime || "Programmé" : "ASAP",
+    paymentMethod: payment,
+    specialNotes: notes.trim(),
+    items: cart.map((c) => ({
+      itemId: c.itemId, name: c.name, unitPrice: c.unitPrice,
+      quantity: c.quantity, options: c.options, combo: c.combo, notes: c.notes,
+    })),
+    subtotal: totals.subtotal, gst: totals.gst, qst: totals.qst, total: totals.total,
+    couponCode: couponApplied ? couponApplied.code : undefined,
+  });
+
+  const applyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) { setCouponApplied(null); setCouponDiscount(0); setCouponFreeDelivery(false); return; }
+    if (!validateStep1() || !validateStep2()) { toast.error("Complétez d'abord vos coordonnées."); return; }
+    setCouponLoading(true);
+    try {
+      const q = await api.paymentsQuote({ ...buildPayload(), couponCode: code });
+      if (!q.coupon) throw new Error("Code invalide");
+      setCouponApplied(q.coupon);
+      setCouponDiscount(q.discount);
+      setCouponFreeDelivery(q.coupon.free_delivery);
+      toast.success(`Code ${q.coupon.code} appliqué`);
+    } catch (err) {
+      setCouponApplied(null); setCouponDiscount(0); setCouponFreeDelivery(false);
+      toast.error(err instanceof Error ? err.message : "Code invalide");
+    } finally { setCouponLoading(false); }
+  };
+
+  const removeCoupon = () => {
+    setCouponInput(""); setCouponApplied(null); setCouponDiscount(0); setCouponFreeDelivery(false);
+  };
 
   if (cart.length === 0) {
     return (
@@ -355,16 +423,54 @@ function CheckoutPage() {
           {step === 3 && (
             <>
               <Section title="Mode de paiement" icon={<ShieldCheck className="h-5 w-5 text-primary" />}>
-                <RadioGroup value={payment} onValueChange={(v) => setPayment(v as typeof payment)} className="grid gap-3 sm:grid-cols-3">
+                <RadioGroup value={payment} onValueChange={(v) => setPayment(v as typeof payment)} className="grid gap-3 sm:grid-cols-2">
+                  {paymentsEnabled && (
+                    <RadioCard value="online" current={payment} label="Payer en ligne" desc="Carte • Apple Pay • Google Pay" />
+                  )}
                   <RadioCard value="pay_at_restaurant" current={payment} label="Au restaurant" desc="Sur place" />
                   <RadioCard value="cash" current={payment} label="Comptant" desc="À la livraison" />
-                  <RadioCard value="card_on_arrival" current={payment} label="Carte" desc="À l'arrivée" />
+                  <RadioCard value="card_on_arrival" current={payment} label="Carte à l'arrivée" desc="Sur place ou livraison" />
                 </RadioGroup>
-                <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
-                  <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> Aucun paiement en ligne pour le moment.</li>
-                  <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> Votre commande est envoyée directement au restaurant.</li>
-                  <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> {orderType === "delivery" ? "Le restaurant confirme la livraison." : "Vous récupérez votre commande sur place."}</li>
-                </ul>
+                {payment === "online" ? (
+                  <p className="mt-3 text-xs text-muted-foreground flex items-center gap-2">
+                    <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Paiement sécurisé traité par Stripe.
+                  </p>
+                ) : (
+                  <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+                    <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> Votre commande est envoyée directement au restaurant.</li>
+                    <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> {orderType === "delivery" ? "Le restaurant confirme la livraison." : "Vous récupérez votre commande sur place."}</li>
+                  </ul>
+                )}
+              </Section>
+
+              {/* Coupon */}
+              <Section title="Code promo" icon={<Tag className="h-5 w-5 text-primary" />}>
+                {couponApplied ? (
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
+                    <div className="text-sm">
+                      <strong>{couponApplied.code}</strong> appliqué
+                      <div className="text-xs text-muted-foreground">
+                        {couponApplied.kind === "free_delivery" ? "Livraison gratuite" :
+                          couponApplied.kind === "percent" ? `-${couponApplied.value}%` :
+                          `-${fmt(couponApplied.value)}`}
+                      </div>
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" onClick={removeCoupon}>Retirer</Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                      placeholder="CODE10"
+                      maxLength={40}
+                      className="uppercase"
+                    />
+                    <Button type="button" onClick={applyCoupon} disabled={couponLoading || !couponInput.trim()}>
+                      {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Appliquer"}
+                    </Button>
+                  </div>
+                )}
               </Section>
 
               <Section title="Instructions spéciales">
@@ -384,6 +490,18 @@ function CheckoutPage() {
                 )}
                 <ReviewRow label="Heure" value={time === "scheduled" ? (scheduledTime || "Programmé") : "Dès que possible"} />
               </Section>
+
+              {payment === "online" && publishableKey && canSubmit && (
+                <OnlinePaymentBox
+                  publishableKey={publishableKey}
+                  buildPayload={buildPayload}
+                  total={totals.total}
+                  onSuccess={(orderNumber) => {
+                    cartStore.clear();
+                    navigate({ to: "/confirmation/$orderNumber", params: { orderNumber } });
+                  }}
+                />
+              )}
             </>
           )}
 
@@ -408,11 +526,11 @@ function CheckoutPage() {
               <Button type="button" onClick={goNext} disabled={closed || paused}>
                 Continuer <ArrowRight className="h-4 w-4" />
               </Button>
-            ) : (
+            ) : payment !== "online" ? (
               <Button type="submit" size="lg" disabled={!canSubmit} className="hidden md:inline-flex">
                 {loading ? "Envoi..." : "Confirmer la commande"}
               </Button>
-            )}
+            ) : <span />}
           </div>
         </div>
 
@@ -479,10 +597,12 @@ function CheckoutPage() {
             <Button type="button" onClick={goNext} disabled={closed || paused} className="flex-1">
               Continuer <ArrowRight className="h-4 w-4" />
             </Button>
-          ) : (
+          ) : payment !== "online" ? (
             <Button type="button" onClick={(e) => onSubmit(e as unknown as React.FormEvent)} disabled={!canSubmit} className="flex-1">
               {loading ? "Envoi..." : "Confirmer"}
             </Button>
+          ) : (
+            <span className="flex-1 text-right text-xs text-muted-foreground">↑ Complétez le paiement</span>
           )}
         </div>
         {belowMin && (
@@ -707,5 +827,107 @@ function BannerCard({ tone, icon, title, body }: { tone: "destructive" | "warnin
         </div>
       </div>
     </div>
+  );
+}
+
+// ============================================================
+// Stripe online payment box
+// ============================================================
+const stripePromiseCache = new Map<string, Promise<StripeJs | null>>();
+function getStripePromise(key: string) {
+  let p = stripePromiseCache.get(key);
+  if (!p) { p = loadStripe(key); stripePromiseCache.set(key, p); }
+  return p;
+}
+
+function OnlinePaymentBox({
+  publishableKey, buildPayload, total, onSuccess,
+}: {
+  publishableKey: string;
+  buildPayload: () => CreateOrderPayload & { couponCode?: string };
+  total: number;
+  onSuccess: (orderNumber: string) => void;
+}) {
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const stripePromise = useMemo(() => getStripePromise(publishableKey), [publishableKey]);
+
+  const prepare = async () => {
+    setPreparing(true); setError(null);
+    try {
+      const r = await api.createPaymentIntent(buildPayload());
+      setClientSecret(r.clientSecret);
+      setOrderNumber(r.orderNumber);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erreur paiement");
+    } finally { setPreparing(false); }
+  };
+
+  return (
+    <Section title="Paiement par carte" icon={<CreditCard className="h-5 w-5 text-primary" />}>
+      {!clientSecret ? (
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Cliquez sur « Préparer le paiement » pour réserver votre commande et afficher le formulaire sécurisé.
+          </p>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="button" size="lg" disabled={preparing} onClick={prepare} className="w-full">
+            {preparing ? <><Loader2 className="h-4 w-4 animate-spin" /> Préparation…</> : <>Préparer le paiement — {fmt(total)}</>}
+          </Button>
+        </div>
+      ) : (
+        <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: "stripe" } }}>
+          <StripeCheckoutForm orderNumber={orderNumber!} total={total} onSuccess={onSuccess} />
+        </Elements>
+      )}
+    </Section>
+  );
+}
+
+function StripeCheckoutForm({
+  orderNumber, total, onSuccess,
+}: { orderNumber: string; total: number; onSuccess: (orderNumber: string) => void }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [submitting, setSubmitting] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const submittedRef = useRef(false);
+
+  const handlePay = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements || submittedRef.current) return;
+    submittedRef.current = true;
+    setSubmitting(true); setMsg(null);
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      confirmParams: {
+        return_url: `${window.location.origin}/confirmation/${orderNumber}`,
+      },
+      redirect: "if_required",
+    });
+    if (error) {
+      setMsg(error.message || "Paiement refusé");
+      submittedRef.current = false;
+      setSubmitting(false);
+      return;
+    }
+    if (paymentIntent && (paymentIntent.status === "succeeded" || paymentIntent.status === "processing")) {
+      toast.success("Paiement confirmé");
+      onSuccess(orderNumber);
+      return;
+    }
+    setSubmitting(false);
+  };
+
+  return (
+    <form onSubmit={handlePay} className="space-y-4">
+      <PaymentElement options={{ layout: "tabs" }} />
+      {msg && <p className="text-sm text-destructive">{msg}</p>}
+      <Button type="submit" size="lg" disabled={!stripe || submitting} className="w-full">
+        {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Traitement…</> : <>Payer {fmt(total)}</>}
+      </Button>
+    </form>
   );
 }

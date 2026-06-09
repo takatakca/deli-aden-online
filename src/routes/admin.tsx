@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { useAdminAuth, AdminLogin } from "@/lib/admin-shared";
-import { LogOut, LayoutDashboard, ChefHat, KanbanSquare, Settings, ListOrdered, Truck, BarChart3 } from "lucide-react";
+import { LogOut, LayoutDashboard, ChefHat, KanbanSquare, Settings, ListOrdered, Truck, BarChart3, Tag } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — Les Délices d'Aden" }, { name: "robots", content: "noindex" }] }),
@@ -14,6 +14,7 @@ const NAV: Array<{ to: string; label: string; icon: typeof LogOut; exact?: boole
   { to: "/admin/kitchen", label: "Cuisine", icon: ChefHat },
   { to: "/admin/dispatch", label: "Livraison", icon: Truck },
   { to: "/admin/menu", label: "Menu", icon: KanbanSquare },
+  { to: "/admin/coupons", label: "Codes promo", icon: Tag },
   { to: "/admin/metrics", label: "Statistiques", icon: BarChart3 },
   { to: "/admin/settings", label: "Réglages", icon: Settings },
 ];
