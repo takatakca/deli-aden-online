@@ -120,16 +120,23 @@ function CheckoutPage() {
     if (orderType === "delivery" && !allowDelivery && allowPickup) setOrderType("pickup");
   }, [settings, allowPickup, allowDelivery, orderType]);
 
-  const deliveryFee = useMemo(() => {
+  const baseDeliveryFee = useMemo(() => {
     if (!settings || orderType !== "delivery") return 0;
     if (settings.free_delivery_threshold > 0 && baseTotals.subtotal >= settings.free_delivery_threshold) return 0;
     return settings.delivery_fee || 0;
   }, [settings, orderType, baseTotals.subtotal]);
 
-  const totals = useMemo(() => ({
-    ...baseTotals,
-    total: +(baseTotals.total + deliveryFee).toFixed(2),
-  }), [baseTotals, deliveryFee]);
+  const deliveryFee = couponFreeDelivery ? 0 : baseDeliveryFee;
+
+  const totals = useMemo(() => {
+    const taxable = Math.max(0, baseTotals.subtotal - couponDiscount);
+    const gstRate = settings?.gst_rate ?? 0.05;
+    const qstRate = settings?.qst_rate ?? 0.09975;
+    const gst = +(taxable * gstRate).toFixed(2);
+    const qst = +(taxable * qstRate).toFixed(2);
+    const total = +(taxable + gst + qst + deliveryFee).toFixed(2);
+    return { subtotal: baseTotals.subtotal, gst, qst, total };
+  }, [baseTotals.subtotal, couponDiscount, deliveryFee, settings?.gst_rate, settings?.qst_rate]);
 
   const minOrder = settings?.min_order || 0;
   const belowMin = minOrder > 0 && baseTotals.subtotal < minOrder;
