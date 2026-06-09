@@ -93,11 +93,26 @@ function CheckoutPage() {
   const [deliveryInstructions, setDeliveryInstructions] = useState("");
   const [time, setTime] = useState("ASAP");
   const [scheduledTime, setScheduledTime] = useState("");
-  const [payment, setPayment] = useState<"pay_at_restaurant" | "cash" | "card_on_arrival">("pay_at_restaurant");
+  const [payment, setPayment] = useState<"pay_at_restaurant" | "cash" | "card_on_arrival" | "online">("pay_at_restaurant");
   const [notes, setNotes] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [summaryOpen, setSummaryOpen] = useState(false);
+
+  // Phase 3 — coupon + online payment
+  const [couponInput, setCouponInput] = useState("");
+  const [couponApplied, setCouponApplied] = useState<PaymentQuote["coupon"] | null>(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponFreeDelivery, setCouponFreeDelivery] = useState(false);
+  const [couponLoading, setCouponLoading] = useState(false);
+  const [paymentsEnabled, setPaymentsEnabled] = useState(false);
+  const [publishableKey, setPublishableKey] = useState<string | null>(null);
+  useEffect(() => {
+    api.paymentsConfig().then((r) => {
+      setPaymentsEnabled(!!r.enabled);
+      setPublishableKey(r.publishableKey);
+    }).catch(() => { setPaymentsEnabled(false); });
+  }, []);
 
   useEffect(() => {
     if (!settings) return;
