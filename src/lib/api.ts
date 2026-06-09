@@ -19,7 +19,8 @@ export type CreateOrderPayload = {
   deliveryDoorCode?: string;
   deliveryInstructions?: string;
   preferredTime: string;
-  paymentMethod: "pay_at_restaurant" | "cash" | "card_on_arrival";
+  paymentMethod: "pay_at_restaurant" | "cash" | "card_on_arrival" | "online";
+  couponCode?: string;
   specialNotes?: string;
   items: CartItemPayload[];
   subtotal: number;
