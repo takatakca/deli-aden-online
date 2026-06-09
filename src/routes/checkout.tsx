@@ -423,16 +423,54 @@ function CheckoutPage() {
           {step === 3 && (
             <>
               <Section title="Mode de paiement" icon={<ShieldCheck className="h-5 w-5 text-primary" />}>
-                <RadioGroup value={payment} onValueChange={(v) => setPayment(v as typeof payment)} className="grid gap-3 sm:grid-cols-3">
+                <RadioGroup value={payment} onValueChange={(v) => setPayment(v as typeof payment)} className="grid gap-3 sm:grid-cols-2">
+                  {paymentsEnabled && (
+                    <RadioCard value="online" current={payment} label="Payer en ligne" desc="Carte • Apple Pay • Google Pay" />
+                  )}
                   <RadioCard value="pay_at_restaurant" current={payment} label="Au restaurant" desc="Sur place" />
                   <RadioCard value="cash" current={payment} label="Comptant" desc="À la livraison" />
-                  <RadioCard value="card_on_arrival" current={payment} label="Carte" desc="À l'arrivée" />
+                  <RadioCard value="card_on_arrival" current={payment} label="Carte à l'arrivée" desc="Sur place ou livraison" />
                 </RadioGroup>
-                <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
-                  <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> Aucun paiement en ligne pour le moment.</li>
-                  <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> Votre commande est envoyée directement au restaurant.</li>
-                  <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> {orderType === "delivery" ? "Le restaurant confirme la livraison." : "Vous récupérez votre commande sur place."}</li>
-                </ul>
+                {payment === "online" ? (
+                  <p className="mt-3 text-xs text-muted-foreground flex items-center gap-2">
+                    <ShieldCheck className="h-3.5 w-3.5 text-primary" /> Paiement sécurisé traité par Stripe.
+                  </p>
+                ) : (
+                  <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+                    <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> Votre commande est envoyée directement au restaurant.</li>
+                    <li className="flex items-center gap-2"><Check className="h-3.5 w-3.5 text-primary" /> {orderType === "delivery" ? "Le restaurant confirme la livraison." : "Vous récupérez votre commande sur place."}</li>
+                  </ul>
+                )}
+              </Section>
+
+              {/* Coupon */}
+              <Section title="Code promo" icon={<Tag className="h-5 w-5 text-primary" />}>
+                {couponApplied ? (
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
+                    <div className="text-sm">
+                      <strong>{couponApplied.code}</strong> appliqué
+                      <div className="text-xs text-muted-foreground">
+                        {couponApplied.kind === "free_delivery" ? "Livraison gratuite" :
+                          couponApplied.kind === "percent" ? `-${couponApplied.value}%` :
+                          `-${fmt(couponApplied.value)}`}
+                      </div>
+                    </div>
+                    <Button type="button" variant="ghost" size="sm" onClick={removeCoupon}>Retirer</Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      value={couponInput}
+                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                      placeholder="CODE10"
+                      maxLength={40}
+                      className="uppercase"
+                    />
+                    <Button type="button" onClick={applyCoupon} disabled={couponLoading || !couponInput.trim()}>
+                      {couponLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Appliquer"}
+                    </Button>
+                  </div>
+                )}
               </Section>
 
               <Section title="Instructions spéciales">
