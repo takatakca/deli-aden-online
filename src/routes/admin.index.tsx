@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { fmt } from "@/lib/cart-store";
-import { RefreshCw, Printer, Search, Download, History, StickyNote } from "lucide-react";
+import { RefreshCw, Printer, Search, Download, History, StickyNote, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { PASSWORD_KEY, playChime, STATUS_LABELS, STATUS_COLORS } from "@/lib/admin-shared";
 
