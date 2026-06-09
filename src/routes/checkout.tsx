@@ -184,6 +184,47 @@ function CheckoutPage() {
     name.trim() && phoneDigits(phone).length >= 10 &&
     (orderType === "pickup" ? allowPickup : allowDelivery && address.trim());
 
+  // Build the API payload from current form state (used for coupon quote and online intent).
+  const buildPayload = (): CreateOrderPayload & { couponCode?: string } => ({
+    customer: { name: name.trim(), phone: phone.trim(), email: email.trim() || undefined },
+    orderType,
+    deliveryAddress: orderType === "delivery" ? address.trim() : "",
+    deliveryUnit: orderType === "delivery" ? unit.trim() : undefined,
+    deliveryDoorCode: orderType === "delivery" ? doorCode.trim() : undefined,
+    deliveryInstructions: orderType === "delivery" ? deliveryInstructions.trim() : undefined,
+    preferredTime: time === "scheduled" ? scheduledTime || "Programmé" : "ASAP",
+    paymentMethod: payment,
+    specialNotes: notes.trim(),
+    items: cart.map((c) => ({
+      itemId: c.itemId, name: c.name, unitPrice: c.unitPrice,
+      quantity: c.quantity, options: c.options, combo: c.combo, notes: c.notes,
+    })),
+    subtotal: totals.subtotal, gst: totals.gst, qst: totals.qst, total: totals.total,
+    couponCode: couponApplied ? couponApplied.code : undefined,
+  });
+
+  const applyCoupon = async () => {
+    const code = couponInput.trim().toUpperCase();
+    if (!code) { setCouponApplied(null); setCouponDiscount(0); setCouponFreeDelivery(false); return; }
+    if (!validateStep1() || !validateStep2()) { toast.error("Complétez d'abord vos coordonnées."); return; }
+    setCouponLoading(true);
+    try {
+      const q = await api.paymentsQuote({ ...buildPayload(), couponCode: code });
+      if (!q.coupon) throw new Error("Code invalide");
+      setCouponApplied(q.coupon);
+      setCouponDiscount(q.discount);
+      setCouponFreeDelivery(q.coupon.free_delivery);
+      toast.success(`Code ${q.coupon.code} appliqué`);
+    } catch (err) {
+      setCouponApplied(null); setCouponDiscount(0); setCouponFreeDelivery(false);
+      toast.error(err instanceof Error ? err.message : "Code invalide");
+    } finally { setCouponLoading(false); }
+  };
+
+  const removeCoupon = () => {
+    setCouponInput(""); setCouponApplied(null); setCouponDiscount(0); setCouponFreeDelivery(false);
+  };
+
   if (cart.length === 0) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-20 text-center">
