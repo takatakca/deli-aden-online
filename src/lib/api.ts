@@ -151,6 +151,92 @@ export const api = {
   // Metrics
   adminMetrics: (password: string) =>
     request<Metrics>("/api/admin/metrics", { headers: adminHeaders(password) }),
+
+  // ===== Payments (Phase 3) =====
+  paymentsConfig: () =>
+    request<{ publishableKey: string | null; enabled: boolean }>("/api/payments/config"),
+
+  paymentsQuote: async (payload: CreateOrderPayload & { couponCode?: string }) => {
+    const { getAuthHeader } = await import("@/lib/customer-auth");
+    return request<PaymentQuote>("/api/payments/quote", {
+      method: "POST", body: JSON.stringify(payload), headers: getAuthHeader(),
+    });
+  },
+
+  createPaymentIntent: async (payload: CreateOrderPayload & { couponCode?: string }) => {
+    const { getAuthHeader } = await import("@/lib/customer-auth");
+    return request<{ clientSecret: string; orderNumber: string; orderId: number; total: number }>(
+      "/api/payments/create-intent",
+      { method: "POST", body: JSON.stringify(payload), headers: getAuthHeader() }
+    );
+  },
+
+  adminRefundOrder: (password: string, orderId: number, opts: { amount?: number; reason?: string } = {}) =>
+    request<{ ok: true; refund_id: string; amount_cents: number; status: string }>(
+      `/api/admin/orders/${orderId}/refund`,
+      { method: "POST", headers: adminHeaders(password), body: JSON.stringify(opts) }
+    ),
+
+  adminOrderPayments: (password: string, orderId: number) =>
+    request<{ payments: PaymentRow[]; refunds: RefundRow[] }>(`/api/admin/orders/${orderId}/payments`, { headers: adminHeaders(password) }),
+
+  adminListCoupons: (password: string) =>
+    request<{ coupons: Coupon[] }>("/api/admin/coupons", { headers: adminHeaders(password) }),
+  adminCreateCoupon: (password: string, c: Partial<Coupon>) =>
+    request<{ ok: true; id: number }>("/api/admin/coupons", {
+      method: "POST", headers: adminHeaders(password), body: JSON.stringify(c),
+    }),
+  adminUpdateCoupon: (password: string, id: number, c: Partial<Coupon>) =>
+    request<{ ok: true }>(`/api/admin/coupons/${id}`, {
+      method: "PATCH", headers: adminHeaders(password), body: JSON.stringify(c),
+    }),
+  adminDeleteCoupon: (password: string, id: number) =>
+    request<{ ok: true }>(`/api/admin/coupons/${id}`, { method: "DELETE", headers: adminHeaders(password) }),
+};
+
+export type PaymentQuote = {
+  items: CartItemPayload[];
+  subtotal: number;
+  discount: number;
+  delivery_fee: number;
+  gst: number;
+  qst: number;
+  total: number;
+  coupon: { code: string; kind: "percent" | "amount" | "free_delivery"; value: number; free_delivery: boolean } | null;
+};
+
+export type Coupon = {
+  id: number;
+  code: string;
+  kind: "percent" | "amount" | "free_delivery";
+  value: number;
+  min_subtotal: number;
+  expires_at: string | null;
+  max_uses: number | null;
+  used_count: number;
+  active: number | boolean;
+  created_at: string;
+};
+
+export type PaymentRow = {
+  id: number;
+  order_id: number;
+  stripe_payment_intent_id: string;
+  stripe_charge_id: string | null;
+  amount_cents: number;
+  currency: string;
+  status: string;
+  created_at: string;
+};
+
+export type RefundRow = {
+  id: number;
+  payment_id: number | null;
+  order_id: number;
+  stripe_refund_id: string;
+  amount_cents: number;
+  reason: string | null;
+  created_at: string;
 };
 
 export type AdminOrder = {
