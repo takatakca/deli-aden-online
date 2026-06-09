@@ -923,84 +923,88 @@ app.put("/api/admin/menu/:itemId", requireAdmin, async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
 
+// Validate + sanitize + recompute totals for an incoming order body.
+// Throws Error with .statusCode on validation failure. Does NOT insert.
+async function buildOrderPayload(b) {
+  b = b || {};
+  const c = b.customer || {};
+  const name = clean(c.name, 160), phone = clean(c.phone, 40), email = clean(c.email, 200);
+
+  if (!SETTINGS.is_open) { const e = new Error(SETTINGS.closed_message || "Restaurant fermé"); e.statusCode = 409; throw e; }
+  if (SETTINGS.orders_paused) { const e = new Error("Les commandes sont temporairement suspendues. Merci de réessayer dans quelques minutes."); e.statusCode = 409; throw e; }
+  if (!name || !phone) { const e = new Error("Nom et téléphone requis"); e.statusCode = 400; throw e; }
+  if (!["pickup", "delivery"].includes(b.orderType)) { const e = new Error("Type invalide"); e.statusCode = 400; throw e; }
+  if (b.orderType === "pickup" && !SETTINGS.pickup_enabled) { const e = new Error("Le ramassage n'est pas disponible actuellement."); e.statusCode = 409; throw e; }
+  if (b.orderType === "delivery" && !SETTINGS.delivery_enabled) { const e = new Error("La livraison n'est pas disponible actuellement."); e.statusCode = 409; throw e; }
+  if (b.orderType === "delivery" && !clean(b.deliveryAddress, 500)) { const e = new Error("Adresse requise"); e.statusCode = 400; throw e; }
+  if (!Array.isArray(b.items) || b.items.length === 0) { const e = new Error("Panier vide"); e.statusCode = 400; throw e; }
+  if (b.items.length > 100) { const e = new Error("Trop d'articles"); e.statusCode = 400; throw e; }
+
+  const overrides = await dbApi.getMenuOverrides();
+  const ovMap = new Map(overrides.map((o) => [o.item_id, o]));
+  const items = b.items.map((it) => {
+    const itemId = clean(it.itemId, 64);
+    const ov = ovMap.get(itemId);
+    if (ov && ov.available === false) { const e = new Error(`Article indisponible : ${clean(it.name, 80)}`); e.statusCode = 409; throw e; }
+    return {
+      itemId, name: clean(it.name, 160),
+      unitPrice: Number(it.unitPrice) || 0,
+      quantity: Math.max(1, Math.min(99, parseInt(it.quantity, 10) || 1)),
+      options: Array.isArray(it.options) ? it.options.slice(0, 20).map((o) => ({
+        groupLabel: clean(o.groupLabel, 80),
+        values: Array.isArray(o.values) ? o.values.slice(0, 20).map((v) => clean(v, 80)) : [],
+      })) : [],
+      combo: Boolean(it.combo), notes: clean(it.notes, 300),
+    };
+  });
+
+  const subtotal = +items.reduce((s, i) => s + i.unitPrice * i.quantity, 0).toFixed(2);
+  if (subtotal < (Number(SETTINGS.min_order) || 0)) {
+    const e = new Error(`Minimum de commande : ${fmtMoney(SETTINGS.min_order)}`); e.statusCode = 409; throw e;
+  }
+  const deliveryFee = computeDeliveryFee(b.orderType, subtotal);
+  const gst = +(subtotal * (Number(SETTINGS.gst_rate) || 0)).toFixed(2);
+  const qst = +(subtotal * (Number(SETTINGS.qst_rate) || 0)).toFixed(2);
+  const total = +(subtotal + gst + qst + deliveryFee).toFixed(2);
+
+  const fmtDT = (d) => d.toISOString().slice(0, 19).replace("T", " ");
+  const etaMin = b.orderType === "delivery" ? (Number(SETTINGS.est_delivery_min) || 0) : (Number(SETTINGS.est_pickup_min) || 0);
+  const readyMin = Number(SETTINGS.est_pickup_min) || 0;
+  const now = Date.now();
+  const estimated_ready_time = readyMin > 0 ? fmtDT(new Date(now + readyMin * 60000)) : null;
+  const estimated_delivery_time = b.orderType === "delivery" && etaMin > 0 ? fmtDT(new Date(now + etaMin * 60000)) : null;
+
+  return {
+    customer_name: name, customer_phone: phone, customer_email: email || null,
+    order_type: b.orderType,
+    delivery_address: clean(b.deliveryAddress, 500) || null,
+    delivery_unit: b.orderType === "delivery" ? (clean(b.deliveryUnit, 80) || null) : null,
+    delivery_door_code: b.orderType === "delivery" ? (clean(b.deliveryDoorCode, 40) || null) : null,
+    delivery_instructions: b.orderType === "delivery" ? (clean(b.deliveryInstructions, 500) || null) : null,
+    preferred_time: clean(b.preferredTime, 60) || "ASAP",
+    special_notes: clean(b.specialNotes, 500) || null,
+    items, subtotal, gst, qst, total, delivery_fee: deliveryFee,
+    estimated_ready_time, estimated_delivery_time,
+  };
+}
+
 // ---- Create order ----
 app.post("/api/orders", orderLimiter, async (req, res) => {
   try {
-    const b = req.body || {};
-    const c = b.customer || {};
-    const name = clean(c.name, 160), phone = clean(c.phone, 40), email = clean(c.email, 200);
-
-    // Enforce restaurant settings
-    if (!SETTINGS.is_open) return res.status(409).json({ error: SETTINGS.closed_message || "Restaurant fermé" });
-    if (SETTINGS.orders_paused) return res.status(409).json({ error: "Les commandes sont temporairement suspendues. Merci de réessayer dans quelques minutes." });
-
-    if (!name || !phone) return res.status(400).json({ error: "Nom et téléphone requis" });
-    if (!["pickup", "delivery"].includes(b.orderType)) return res.status(400).json({ error: "Type invalide" });
-    if (b.orderType === "pickup" && !SETTINGS.pickup_enabled) return res.status(409).json({ error: "Le ramassage n'est pas disponible actuellement." });
-    if (b.orderType === "delivery" && !SETTINGS.delivery_enabled) return res.status(409).json({ error: "La livraison n'est pas disponible actuellement." });
-    if (b.orderType === "delivery" && !clean(b.deliveryAddress, 500)) return res.status(400).json({ error: "Adresse requise" });
-    if (!Array.isArray(b.items) || b.items.length === 0) return res.status(400).json({ error: "Panier vide" });
-    if (b.items.length > 100) return res.status(400).json({ error: "Trop d'articles" });
-
-    // Sanitize items and recompute totals server-side
-    const overrides = await dbApi.getMenuOverrides();
-    const ovMap = new Map(overrides.map((o) => [o.item_id, o]));
-    const items = b.items.map((it) => {
-      const itemId = clean(it.itemId, 64);
-      const ov = ovMap.get(itemId);
-      if (ov && ov.available === false) {
-        const err = new Error(`Article indisponible : ${clean(it.name, 80)}`);
-        err.statusCode = 409; throw err;
-      }
-      return {
-        itemId,
-        name: clean(it.name, 160),
-        unitPrice: Number(it.unitPrice) || 0,
-        quantity: Math.max(1, Math.min(99, parseInt(it.quantity, 10) || 1)),
-        options: Array.isArray(it.options) ? it.options.slice(0, 20).map((o) => ({
-          groupLabel: clean(o.groupLabel, 80),
-          values: Array.isArray(o.values) ? o.values.slice(0, 20).map((v) => clean(v, 80)) : [],
-        })) : [],
-        combo: Boolean(it.combo),
-        notes: clean(it.notes, 300),
-      };
-    });
-
-    const subtotal = +items.reduce((s, i) => s + i.unitPrice * i.quantity, 0).toFixed(2);
-    if (subtotal < (Number(SETTINGS.min_order) || 0)) {
-      return res.status(409).json({ error: `Minimum de commande : ${fmtMoney(SETTINGS.min_order)}` });
-    }
-    const deliveryFee = computeDeliveryFee(b.orderType, subtotal);
-    const gst = +(subtotal * (Number(SETTINGS.gst_rate) || 0)).toFixed(2);
-    const qst = +(subtotal * (Number(SETTINGS.qst_rate) || 0)).toFixed(2);
-    const total = +(subtotal + gst + qst + deliveryFee).toFixed(2);
-
-    // Format datetime for both MySQL DATETIME and SQLite TEXT (YYYY-MM-DD HH:MM:SS UTC)
-    const fmtDT = (d) => d.toISOString().slice(0, 19).replace("T", " ");
-    const etaMin = b.orderType === "delivery"
-      ? (Number(SETTINGS.est_delivery_min) || 0)
-      : (Number(SETTINGS.est_pickup_min) || 0);
-    const readyMin = Number(SETTINGS.est_pickup_min) || 0;
-    const now = Date.now();
-    const estimated_ready_time = readyMin > 0 ? fmtDT(new Date(now + readyMin * 60000)) : null;
-    const estimated_delivery_time = b.orderType === "delivery" && etaMin > 0
-      ? fmtDT(new Date(now + etaMin * 60000)) : null;
-
+    const p = await buildOrderPayload(req.body);
     const orderNumber = await dbApi.nextOrderNumber();
     const id = await dbApi.insertOrder({
       order_number: orderNumber,
-      customer_name: name, customer_phone: phone, customer_email: email || null,
-      order_type: b.orderType,
-      delivery_address: clean(b.deliveryAddress, 500) || null,
-      delivery_unit: b.orderType === "delivery" ? (clean(b.deliveryUnit, 80) || null) : null,
-      delivery_door_code: b.orderType === "delivery" ? (clean(b.deliveryDoorCode, 40) || null) : null,
-      delivery_instructions: b.orderType === "delivery" ? (clean(b.deliveryInstructions, 500) || null) : null,
-      preferred_time: clean(b.preferredTime, 60) || "ASAP",
-      payment_method: clean(b.paymentMethod, 40) || "pay_at_restaurant",
-      items_json: JSON.stringify(items),
-      subtotal, gst, qst, total, delivery_fee: deliveryFee,
-      special_notes: clean(b.specialNotes, 500) || null,
-      estimated_ready_time, estimated_delivery_time,
+      customer_name: p.customer_name, customer_phone: p.customer_phone, customer_email: p.customer_email,
+      order_type: p.order_type, delivery_address: p.delivery_address,
+      delivery_unit: p.delivery_unit, delivery_door_code: p.delivery_door_code,
+      delivery_instructions: p.delivery_instructions,
+      preferred_time: p.preferred_time,
+      payment_method: clean((req.body || {}).paymentMethod, 40) || "pay_at_restaurant",
+      items_json: JSON.stringify(p.items),
+      subtotal: p.subtotal, gst: p.gst, qst: p.qst, total: p.total, delivery_fee: p.delivery_fee,
+      special_notes: p.special_notes,
+      estimated_ready_time: p.estimated_ready_time, estimated_delivery_time: p.estimated_delivery_time,
     });
     // Phase 2 — if a valid customer token is present, attach the order to the account.
     try {
