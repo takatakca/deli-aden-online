@@ -226,6 +226,7 @@ function OrdersPage() {
             onSaveNote={(n) => onSaveNote(o, n)}
             onShowHistory={() => openHistory(o)}
             onPrint={() => openPrint(o)}
+            onRefund={() => onRefund(o)}
           />
         ))}
       </div>
