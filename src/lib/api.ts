@@ -278,6 +278,11 @@ export type AdminOrder = {
   driver_phone?: string | null;
   assigned_at?: string | null;
   delivered_at?: string | null;
+  // Phase 3 payments
+  payment_status?: "unpaid" | "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
+  stripe_payment_intent_id?: string | null;
+  coupon_code?: string | null;
+  discount?: number;
 };
 
 export type OrderEvent = {
