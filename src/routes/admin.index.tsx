@@ -124,6 +124,20 @@ function OrdersPage() {
     catch (err) { toast.error(err instanceof Error ? err.message : "Erreur"); }
   };
 
+  const onRefund = async (o: AdminOrder) => {
+    const max = Number(o.total) - Number(o.discount || 0);
+    const input = window.prompt(`Montant à rembourser ($) — max ${max.toFixed(2)}`, max.toFixed(2));
+    if (input === null) return;
+    const amount = Number(input);
+    if (!Number.isFinite(amount) || amount <= 0) { toast.error("Montant invalide"); return; }
+    const reason = window.prompt("Raison (optionnel) ?", "") || undefined;
+    try {
+      const r = await api.adminRefundOrder(password, o.id, { amount, reason });
+      setOrders((arr) => arr.map((x) => x.id === o.id ? { ...x, payment_status: r.status as AdminOrder["payment_status"] } : x));
+      toast.success(`Remboursement effectué (${(r.amount_cents / 100).toFixed(2)} $)`);
+    } catch (err) { toast.error(err instanceof Error ? err.message : "Erreur"); }
+  };
+
   const openPrint = (o: AdminOrder) => { setPrintOrder(o); setTimeout(() => window.print(), 50); };
 
   const exportCsv = () => {
