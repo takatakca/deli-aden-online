@@ -1362,6 +1362,7 @@ async function shutdown(signal) {
   try {
     if (server) await new Promise((r) => server.close(r));
     if (transporter) { try { transporter.close(); } catch (_) {} }
+    try { realtime.shutdown(); } catch (_) {}
     await dbApi.close();
     clearTimeout(timeout);
     console.log("[server] clean shutdown complete");
