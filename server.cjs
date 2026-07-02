@@ -926,6 +926,7 @@ app.patch("/api/admin/settings", requireAdmin, async (req, res) => {
     }
     await dbApi.setSettings(out);
     SETTINGS = { ...SETTINGS, ...out };
+    realtime.emitAdmin("settings_updated", { keys: Object.keys(out) });
     res.json({ ok: true, settings: { ...DEFAULT_SETTINGS, ...SETTINGS } });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
