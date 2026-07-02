@@ -11,6 +11,7 @@ import { fmt } from "@/lib/cart-store";
 import { RefreshCw, Printer, Search, Download, History, StickyNote, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { PASSWORD_KEY, playChime, STATUS_LABELS, STATUS_COLORS } from "@/lib/admin-shared";
+import { connectAdminEvents, type RealtimeConnection } from "@/lib/realtime";
 
 export const Route = createFileRoute("/admin/")({
   component: OrdersPage,
