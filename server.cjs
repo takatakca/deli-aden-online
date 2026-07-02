@@ -16,6 +16,7 @@ const helmet = require("helmet");
 const nodemailer = require("nodemailer");
 const { verifyToken: verifyCustomerToken } = require("./server-customers.cjs");
 const { mountPayments, webhookHandler: stripeWebhookHandler } = require("./server-payments.cjs");
+const { createRealtime } = require("./server-realtime.cjs");
 
 const PORT = parseInt(process.env.PORT || "3000", 10);
 const DIST_DIR = path.join(__dirname, "dist");
@@ -861,6 +862,31 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+// ---- Real-time (SSE) ----
+const realtime = createRealtime({
+  requireAdmin,
+  adminPassword: () => EFFECTIVE_ADMIN_PASSWORD,
+});
+realtime.mount(app);
+
+// helper: broadcast an order status change to both admin + public channel
+async function emitOrderStatus(orderId, extraEvent) {
+  try {
+    const row = await dbApi.getOrderById(orderId);
+    if (!row) return;
+    const safe = {
+      id: row.id,
+      order_number: row.order_number,
+      status: row.status,
+      order_type: row.order_type,
+      payment_status: row.payment_status || null,
+      updated_at: (row.updated_at instanceof Date ? row.updated_at.toISOString() : row.updated_at) || null,
+    };
+    realtime.emitAdmin(extraEvent || "order_status_changed", safe);
+    realtime.emitOrder(row.order_number, extraEvent || "order_status_changed", safe);
+  } catch (e) { console.error("[realtime] emitOrderStatus", e.message); }
+}
+
 // ---- Health ----
 app.get("/api/health", async (_req, res) => {
   const dbOk = await dbApi.ping();
@@ -873,6 +899,7 @@ app.get("/api/health", async (_req, res) => {
     db: { kind: dbApi.kind, connected: dbOk },
     smtp: { configured: smtpConfigured, verified: smtpVerified },
     admin_password_set: Boolean(ADMIN_PASSWORD),
+    realtime: realtime.stats(),
   });
 });
 
@@ -899,6 +926,7 @@ app.patch("/api/admin/settings", requireAdmin, async (req, res) => {
     }
     await dbApi.setSettings(out);
     SETTINGS = { ...SETTINGS, ...out };
+    realtime.emitAdmin("settings_updated", { keys: Object.keys(out) });
     res.json({ ok: true, settings: { ...DEFAULT_SETTINGS, ...SETTINGS } });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
@@ -919,6 +947,7 @@ app.put("/api/admin/menu/:itemId", requireAdmin, async (req, res) => {
       description_override: clean(b.description_override, 800) || null,
       image_override: clean(b.image_override, 500) || null,
     });
+    realtime.emitAdmin("menu_updated", { item_id: itemId });
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
@@ -1019,6 +1048,16 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
     } catch (_) {}
     const order = rowToOrder(await dbApi.getOrderById(id));
     sendOrderEmail(order).catch((e) => console.error("[mail] async", e.message));
+    // Real-time: broadcast to admins + public tracking channel
+    const safe = {
+      id: order.id, order_number: order.order_number, status: order.status,
+      order_type: order.order_type, total: order.total,
+      customer_name: order.customer_name, created_at: order.created_at,
+    };
+    realtime.emitAdmin("order_created", safe);
+    realtime.emitOrder(order.order_number, "order_created", {
+      order_number: order.order_number, status: order.status, order_type: order.order_type,
+    });
     res.json({ orderNumber, id });
   } catch (err) {
     const code = err && err.statusCode ? err.statusCode : 500;
@@ -1094,10 +1133,12 @@ app.patch("/api/orders/:id/status", requireAdmin, async (req, res) => {
   const allowed = ["new", "accepted", "preparing", "ready", "dispatched", "completed", "cancelled"];
   if (!allowed.includes(req.body.status)) return res.status(400).json({ error: "Statut invalide" });
   try {
-    await dbApi.updateOrder(parseInt(req.params.id, 10), req.body.status, {
+    const orderId = parseInt(req.params.id, 10);
+    await dbApi.updateOrder(orderId, req.body.status, {
       note: clean(req.body.note, 500) || undefined,
       reason: clean(req.body.reason, 500) || undefined,
     });
+    await emitOrderStatus(orderId);
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
@@ -1146,6 +1187,19 @@ app.post("/api/admin/orders/:id/assign", requireAdmin, async (req, res) => {
     if (!orderId || !driverId) return res.status(400).json({ error: "order_id et driver_id requis" });
     await dbApi.assignDriver(orderId, driverId, clean(req.body?.notes, 500));
     await dbApi.updateOrder(orderId, "dispatched", { note: `Assigné au livreur #${driverId}` });
+    // realtime: admin sees full driver info; public tracking sees only safe name/phone
+    try {
+      const row = await dbApi.getOrderById(orderId);
+      const a = await dbApi.getOrderAssignment(orderId);
+      const publicPayload = {
+        order_number: row && row.order_number,
+        driver_name: a && a.driver_name ? a.driver_name : null,
+        driver_phone: a && a.driver_phone ? a.driver_phone : null,
+      };
+      realtime.emitAdmin("order_assigned", { order_id: orderId, driver_id: driverId, order_number: row && row.order_number });
+      realtime.emitOrder(row && row.order_number, "driver_assigned", publicPayload);
+    } catch (_) {}
+    await emitOrderStatus(orderId);
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
@@ -1154,6 +1208,12 @@ app.post("/api/admin/orders/:id/delivered", requireAdmin, async (req, res) => {
     const orderId = parseInt(req.params.id, 10);
     await dbApi.markAssignmentDelivered(orderId);
     await dbApi.updateOrder(orderId, "completed", { note: "Livraison confirmée" });
+    try {
+      const row = await dbApi.getOrderById(orderId);
+      realtime.emitAdmin("order_delivered", { order_id: orderId, order_number: row && row.order_number });
+      realtime.emitOrder(row && row.order_number, "order_delivered", { order_number: row && row.order_number });
+    } catch (_) {}
+    await emitOrderStatus(orderId, "order_status_changed");
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
@@ -1184,6 +1244,7 @@ app.post("/api/admin/menu/bulk", requireAdmin, async (req, res) => {
         image_override: existing.image_override ?? null,
       });
     }
+    realtime.emitAdmin("menu_updated", { bulk: true, count: items.length });
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
@@ -1265,6 +1326,22 @@ let server;
           await dbApi.attachOrderToCustomer(orderId, parseInt(payload.sub, 10));
         }
       },
+      // Realtime hooks used by Stripe webhook + admin refund route
+      emitAdmin: (event, data) => realtime.emitAdmin(event, data),
+      emitOrderById: async (orderId, event, data) => {
+        try {
+          const row = await dbApi.getOrderById(orderId);
+          if (!row) return;
+          realtime.emitAdmin(event, { order_id: orderId, order_number: row.order_number, ...data });
+          // For customer channel expose only safe fields
+          const safe = { order_number: row.order_number, status: row.status, payment_status: row.payment_status || null };
+          const publicEvent = event === "refund_created" ? "payment_status_changed"
+                           : event === "payment_failed" ? "payment_status_changed"
+                           : event === "payment_succeeded" ? "payment_status_changed"
+                           : event;
+          realtime.emitOrder(row.order_number, publicEvent, { ...safe, kind: event });
+        } catch (_) {}
+      },
     });
   } catch (e) {
     console.error("[payments] mount failed", e);
@@ -1285,6 +1362,7 @@ async function shutdown(signal) {
   try {
     if (server) await new Promise((r) => server.close(r));
     if (transporter) { try { transporter.close(); } catch (_) {} }
+    try { realtime.shutdown(); } catch (_) {}
     await dbApi.close();
     clearTimeout(timeout);
     console.log("[server] clean shutdown complete");

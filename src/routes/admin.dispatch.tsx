@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { PASSWORD_KEY } from "@/lib/admin-shared";
+import { connectAdminEvents, type RealtimeConnection } from "@/lib/realtime";
 import { toast } from "sonner";
 import { Trash2, Truck, CheckCircle2, MapPin, Phone } from "lucide-react";
 
@@ -35,10 +36,14 @@ function DispatchPage() {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 10000);
-    return () => clearInterval(t);
+    if (!password) return;
+    const rt: RealtimeConnection = connectAdminEvents(password, (ev) => {
+      if (ev === "order_created" || ev === "order_status_changed" || ev === "order_assigned" || ev === "order_delivered") load();
+    }, { fallbackPoll: load, pollIntervalMs: 10000 });
+    const safety = setInterval(load, 30000);
+    return () => { rt.close(); clearInterval(safety); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [password]);
 
   const createDriver = async () => {
     if (!newDriver.name.trim()) return;

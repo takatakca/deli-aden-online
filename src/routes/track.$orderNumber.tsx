@@ -4,6 +4,7 @@ import { api, type AdminOrder, type PublicSettings } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { fmt } from "@/lib/cart-store";
 import { Phone, MapPin, CheckCircle2, Clock } from "lucide-react";
+import { connectOrderEvents, type RealtimeConnection } from "@/lib/realtime";
 
 export const Route = createFileRoute("/track/$orderNumber")({
   head: ({ params }) => ({
@@ -37,8 +38,11 @@ function TrackPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
     load();
-    const t = setInterval(load, 15000);
-    return () => clearInterval(t);
+    const rt: RealtimeConnection = connectOrderEvents(orderNumber, (ev) => {
+      if (ev === "order_status_changed" || ev === "driver_assigned" || ev === "order_delivered" || ev === "payment_status_changed" || ev === "order_created") load();
+    }, { fallbackPoll: load, pollIntervalMs: 10000 });
+    const safety = setInterval(load, 30000);
+    return () => { rt.close(); clearInterval(safety); };
   }, [orderNumber]);
 
   if (loading) return <div className="p-20 text-center text-muted-foreground">Chargement…</div>;

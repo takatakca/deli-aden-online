@@ -239,12 +239,14 @@ async function handleStripeEvent(event) {
     }
     await dbRun("UPDATE orders SET payment_status = 'paid', stripe_payment_intent_id = ? WHERE id = ?", [pi.id, orderId]);
     DEPS.logOrderEvent && DEPS.logOrderEvent(orderId, "payment_succeeded", JSON.stringify({ pi: pi.id, amount: pi.amount }));
+    DEPS.emitOrderById && DEPS.emitOrderById(orderId, "payment_succeeded", { amount_cents: pi.amount });
   } else if (t === "payment_intent.payment_failed") {
     const pi = event.data.object;
     const orderId = pi.metadata && pi.metadata.order_id ? parseInt(pi.metadata.order_id, 10) : null;
     if (!orderId) return;
     await dbRun("UPDATE orders SET payment_status = 'failed' WHERE id = ?", [orderId]);
     DEPS.logOrderEvent && DEPS.logOrderEvent(orderId, "payment_failed", pi.last_payment_error ? JSON.stringify(pi.last_payment_error).slice(0, 1000) : null);
+    DEPS.emitOrderById && DEPS.emitOrderById(orderId, "payment_failed", {});
   } else if (t === "charge.refunded") {
     const ch = event.data.object;
     const piId = ch.payment_intent;
@@ -264,6 +266,7 @@ async function handleStripeEvent(event) {
     const newStatus = refundedCents >= Number(payment.amount_cents) ? "refunded" : "partially_refunded";
     await dbRun("UPDATE orders SET payment_status = ? WHERE id = ?", [newStatus, payment.order_id]);
     DEPS.logOrderEvent && DEPS.logOrderEvent(payment.order_id, "refunded", JSON.stringify({ cents: refundedCents }));
+    DEPS.emitOrderById && DEPS.emitOrderById(payment.order_id, "refund_created", { refunded_cents: refundedCents, status: newStatus });
   }
 }
 
@@ -393,6 +396,7 @@ async function mountPayments(app, deps) {
       const newStatus = totalAfter >= Number(payment.amount_cents) ? "refunded" : "partially_refunded";
       await dbRun("UPDATE orders SET payment_status = ? WHERE id = ?", [newStatus, orderId]);
       DEPS.logOrderEvent && DEPS.logOrderEvent(orderId, "refunded", JSON.stringify({ cents: askedAmount, by: "admin" }));
+      DEPS.emitOrderById && DEPS.emitOrderById(orderId, "refund_created", { refunded_cents: askedAmount, status: newStatus });
       res.json({ ok: true, refund_id: refund.id, amount_cents: askedAmount, status: newStatus });
     } catch (e) {
       console.error("[pay] refund", e);
@@ -430,6 +434,7 @@ async function mountPayments(app, deps) {
         "INSERT INTO coupons (code, kind, value, min_subtotal, expires_at, max_uses, active) VALUES (?,?,?,?,?,?,?)",
         [code, kind, value, min_subtotal, expires_at, max_uses, active]
       );
+      DEPS.emitAdmin && DEPS.emitAdmin("coupon_updated", { action: "created", code });
       res.json({ ok: true, id: r.lastID });
     } catch (e) {
       if (String(e.message || "").match(/UNIQUE|Duplicate/i)) return res.status(409).json({ error: "Ce code existe déjà" });
@@ -437,7 +442,7 @@ async function mountPayments(app, deps) {
     }
   });
   app.delete("/api/admin/coupons/:id", requireAdmin, async (req, res) => {
-    try { await dbRun("DELETE FROM coupons WHERE id = ?", [parseInt(req.params.id, 10)]); res.json({ ok: true }); }
+    try { await dbRun("DELETE FROM coupons WHERE id = ?", [parseInt(req.params.id, 10)]); DEPS.emitAdmin && DEPS.emitAdmin("coupon_updated", { action: "deleted", id: req.params.id }); res.json({ ok: true }); }
     catch (e) { console.error(e); res.status(500).json({ error: "Erreur" }); }
   });
   app.patch("/api/admin/coupons/:id", requireAdmin, async (req, res) => {
@@ -452,6 +457,7 @@ async function mountPayments(app, deps) {
       if (sets.length === 0) return res.json({ ok: true });
       params.push(parseInt(req.params.id, 10));
       await dbRun(`UPDATE coupons SET ${sets.join(", ")} WHERE id = ?`, params);
+      DEPS.emitAdmin && DEPS.emitAdmin("coupon_updated", { action: "updated", id: req.params.id });
       res.json({ ok: true });
     } catch (e) { console.error(e); res.status(500).json({ error: "Erreur" }); }
   });

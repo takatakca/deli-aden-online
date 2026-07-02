@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, type AdminOrder } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { PASSWORD_KEY, playChime, STATUS_FLOW, STATUS_LABELS, STATUS_COLORS } from "@/lib/admin-shared";
+import { connectAdminEvents, type RealtimeConnection } from "@/lib/realtime";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/admin/board")({ component: BoardPage });
@@ -29,10 +30,14 @@ function BoardPage() {
 
   useEffect(() => {
     fetchOrders();
-    const t = setInterval(fetchOrders, 5000);
-    return () => clearInterval(t);
+    if (!password) return;
+    let rt: RealtimeConnection | null = connectAdminEvents(password, (ev) => {
+      if (ev === "order_created" || ev === "order_status_changed" || ev === "order_assigned" || ev === "order_delivered") fetchOrders();
+    }, { fallbackPoll: fetchOrders, pollIntervalMs: 5000 });
+    const safety = setInterval(fetchOrders, 15000);
+    return () => { rt?.close(); clearInterval(safety); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [password]);
 
   const advance = async (o: AdminOrder) => {
     const next = STATUS_FLOW[o.status];
