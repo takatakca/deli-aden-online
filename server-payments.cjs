@@ -396,6 +396,7 @@ async function mountPayments(app, deps) {
       const newStatus = totalAfter >= Number(payment.amount_cents) ? "refunded" : "partially_refunded";
       await dbRun("UPDATE orders SET payment_status = ? WHERE id = ?", [newStatus, orderId]);
       DEPS.logOrderEvent && DEPS.logOrderEvent(orderId, "refunded", JSON.stringify({ cents: askedAmount, by: "admin" }));
+      DEPS.emitOrderById && DEPS.emitOrderById(orderId, "refund_created", { refunded_cents: askedAmount, status: newStatus });
       res.json({ ok: true, refund_id: refund.id, amount_cents: askedAmount, status: newStatus });
     } catch (e) {
       console.error("[pay] refund", e);
