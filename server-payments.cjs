@@ -246,6 +246,7 @@ async function handleStripeEvent(event) {
     if (!orderId) return;
     await dbRun("UPDATE orders SET payment_status = 'failed' WHERE id = ?", [orderId]);
     DEPS.logOrderEvent && DEPS.logOrderEvent(orderId, "payment_failed", pi.last_payment_error ? JSON.stringify(pi.last_payment_error).slice(0, 1000) : null);
+    DEPS.emitOrderById && DEPS.emitOrderById(orderId, "payment_failed", {});
   } else if (t === "charge.refunded") {
     const ch = event.data.object;
     const piId = ch.payment_intent;
