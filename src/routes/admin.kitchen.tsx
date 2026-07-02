@@ -32,10 +32,14 @@ function KitchenPage() {
 
   useEffect(() => {
     fetchOrders();
-    const t = setInterval(fetchOrders, 5000);
-    return () => clearInterval(t);
+    if (!password) return;
+    const rt: RealtimeConnection = connectAdminEvents(password, (ev) => {
+      if (ev === "order_created" || ev === "order_status_changed" || ev === "order_assigned" || ev === "order_delivered") fetchOrders();
+    }, { fallbackPoll: fetchOrders, pollIntervalMs: 5000 });
+    const safety = setInterval(fetchOrders, 15000);
+    return () => { rt.close(); clearInterval(safety); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [password]);
 
   const advance = async (o: AdminOrder) => {
     const next = STATUS_FLOW[o.status]; if (!next) return;
