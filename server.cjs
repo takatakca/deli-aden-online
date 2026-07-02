@@ -899,6 +899,15 @@ app.get("/api/health", async (_req, res) => {
     db: { kind: dbApi.kind, connected: dbOk },
     smtp: { configured: smtpConfigured, verified: smtpVerified },
     admin_password_set: Boolean(ADMIN_PASSWORD),
+    realtime: realtime.stats(),
+  });
+    ok: dbOk,
+    message: "Deli Aden ordering system",
+    env: NODE_ENV,
+    uptime_s: Math.floor((Date.now() - STARTED_AT) / 1000),
+    db: { kind: dbApi.kind, connected: dbOk },
+    smtp: { configured: smtpConfigured, verified: smtpVerified },
+    admin_password_set: Boolean(ADMIN_PASSWORD),
   });
 });
 
