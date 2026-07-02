@@ -266,6 +266,7 @@ async function handleStripeEvent(event) {
     const newStatus = refundedCents >= Number(payment.amount_cents) ? "refunded" : "partially_refunded";
     await dbRun("UPDATE orders SET payment_status = ? WHERE id = ?", [newStatus, payment.order_id]);
     DEPS.logOrderEvent && DEPS.logOrderEvent(payment.order_id, "refunded", JSON.stringify({ cents: refundedCents }));
+    DEPS.emitOrderById && DEPS.emitOrderById(payment.order_id, "refund_created", { refunded_cents: refundedCents, status: newStatus });
   }
 }
 
