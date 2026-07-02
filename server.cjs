@@ -862,6 +862,31 @@ function requireAdmin(req, res, next) {
   next();
 }
 
+// ---- Real-time (SSE) ----
+const realtime = createRealtime({
+  requireAdmin,
+  adminPassword: () => EFFECTIVE_ADMIN_PASSWORD,
+});
+realtime.mount(app);
+
+// helper: broadcast an order status change to both admin + public channel
+async function emitOrderStatus(orderId, extraEvent) {
+  try {
+    const row = await dbApi.getOrderById(orderId);
+    if (!row) return;
+    const safe = {
+      id: row.id,
+      order_number: row.order_number,
+      status: row.status,
+      order_type: row.order_type,
+      payment_status: row.payment_status || null,
+      updated_at: (row.updated_at instanceof Date ? row.updated_at.toISOString() : row.updated_at) || null,
+    };
+    realtime.emitAdmin(extraEvent || "order_status_changed", safe);
+    realtime.emitOrder(row.order_number, extraEvent || "order_status_changed", safe);
+  } catch (e) { console.error("[realtime] emitOrderStatus", e.message); }
+}
+
 // ---- Health ----
 app.get("/api/health", async (_req, res) => {
   const dbOk = await dbApi.ping();
