@@ -16,6 +16,7 @@ const helmet = require("helmet");
 const nodemailer = require("nodemailer");
 const { verifyToken: verifyCustomerToken } = require("./server-customers.cjs");
 const { mountPayments, webhookHandler: stripeWebhookHandler } = require("./server-payments.cjs");
+const { createRealtime } = require("./server-realtime.cjs");
 
 const PORT = parseInt(process.env.PORT || "3000", 10);
 const DIST_DIR = path.join(__dirname, "dist");
