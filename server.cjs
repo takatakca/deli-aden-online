@@ -1133,10 +1133,12 @@ app.patch("/api/orders/:id/status", requireAdmin, async (req, res) => {
   const allowed = ["new", "accepted", "preparing", "ready", "dispatched", "completed", "cancelled"];
   if (!allowed.includes(req.body.status)) return res.status(400).json({ error: "Statut invalide" });
   try {
-    await dbApi.updateOrder(parseInt(req.params.id, 10), req.body.status, {
+    const orderId = parseInt(req.params.id, 10);
+    await dbApi.updateOrder(orderId, req.body.status, {
       note: clean(req.body.note, 500) || undefined,
       reason: clean(req.body.reason, 500) || undefined,
     });
+    await emitOrderStatus(orderId);
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
