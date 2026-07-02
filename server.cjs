@@ -1244,6 +1244,7 @@ app.post("/api/admin/menu/bulk", requireAdmin, async (req, res) => {
         image_override: existing.image_override ?? null,
       });
     }
+    realtime.emitAdmin("menu_updated", { bulk: true, count: items.length });
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
