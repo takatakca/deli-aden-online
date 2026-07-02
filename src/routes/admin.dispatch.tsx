@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { PASSWORD_KEY } from "@/lib/admin-shared";
+import { connectAdminEvents, type RealtimeConnection } from "@/lib/realtime";
 import { toast } from "sonner";
 import { Trash2, Truck, CheckCircle2, MapPin, Phone } from "lucide-react";
 
