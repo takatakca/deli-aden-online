@@ -239,6 +239,7 @@ async function handleStripeEvent(event) {
     }
     await dbRun("UPDATE orders SET payment_status = 'paid', stripe_payment_intent_id = ? WHERE id = ?", [pi.id, orderId]);
     DEPS.logOrderEvent && DEPS.logOrderEvent(orderId, "payment_succeeded", JSON.stringify({ pi: pi.id, amount: pi.amount }));
+    DEPS.emitOrderById && DEPS.emitOrderById(orderId, "payment_succeeded", { amount_cents: pi.amount });
   } else if (t === "payment_intent.payment_failed") {
     const pi = event.data.object;
     const orderId = pi.metadata && pi.metadata.order_id ? parseInt(pi.metadata.order_id, 10) : null;
