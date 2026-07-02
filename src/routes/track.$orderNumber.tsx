@@ -4,6 +4,7 @@ import { api, type AdminOrder, type PublicSettings } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { fmt } from "@/lib/cart-store";
 import { Phone, MapPin, CheckCircle2, Clock } from "lucide-react";
+import { connectOrderEvents, type RealtimeConnection } from "@/lib/realtime";
 
 export const Route = createFileRoute("/track/$orderNumber")({
   head: ({ params }) => ({
