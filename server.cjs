@@ -947,6 +947,7 @@ app.put("/api/admin/menu/:itemId", requireAdmin, async (req, res) => {
       description_override: clean(b.description_override, 800) || null,
       image_override: clean(b.image_override, 500) || null,
     });
+    realtime.emitAdmin("menu_updated", { item_id: itemId });
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
