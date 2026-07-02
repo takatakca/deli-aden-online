@@ -1187,6 +1187,19 @@ app.post("/api/admin/orders/:id/assign", requireAdmin, async (req, res) => {
     if (!orderId || !driverId) return res.status(400).json({ error: "order_id et driver_id requis" });
     await dbApi.assignDriver(orderId, driverId, clean(req.body?.notes, 500));
     await dbApi.updateOrder(orderId, "dispatched", { note: `Assigné au livreur #${driverId}` });
+    // realtime: admin sees full driver info; public tracking sees only safe name/phone
+    try {
+      const row = await dbApi.getOrderById(orderId);
+      const a = await dbApi.getOrderAssignment(orderId);
+      const publicPayload = {
+        order_number: row && row.order_number,
+        driver_name: a && a.driver_name ? a.driver_name : null,
+        driver_phone: a && a.driver_phone ? a.driver_phone : null,
+      };
+      realtime.emitAdmin("order_assigned", { order_id: orderId, driver_id: driverId, order_number: row && row.order_number });
+      realtime.emitOrder(row && row.order_number, "driver_assigned", publicPayload);
+    } catch (_) {}
+    await emitOrderStatus(orderId);
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
@@ -1195,6 +1208,12 @@ app.post("/api/admin/orders/:id/delivered", requireAdmin, async (req, res) => {
     const orderId = parseInt(req.params.id, 10);
     await dbApi.markAssignmentDelivered(orderId);
     await dbApi.updateOrder(orderId, "completed", { note: "Livraison confirmée" });
+    try {
+      const row = await dbApi.getOrderById(orderId);
+      realtime.emitAdmin("order_delivered", { order_id: orderId, order_number: row && row.order_number });
+      realtime.emitOrder(row && row.order_number, "order_delivered", { order_number: row && row.order_number });
+    } catch (_) {}
+    await emitOrderStatus(orderId, "order_status_changed");
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
