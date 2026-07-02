@@ -36,10 +36,14 @@ function DispatchPage() {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 10000);
-    return () => clearInterval(t);
+    if (!password) return;
+    const rt: RealtimeConnection = connectAdminEvents(password, (ev) => {
+      if (ev === "order_created" || ev === "order_status_changed" || ev === "order_assigned" || ev === "order_delivered") load();
+    }, { fallbackPoll: load, pollIntervalMs: 10000 });
+    const safety = setInterval(load, 30000);
+    return () => { rt.close(); clearInterval(safety); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [password]);
 
   const createDriver = async () => {
     if (!newDriver.name.trim()) return;
