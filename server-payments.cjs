@@ -457,6 +457,7 @@ async function mountPayments(app, deps) {
       if (sets.length === 0) return res.json({ ok: true });
       params.push(parseInt(req.params.id, 10));
       await dbRun(`UPDATE coupons SET ${sets.join(", ")} WHERE id = ?`, params);
+      DEPS.emitAdmin && DEPS.emitAdmin("coupon_updated", { action: "updated", id: req.params.id });
       res.json({ ok: true });
     } catch (e) { console.error(e); res.status(500).json({ error: "Erreur" }); }
   });
