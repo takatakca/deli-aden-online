@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { api, type AdminOrder } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { PASSWORD_KEY, playChime, STATUS_FLOW, STATUS_LABELS, STATUS_COLORS } from "@/lib/admin-shared";
+import { connectAdminEvents, type RealtimeConnection } from "@/lib/realtime";
 import { toast } from "sonner";
 import { X } from "lucide-react";
 
