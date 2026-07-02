@@ -434,6 +434,7 @@ async function mountPayments(app, deps) {
         "INSERT INTO coupons (code, kind, value, min_subtotal, expires_at, max_uses, active) VALUES (?,?,?,?,?,?,?)",
         [code, kind, value, min_subtotal, expires_at, max_uses, active]
       );
+      DEPS.emitAdmin && DEPS.emitAdmin("coupon_updated", { action: "created", code });
       res.json({ ok: true, id: r.lastID });
     } catch (e) {
       if (String(e.message || "").match(/UNIQUE|Duplicate/i)) return res.status(409).json({ error: "Ce code existe déjà" });
