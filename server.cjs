@@ -1048,6 +1048,16 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
     } catch (_) {}
     const order = rowToOrder(await dbApi.getOrderById(id));
     sendOrderEmail(order).catch((e) => console.error("[mail] async", e.message));
+    // Real-time: broadcast to admins + public tracking channel
+    const safe = {
+      id: order.id, order_number: order.order_number, status: order.status,
+      order_type: order.order_type, total: order.total,
+      customer_name: order.customer_name, created_at: order.created_at,
+    };
+    realtime.emitAdmin("order_created", safe);
+    realtime.emitOrder(order.order_number, "order_created", {
+      order_number: order.order_number, status: order.status, order_type: order.order_type,
+    });
     res.json({ orderNumber, id });
   } catch (err) {
     const code = err && err.statusCode ? err.statusCode : 500;
