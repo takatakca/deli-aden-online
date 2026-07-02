@@ -442,7 +442,7 @@ async function mountPayments(app, deps) {
     }
   });
   app.delete("/api/admin/coupons/:id", requireAdmin, async (req, res) => {
-    try { await dbRun("DELETE FROM coupons WHERE id = ?", [parseInt(req.params.id, 10)]); res.json({ ok: true }); }
+    try { await dbRun("DELETE FROM coupons WHERE id = ?", [parseInt(req.params.id, 10)]); DEPS.emitAdmin && DEPS.emitAdmin("coupon_updated", { action: "deleted", id: req.params.id }); res.json({ ok: true }); }
     catch (e) { console.error(e); res.status(500).json({ error: "Erreur" }); }
   });
   app.patch("/api/admin/coupons/:id", requireAdmin, async (req, res) => {
