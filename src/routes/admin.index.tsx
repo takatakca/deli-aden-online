@@ -87,10 +87,22 @@ function OrdersPage() {
 
   useEffect(() => {
     fetchOrders();
-    const t = setInterval(fetchOrders, 10000);
-    return () => clearInterval(t);
+    if (!password) return;
+    let rt: RealtimeConnection | null = null;
+    let pollFallback: ReturnType<typeof setInterval> | null = null;
+    rt = connectAdminEvents(password, (ev) => {
+      if (ev === "order_created" || ev === "order_status_changed" || ev === "order_assigned" || ev === "order_delivered" || ev === "payment_succeeded" || ev === "payment_failed" || ev === "refund_created") {
+        fetchOrders();
+      }
+    }, {
+      fallbackPoll: () => fetchOrders(),
+      pollIntervalMs: 10000,
+    });
+    // Safety net: even when SSE is up, still refresh every 30s to catch missed events.
+    pollFallback = setInterval(fetchOrders, 30000);
+    return () => { rt?.close(); if (pollFallback) clearInterval(pollFallback); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status, from, to]);
+  }, [status, from, to, password]);
 
   const onChangeStatus = async (o: AdminOrder, newStatus: string) => {
     let reason: string | undefined;
