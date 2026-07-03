@@ -1267,6 +1267,7 @@ app.post("/api/admin/orders/:id/assign", requireAdmin, async (req, res) => {
       realtime.emitAdmin("order_assigned", { order_id: orderId, driver_id: driverId, order_number: row && row.order_number });
       realtime.emitOrder(row && row.order_number, "driver_assigned", publicPayload);
     } catch (_) {}
+    try { const r = await dbApi.getOrderById(orderId); if (r) sms.notifyCustomer(rowToOrder(r), "order_dispatched"); } catch (_) {}
     await emitOrderStatus(orderId);
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
