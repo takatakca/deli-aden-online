@@ -1095,8 +1095,19 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
         }
       }
     } catch (_) {}
+    // Phase 5 — persist SMS opt-in (defaults to true; only update if explicitly false)
+    try {
+      const optIn = req.body?.smsOptIn;
+      if (optIn === false || optIn === 0 || optIn === "false") {
+        if (dbApi.kind === "mysql" && dbApi._pool) await dbApi._pool.query("UPDATE orders SET sms_opt_in=0 WHERE id=?", [id]);
+        else if (dbApi.kind === "sqlite" && dbApi._db) dbApi._db.prepare("UPDATE orders SET sms_opt_in=0 WHERE id=?").run(id);
+      }
+    } catch (_) {}
     const order = rowToOrder(await dbApi.getOrderById(id));
     sendOrderEmail(order).catch((e) => console.error("[mail] async", e.message));
+    // Phase 5 — SMS: customer confirmation + admin alert (non-blocking)
+    try { sms.notifyCustomer(order, "order_created"); } catch (_) {}
+    try { sms.notifyAdmin(order, "new_order"); } catch (_) {}
     // Real-time: broadcast to admins + public tracking channel
     const safe = {
       id: order.id, order_number: order.order_number, status: order.status,
@@ -1107,6 +1118,7 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
     realtime.emitOrder(order.order_number, "order_created", {
       order_number: order.order_number, status: order.status, order_type: order.order_type,
     });
+
     res.json({ orderNumber, id });
   } catch (err) {
     const code = err && err.statusCode ? err.statusCode : 500;
