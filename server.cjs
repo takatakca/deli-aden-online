@@ -1403,15 +1403,21 @@ let server;
           const row = await dbApi.getOrderById(orderId);
           if (!row) return;
           realtime.emitAdmin(event, { order_id: orderId, order_number: row.order_number, ...data });
-          // For customer channel expose only safe fields
           const safe = { order_number: row.order_number, status: row.status, payment_status: row.payment_status || null };
           const publicEvent = event === "refund_created" ? "payment_status_changed"
                            : event === "payment_failed" ? "payment_status_changed"
                            : event === "payment_succeeded" ? "payment_status_changed"
                            : event;
           realtime.emitOrder(row.order_number, publicEvent, { ...safe, kind: event });
+          // Phase 5 — SMS on payment events
+          try {
+            const o = rowToOrder(row);
+            if (event === "payment_succeeded") sms.notifyCustomer(o, "payment_succeeded");
+            else if (event === "payment_failed") { sms.notifyCustomer(o, "payment_failed"); sms.notifyAdmin(o, "payment_failed"); }
+          } catch (_) {}
         } catch (_) {}
       },
+
     });
   } catch (e) {
     console.error("[payments] mount failed", e);
