@@ -260,6 +260,7 @@ if (USE_MYSQL) {
 
   dbApi = {
     kind: "mysql",
+    _pool: mysqlPool,
     init,
     async ping() { try { await mysqlPool.query("SELECT 1"); dbConnected = true; return true; } catch (e) { dbConnected = false; return false; } },
     async close() { try { await mysqlPool.end(); } catch (_) {} },
@@ -511,6 +512,7 @@ if (USE_MYSQL) {
 
   dbApi = {
     kind: "sqlite",
+    _db: sqliteDb,
     async init() {},
     async ping() { try { sqliteDb.prepare("SELECT 1").get(); return true; } catch { return false; } },
     async close() { try { sqliteDb.close(); } catch (_) {} },
@@ -869,6 +871,53 @@ const realtime = createRealtime({
 });
 realtime.mount(app);
 
+// ---- SMS (Phase 5) ----
+const { createSms } = require("./server-sms.cjs");
+const sms = createSms(dbApi);
+
+// ---- Drivers (Phase 6) ----
+const { createDrivers } = require("./server-drivers.cjs");
+const drivers = createDrivers({ dbApi, sms, realtime, emitOrderStatus: (id, ev) => emitOrderStatus(id, ev) });
+drivers.mount(app, { requireAdmin });
+
+// Async table init for phase 5/6 (non-blocking; log any error)
+(async () => {
+  try { await sms.init(); } catch (e) { console.error("[sms] init failed", e.message); }
+  try { await drivers.init(); } catch (e) { console.error("[drivers] init failed", e.message); }
+})();
+
+// ---- SMS admin routes ----
+app.get("/api/admin/sms/logs", requireAdmin, async (req, res) => {
+  try {
+    const logs = await sms.listLogs({ status: req.query.status, search: req.query.search, limit: req.query.limit });
+    res.json({ logs: logs.map((r) => ({
+      ...r,
+      created_at: r.created_at instanceof Date ? r.created_at.toISOString() : r.created_at,
+    })), config: sms.config() });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.post("/api/admin/sms/:id/retry", requireAdmin, async (req, res) => {
+  try {
+    const row = await sms.getLog(parseInt(req.params.id, 10));
+    if (!row) return res.status(404).json({ error: "Introuvable" });
+    const r = await sms.send({ orderId: row.order_id, to: row.phone, type: row.message_type, body: row.body, force: true });
+    res.json({ ok: r.ok, result: r });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.post("/api/admin/orders/:id/sms", requireAdmin, async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id, 10);
+    const order = await dbApi.getOrderById(orderId);
+    if (!order) return res.status(404).json({ error: "Commande introuvable" });
+    const body = clean(req.body?.body || "", 1000);
+    const type = clean(req.body?.type || "manual", 60);
+    if (!body) return res.status(400).json({ error: "Message vide" });
+    const r = await sms.send({ orderId, to: order.customer_phone, type, body, force: true });
+    res.json({ ok: r.ok, result: r });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+
+
 // helper: broadcast an order status change to both admin + public channel
 async function emitOrderStatus(orderId, extraEvent) {
   try {
@@ -1046,8 +1095,19 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
         }
       }
     } catch (_) {}
+    // Phase 5 — persist SMS opt-in (defaults to true; only update if explicitly false)
+    try {
+      const optIn = req.body?.smsOptIn;
+      if (optIn === false || optIn === 0 || optIn === "false") {
+        if (dbApi.kind === "mysql" && dbApi._pool) await dbApi._pool.query("UPDATE orders SET sms_opt_in=0 WHERE id=?", [id]);
+        else if (dbApi.kind === "sqlite" && dbApi._db) dbApi._db.prepare("UPDATE orders SET sms_opt_in=0 WHERE id=?").run(id);
+      }
+    } catch (_) {}
     const order = rowToOrder(await dbApi.getOrderById(id));
     sendOrderEmail(order).catch((e) => console.error("[mail] async", e.message));
+    // Phase 5 — SMS: customer confirmation + admin alert (non-blocking)
+    try { sms.notifyCustomer(order, "order_created"); } catch (_) {}
+    try { sms.notifyAdmin(order, "new_order"); } catch (_) {}
     // Real-time: broadcast to admins + public tracking channel
     const safe = {
       id: order.id, order_number: order.order_number, status: order.status,
@@ -1058,6 +1118,7 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
     realtime.emitOrder(order.order_number, "order_created", {
       order_number: order.order_number, status: order.status, order_type: order.order_type,
     });
+
     res.json({ orderNumber, id });
   } catch (err) {
     const code = err && err.statusCode ? err.statusCode : 500;
@@ -1138,6 +1199,13 @@ app.patch("/api/orders/:id/status", requireAdmin, async (req, res) => {
       note: clean(req.body.note, 500) || undefined,
       reason: clean(req.body.reason, 500) || undefined,
     });
+    // Phase 5 — customer SMS on status transitions
+    try {
+      const row = await dbApi.getOrderById(orderId);
+      const map = { accepted: "order_accepted", preparing: "order_preparing", ready: "order_ready", dispatched: "order_dispatched", completed: "order_completed", cancelled: "order_cancelled" };
+      const t = map[req.body.status];
+      if (t && row) sms.notifyCustomer(rowToOrder(row), t);
+    } catch (_) {}
     await emitOrderStatus(orderId);
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
@@ -1199,6 +1267,7 @@ app.post("/api/admin/orders/:id/assign", requireAdmin, async (req, res) => {
       realtime.emitAdmin("order_assigned", { order_id: orderId, driver_id: driverId, order_number: row && row.order_number });
       realtime.emitOrder(row && row.order_number, "driver_assigned", publicPayload);
     } catch (_) {}
+    try { const r = await dbApi.getOrderById(orderId); if (r) sms.notifyCustomer(rowToOrder(r), "order_dispatched"); } catch (_) {}
     await emitOrderStatus(orderId);
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
@@ -1213,6 +1282,7 @@ app.post("/api/admin/orders/:id/delivered", requireAdmin, async (req, res) => {
       realtime.emitAdmin("order_delivered", { order_id: orderId, order_number: row && row.order_number });
       realtime.emitOrder(row && row.order_number, "order_delivered", { order_number: row && row.order_number });
     } catch (_) {}
+    try { const r = await dbApi.getOrderById(orderId); if (r) sms.notifyCustomer(rowToOrder(r), "order_completed"); } catch (_) {}
     await emitOrderStatus(orderId, "order_status_changed");
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
@@ -1333,15 +1403,21 @@ let server;
           const row = await dbApi.getOrderById(orderId);
           if (!row) return;
           realtime.emitAdmin(event, { order_id: orderId, order_number: row.order_number, ...data });
-          // For customer channel expose only safe fields
           const safe = { order_number: row.order_number, status: row.status, payment_status: row.payment_status || null };
           const publicEvent = event === "refund_created" ? "payment_status_changed"
                            : event === "payment_failed" ? "payment_status_changed"
                            : event === "payment_succeeded" ? "payment_status_changed"
                            : event;
           realtime.emitOrder(row.order_number, publicEvent, { ...safe, kind: event });
+          // Phase 5 — SMS on payment events
+          try {
+            const o = rowToOrder(row);
+            if (event === "payment_succeeded") sms.notifyCustomer(o, "payment_succeeded");
+            else if (event === "payment_failed") { sms.notifyCustomer(o, "payment_failed"); sms.notifyAdmin(o, "payment_failed"); }
+          } catch (_) {}
         } catch (_) {}
       },
+
     });
   } catch (e) {
     console.error("[payments] mount failed", e);

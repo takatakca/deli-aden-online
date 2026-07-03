@@ -193,7 +193,92 @@ export const api = {
     }),
   adminDeleteCoupon: (password: string, id: number) =>
     request<{ ok: true }>(`/api/admin/coupons/${id}`, { method: "DELETE", headers: adminHeaders(password) }),
+
+  // ===== Phase 5 — SMS =====
+  adminSmsLogs: (password: string, opts: { status?: string; search?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (opts.status) qs.set("status", opts.status);
+    if (opts.search) qs.set("search", opts.search);
+    return request<{ logs: SmsLog[]; config: { enabled: boolean; configured: boolean; from: string | null; admin_phone: string | null } }>(
+      `/api/admin/sms/logs?${qs.toString()}`, { headers: adminHeaders(password) }
+    );
+  },
+  adminSmsRetry: (password: string, id: number) =>
+    request<{ ok: boolean }>(`/api/admin/sms/${id}/retry`, { method: "POST", headers: adminHeaders(password) }),
+  adminSmsSend: (password: string, orderId: number, body: string) =>
+    request<{ ok: boolean }>(`/api/admin/orders/${orderId}/sms`, {
+      method: "POST", headers: adminHeaders(password), body: JSON.stringify({ body, type: "manual" }),
+    }),
+  adminSetDriverPin: (password: string, driverId: number, pin: string) =>
+    request<{ ok: true }>(`/api/admin/drivers/${driverId}/pin`, {
+      method: "POST", headers: adminHeaders(password), body: JSON.stringify({ pin }),
+    }),
+  adminUnassignOrder: (password: string, orderId: number) =>
+    request<{ ok: true }>(`/api/admin/orders/${orderId}/unassign`, { method: "POST", headers: adminHeaders(password) }),
+  adminReassignOrder: (password: string, orderId: number, driverId: number) =>
+    request<{ ok: true }>(`/api/admin/orders/${orderId}/reassign`, {
+      method: "POST", headers: adminHeaders(password), body: JSON.stringify({ driver_id: driverId }),
+    }),
+
+  // ===== Phase 6 — Driver Portal =====
+  driverRequestOtp: (phone: string) =>
+    request<{ ok: true; method: string }>("/api/driver/request-otp", { method: "POST", body: JSON.stringify({ phone }) }),
+  driverLogin: (phone: string, code: string) =>
+    request<{ ok: true; token: string; expires_at: string; driver: { id: number; name: string; phone: string } }>(
+      "/api/driver/login", { method: "POST", body: JSON.stringify({ phone, code }) }
+    ),
+  driverMe: (token: string) =>
+    request<{ driver: { id: number; name: string; phone: string; shift_online: boolean } }>(
+      "/api/driver/me", { headers: { Authorization: `Bearer ${token}` } }
+    ),
+  driverOrders: (token: string) =>
+    request<{ orders: DriverOrder[] }>("/api/driver/orders", { headers: { Authorization: `Bearer ${token}` } }),
+  driverAccept: (token: string, id: number) =>
+    request<{ ok: true }>(`/api/driver/orders/${id}/accept`, { method: "POST", headers: { Authorization: `Bearer ${token}` } }),
+  driverPickedUp: (token: string, id: number) =>
+    request<{ ok: true }>(`/api/driver/orders/${id}/picked-up`, { method: "POST", headers: { Authorization: `Bearer ${token}` } }),
+  driverDelivered: (token: string, id: number) =>
+    request<{ ok: true }>(`/api/driver/orders/${id}/delivered`, { method: "POST", headers: { Authorization: `Bearer ${token}` } }),
+  driverShift: (token: string, online: boolean) =>
+    request<{ ok: true; online: boolean }>("/api/driver/shift", {
+      method: "POST", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify({ online }),
+    }),
 };
+
+export type SmsLog = {
+  id: number;
+  order_id: number | null;
+  phone: string;
+  message_type: string;
+  body: string;
+  status: "sent" | "failed" | "skipped";
+  provider_message_id: string | null;
+  error: string | null;
+  created_at: string;
+};
+
+export type DriverOrder = {
+  assignment_id: number;
+  order_id: number;
+  order_number: string;
+  driver_status: "assigned" | "accepted" | "picked_up" | "delivered";
+  assigned_at: string;
+  driver_accepted_at: string | null;
+  picked_up_at: string | null;
+  delivered_at: string | null;
+  customer_name: string;
+  customer_phone: string;
+  delivery_address: string | null;
+  delivery_unit: string | null;
+  delivery_door_code: string | null;
+  delivery_instructions: string | null;
+  total: number;
+  status: string;
+  preferred_time: string;
+  special_notes: string | null;
+  notes: string | null;
+};
+
 
 export type PaymentQuote = {
   items: CartItemPayload[];
