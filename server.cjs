@@ -871,6 +871,53 @@ const realtime = createRealtime({
 });
 realtime.mount(app);
 
+// ---- SMS (Phase 5) ----
+const { createSms } = require("./server-sms.cjs");
+const sms = createSms(dbApi);
+
+// ---- Drivers (Phase 6) ----
+const { createDrivers } = require("./server-drivers.cjs");
+const drivers = createDrivers({ dbApi, sms, realtime, emitOrderStatus: (id, ev) => emitOrderStatus(id, ev) });
+drivers.mount(app, { requireAdmin });
+
+// Async table init for phase 5/6 (non-blocking; log any error)
+(async () => {
+  try { await sms.init(); } catch (e) { console.error("[sms] init failed", e.message); }
+  try { await drivers.init(); } catch (e) { console.error("[drivers] init failed", e.message); }
+})();
+
+// ---- SMS admin routes ----
+app.get("/api/admin/sms/logs", requireAdmin, async (req, res) => {
+  try {
+    const logs = await sms.listLogs({ status: req.query.status, search: req.query.search, limit: req.query.limit });
+    res.json({ logs: logs.map((r) => ({
+      ...r,
+      created_at: r.created_at instanceof Date ? r.created_at.toISOString() : r.created_at,
+    })), config: sms.config() });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.post("/api/admin/sms/:id/retry", requireAdmin, async (req, res) => {
+  try {
+    const row = await sms.getLog(parseInt(req.params.id, 10));
+    if (!row) return res.status(404).json({ error: "Introuvable" });
+    const r = await sms.send({ orderId: row.order_id, to: row.phone, type: row.message_type, body: row.body, force: true });
+    res.json({ ok: r.ok, result: r });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+app.post("/api/admin/orders/:id/sms", requireAdmin, async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id, 10);
+    const order = await dbApi.getOrderById(orderId);
+    if (!order) return res.status(404).json({ error: "Commande introuvable" });
+    const body = clean(req.body?.body || "", 1000);
+    const type = clean(req.body?.type || "manual", 60);
+    if (!body) return res.status(400).json({ error: "Message vide" });
+    const r = await sms.send({ orderId, to: order.customer_phone, type, body, force: true });
+    res.json({ ok: r.ok, result: r });
+  } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+
+
 // helper: broadcast an order status change to both admin + public channel
 async function emitOrderStatus(orderId, extraEvent) {
   try {
