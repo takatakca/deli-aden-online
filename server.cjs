@@ -1282,6 +1282,7 @@ app.post("/api/admin/orders/:id/delivered", requireAdmin, async (req, res) => {
       realtime.emitAdmin("order_delivered", { order_id: orderId, order_number: row && row.order_number });
       realtime.emitOrder(row && row.order_number, "order_delivered", { order_number: row && row.order_number });
     } catch (_) {}
+    try { const r = await dbApi.getOrderById(orderId); if (r) sms.notifyCustomer(rowToOrder(r), "order_completed"); } catch (_) {}
     await emitOrderStatus(orderId, "order_status_changed");
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
