@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as MenuRouteImport } from './routes/menu'
+import { Route as DriverRouteImport } from './routes/driver'
 import { Route as DeliveryRouteImport } from './routes/delivery'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CheckoutRouteImport } from './routes/checkout'
@@ -22,6 +23,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TrackOrderNumberRouteImport } from './routes/track.$orderNumber'
 import { Route as ConfirmationOrderNumberRouteImport } from './routes/confirmation.$orderNumber'
+import { Route as AdminSmsRouteImport } from './routes/admin.sms'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminMetricsRouteImport } from './routes/admin.metrics'
 import { Route as AdminMenuRouteImport } from './routes/admin.menu'
@@ -38,6 +40,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const MenuRoute = MenuRouteImport.update({
   id: '/menu',
   path: '/menu',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DriverRoute = DriverRouteImport.update({
+  id: '/driver',
+  path: '/driver',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DeliveryRoute = DeliveryRouteImport.update({
@@ -95,6 +102,11 @@ const ConfirmationOrderNumberRoute = ConfirmationOrderNumberRouteImport.update({
   path: '/confirmation/$orderNumber',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminSmsRoute = AdminSmsRouteImport.update({
+  id: '/sms',
+  path: '/sms',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -140,6 +152,7 @@ export interface FileRoutesByFullPath {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/delivery': typeof DeliveryRoute
+  '/driver': typeof DriverRoute
   '/menu': typeof MenuRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/board': typeof AdminBoardRoute
@@ -149,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/admin/menu': typeof AdminMenuRoute
   '/admin/metrics': typeof AdminMetricsRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/sms': typeof AdminSmsRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
   '/track/$orderNumber': typeof TrackOrderNumberRoute
   '/admin/': typeof AdminIndexRoute
@@ -161,6 +175,7 @@ export interface FileRoutesByTo {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/delivery': typeof DeliveryRoute
+  '/driver': typeof DriverRoute
   '/menu': typeof MenuRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/board': typeof AdminBoardRoute
@@ -170,6 +185,7 @@ export interface FileRoutesByTo {
   '/admin/menu': typeof AdminMenuRoute
   '/admin/metrics': typeof AdminMetricsRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/sms': typeof AdminSmsRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
   '/track/$orderNumber': typeof TrackOrderNumberRoute
   '/admin': typeof AdminIndexRoute
@@ -184,6 +200,7 @@ export interface FileRoutesById {
   '/checkout': typeof CheckoutRoute
   '/contact': typeof ContactRoute
   '/delivery': typeof DeliveryRoute
+  '/driver': typeof DriverRoute
   '/menu': typeof MenuRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/board': typeof AdminBoardRoute
@@ -193,6 +210,7 @@ export interface FileRoutesById {
   '/admin/menu': typeof AdminMenuRoute
   '/admin/metrics': typeof AdminMetricsRoute
   '/admin/settings': typeof AdminSettingsRoute
+  '/admin/sms': typeof AdminSmsRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
   '/track/$orderNumber': typeof TrackOrderNumberRoute
   '/admin/': typeof AdminIndexRoute
@@ -208,6 +226,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/delivery'
+    | '/driver'
     | '/menu'
     | '/sitemap.xml'
     | '/admin/board'
@@ -217,6 +236,7 @@ export interface FileRouteTypes {
     | '/admin/menu'
     | '/admin/metrics'
     | '/admin/settings'
+    | '/admin/sms'
     | '/confirmation/$orderNumber'
     | '/track/$orderNumber'
     | '/admin/'
@@ -229,6 +249,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/delivery'
+    | '/driver'
     | '/menu'
     | '/sitemap.xml'
     | '/admin/board'
@@ -238,6 +259,7 @@ export interface FileRouteTypes {
     | '/admin/menu'
     | '/admin/metrics'
     | '/admin/settings'
+    | '/admin/sms'
     | '/confirmation/$orderNumber'
     | '/track/$orderNumber'
     | '/admin'
@@ -251,6 +273,7 @@ export interface FileRouteTypes {
     | '/checkout'
     | '/contact'
     | '/delivery'
+    | '/driver'
     | '/menu'
     | '/sitemap.xml'
     | '/admin/board'
@@ -260,6 +283,7 @@ export interface FileRouteTypes {
     | '/admin/menu'
     | '/admin/metrics'
     | '/admin/settings'
+    | '/admin/sms'
     | '/confirmation/$orderNumber'
     | '/track/$orderNumber'
     | '/admin/'
@@ -274,6 +298,7 @@ export interface RootRouteChildren {
   CheckoutRoute: typeof CheckoutRoute
   ContactRoute: typeof ContactRoute
   DeliveryRoute: typeof DeliveryRoute
+  DriverRoute: typeof DriverRoute
   MenuRoute: typeof MenuRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ConfirmationOrderNumberRoute: typeof ConfirmationOrderNumberRoute
@@ -294,6 +319,13 @@ declare module '@tanstack/react-router' {
       path: '/menu'
       fullPath: '/menu'
       preLoaderRoute: typeof MenuRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/driver': {
+      id: '/driver'
+      path: '/driver'
+      fullPath: '/driver'
+      preLoaderRoute: typeof DriverRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/delivery': {
@@ -373,6 +405,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ConfirmationOrderNumberRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/sms': {
+      id: '/admin/sms'
+      path: '/sms'
+      fullPath: '/admin/sms'
+      preLoaderRoute: typeof AdminSmsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/settings': {
       id: '/admin/settings'
       path: '/settings'
@@ -433,6 +472,7 @@ interface AdminRouteChildren {
   AdminMenuRoute: typeof AdminMenuRoute
   AdminMetricsRoute: typeof AdminMetricsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminSmsRoute: typeof AdminSmsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
@@ -444,6 +484,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminMenuRoute: AdminMenuRoute,
   AdminMetricsRoute: AdminMetricsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
+  AdminSmsRoute: AdminSmsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
 
@@ -458,6 +499,7 @@ const rootRouteChildren: RootRouteChildren = {
   CheckoutRoute: CheckoutRoute,
   ContactRoute: ContactRoute,
   DeliveryRoute: DeliveryRoute,
+  DriverRoute: DriverRoute,
   MenuRoute: MenuRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ConfirmationOrderNumberRoute: ConfirmationOrderNumberRoute,
