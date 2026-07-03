@@ -512,6 +512,7 @@ if (USE_MYSQL) {
 
   dbApi = {
     kind: "sqlite",
+    _db: sqliteDb,
     async init() {},
     async ping() { try { sqliteDb.prepare("SELECT 1").get(); return true; } catch { return false; } },
     async close() { try { sqliteDb.close(); } catch (_) {} },
