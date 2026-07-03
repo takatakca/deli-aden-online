@@ -1199,6 +1199,13 @@ app.patch("/api/orders/:id/status", requireAdmin, async (req, res) => {
       note: clean(req.body.note, 500) || undefined,
       reason: clean(req.body.reason, 500) || undefined,
     });
+    // Phase 5 — customer SMS on status transitions
+    try {
+      const row = await dbApi.getOrderById(orderId);
+      const map = { accepted: "order_accepted", preparing: "order_preparing", ready: "order_ready", dispatched: "order_dispatched", completed: "order_completed", cancelled: "order_cancelled" };
+      const t = map[req.body.status];
+      if (t && row) sms.notifyCustomer(rowToOrder(row), t);
+    } catch (_) {}
     await emitOrderStatus(orderId);
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
