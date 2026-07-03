@@ -260,6 +260,7 @@ if (USE_MYSQL) {
 
   dbApi = {
     kind: "mysql",
+    _pool: mysqlPool,
     init,
     async ping() { try { await mysqlPool.query("SELECT 1"); dbConnected = true; return true; } catch (e) { dbConnected = false; return false; } },
     async close() { try { await mysqlPool.end(); } catch (_) {} },
