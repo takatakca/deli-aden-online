@@ -106,18 +106,27 @@ function TrackPage() {
       {order.status !== "cancelled" && (
         <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
           <ol className="space-y-3">
-            {STEPS.map((s, i) => {
-              const done = i <= currentStep;
-              const current = i === currentStep;
-              return (
-                <li key={s.key} className={`flex items-center gap-3 ${done ? "" : "opacity-40"}`}>
-                  <div className={`flex h-8 w-8 items-center justify-center rounded-full border-2 ${current ? "border-primary bg-primary text-primary-foreground animate-pulse" : done ? "border-emerald-600 bg-emerald-600 text-white" : "border-border bg-background"}`}>
-                    {done ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
-                  </div>
-                  <span className={`font-medium ${current ? "text-primary" : ""}`}>{s.label}</span>
-                </li>
-              );
-            })}
+            {STEPS
+              .filter((s) => order.order_type === "delivery" || !["assigned","driver_accepted","picked_up","dispatched"].includes(s.key))
+              .map((s) => {
+                const idx = STEPS.findIndex((x) => x.key === s.key);
+                const done = idx <= currentStep;
+                const current = idx === currentStep;
+                const ts = s.key === "assigned" ? order.assigned_at
+                  : s.key === "driver_accepted" ? order.driver_accepted_at
+                  : s.key === "picked_up" ? order.picked_up_at
+                  : s.key === "completed" ? order.delivered_at
+                  : null;
+                return (
+                  <li key={s.key} className={`flex items-center gap-3 ${done ? "" : "opacity-40"}`}>
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${current ? "border-primary bg-primary text-primary-foreground animate-pulse" : done ? "border-emerald-600 bg-emerald-600 text-white" : "border-border bg-background"}`}>
+                      {done ? <CheckCircle2 className="h-4 w-4" /> : idx + 1}
+                    </div>
+                    <span className={`font-medium ${current ? "text-primary" : ""}`}>{s.label}</span>
+                    {ts && <span className="ml-auto text-xs text-muted-foreground">{new Date(ts).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" })}</span>}
+                  </li>
+                );
+              })}
           </ol>
         </div>
       )}
@@ -126,6 +135,9 @@ function TrackPage() {
         <div className="mt-6 rounded-2xl border border-emerald-500/40 bg-emerald-50 p-4 dark:bg-emerald-950/30">
           <div className="text-xs uppercase tracking-wide text-muted-foreground">Votre livreur</div>
           <div className="mt-1 font-display text-lg font-semibold">🚚 {order.driver_name}</div>
+          {driverStatusLabel && (
+            <div className="mt-1 text-sm text-emerald-800 dark:text-emerald-200">Statut : {driverStatusLabel}</div>
+          )}
           {order.driver_phone && (
             <a href={`tel:${order.driver_phone}`} className="mt-2 inline-block">
               <Button variant="outline" size="sm"><Phone className="mr-2 h-4 w-4" /> Appeler le livreur — {order.driver_phone}</Button>
