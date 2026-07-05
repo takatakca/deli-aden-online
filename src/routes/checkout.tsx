@@ -196,6 +196,7 @@ function CheckoutPage() {
     preferredTime: time === "scheduled" ? scheduledTime || "Programmé" : "ASAP",
     paymentMethod: payment,
     specialNotes: notes.trim(),
+    smsOptIn,
     items: cart.map((c) => ({
       itemId: c.itemId, name: c.name, unitPrice: c.unitPrice,
       quantity: c.quantity, options: c.options, combo: c.combo, notes: c.notes,
