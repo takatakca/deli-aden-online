@@ -95,6 +95,7 @@ function CheckoutPage() {
   const [scheduledTime, setScheduledTime] = useState("");
   const [payment, setPayment] = useState<"pay_at_restaurant" | "cash" | "card_on_arrival" | "online">("pay_at_restaurant");
   const [notes, setNotes] = useState("");
+  const [smsOptIn, setSmsOptIn] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [summaryOpen, setSummaryOpen] = useState(false);
