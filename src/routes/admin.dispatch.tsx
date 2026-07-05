@@ -159,7 +159,10 @@ function DispatchPage() {
             {readyOrders.map((o) => {
               const mapsHref = o.delivery_address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.delivery_address)}` : "";
               return (
-                <li key={o.id} className="rounded-lg border border-border p-3">
+                <li key={o.id} className="rounded-lg border-2 border-amber-400 bg-amber-50/50 p-3 dark:bg-amber-950/20">
+                  <div className="mb-2 inline-flex items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">
+                    ⚠️ Aucun livreur assigné
+                  </div>
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div><strong>{o.order_number}</strong> — {o.customer_name} • <a href={`tel:${o.customer_phone}`} className="text-primary underline">{o.customer_phone}</a></div>
@@ -185,7 +188,10 @@ function DispatchPage() {
                         <SelectTrigger className="w-44"><SelectValue placeholder="Choisir livreur" /></SelectTrigger>
                         <SelectContent>
                           {activeDrivers.length === 0 && <div className="p-2 text-xs text-muted-foreground">Aucun livreur actif</div>}
-                          {activeDrivers.map((d) => <SelectItem key={d.id} value={d.id.toString()}>{d.name}</SelectItem>)}
+                          {activeDrivers.map((d) => {
+                            const online = !!(d as Driver & { shift_online?: number | boolean }).shift_online;
+                            return <SelectItem key={d.id} value={d.id.toString()}>{online ? "🟢 " : "⚪ "}{d.name}</SelectItem>;
+                          })}
                         </SelectContent>
                       </Select>
                       <Button onClick={() => assign(o.id)} disabled={!pick[o.id]}><Truck className="mr-1 h-4 w-4" /> Assigner</Button>
