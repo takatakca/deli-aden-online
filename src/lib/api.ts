@@ -363,7 +363,10 @@ export type AdminOrder = {
   // Public delivery tracking enrichments (returned by GET /api/orders/:orderNumber for delivery orders)
   driver_name?: string | null;
   driver_phone?: string | null;
+  driver_status?: "assigned" | "accepted" | "picked_up" | "delivered" | null;
   assigned_at?: string | null;
+  driver_accepted_at?: string | null;
+  picked_up_at?: string | null;
   delivered_at?: string | null;
   // Phase 3 payments
   payment_status?: "unpaid" | "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
