@@ -209,3 +209,91 @@ Lien public (sans login) sur la confirmation : `/track/<numéro>` — état en d
 4. **Expédition** — `/admin/dispatch` : assigner les commandes Prêtes à un livreur. Marquer « Livrée » au retour.
 5. **Fermeture** — `/admin/settings` → « Ouvert » OFF. Exporter le CSV du jour si besoin.
 
+
+---
+
+## 14. Twilio SMS setup
+
+Automated SMS notifications for customers (order updates) and admin (new
+orders, unassigned-ready alerts, payment failures).
+
+1. Create a Twilio account: https://www.twilio.com/try-twilio
+2. Buy or verify a phone number capable of SMS (Canadian long code
+   recommended for Quebec).
+3. Add these environment variables in cPanel → Setup Node.js App →
+   *Environment variables* :
+
+   ```
+   TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   TWILIO_AUTH_TOKEN=your_auth_token
+   TWILIO_PHONE_NUMBER=+15145551234
+   SMS_ENABLED=true
+   SMS_RESTAURANT_ADMIN_PHONE=+15145550000
+   PUBLIC_BASE_URL=https://deliaden.ca
+   ```
+
+4. **Restart** the Node.js app.
+5. **SMS Pumping Protection** — in the Twilio Console, enable *Messaging →
+   Services → Advanced → SMS Pumping Protection* and restrict *SMS Geo
+   Permissions* to **Canada** only (and any additional country you serve).
+6. **Canadian SMS compliance** — Canada's anti-spam law (CASL / CRTC) and
+   Twilio's Canadian A2P rules require:
+   - Explicit customer consent (the checkout checkbox `sms_opt_in` records
+     it — respect it: unchecked = no customer SMS).
+   - A clear sender identification (all templates start with
+     `Deli Aden — …`).
+   - No promotional content in transactional SMS. Templates cover only
+     order status and payments.
+7. Test order SMS:
+   - Place a test order at `/checkout` with SMS opt-in checked.
+   - Check the admin SMS page: `/admin/sms` — you should see one `sent`
+     row for the customer confirmation and one for the admin alert.
+   - Failed sends appear with `status=failed` and the Twilio error;
+     use the *Retry* button to resend.
+
+### Optional — ready-order alert scheduler
+
+Alerts the admin by SMS when a delivery order stays in `ready` status
+for too long without a driver. Off by default:
+
+```
+ENABLE_READY_ORDER_ALERTS=true
+UNASSIGNED_READY_ALERT_MINUTES=10
+```
+
+One alert per order (deduplicated via `sms_logs`).
+
+---
+
+## 15. Driver portal workflow
+
+Drivers manage their deliveries from `/driver` (public URL, PIN or
+SMS OTP login). No admin password required for drivers.
+
+1. **Create the driver** in admin: `/admin/dispatch` → *Livreurs* →
+   fill name + phone (E.164) → *Ajouter*.
+2. **Set a PIN** for the driver (admin only, one-time) via
+   `POST /api/admin/drivers/:id/pin` — the admin dispatch UI exposes
+   this action, or use the API directly. Alternatively the driver can
+   request an SMS OTP at login if Twilio is configured.
+3. **Driver logs in** at `https://deliaden.ca/driver` using their
+   phone + PIN (or OTP).
+4. **Driver goes online** with the *En ligne* toggle. Admin sees the
+   green dot in `/admin/dispatch`.
+5. **Admin assigns** a ready delivery order from `/admin/dispatch`
+   → *Commandes prêtes à expédier* → *Assigner*. Status becomes
+   `dispatched` and the driver assignment is created.
+6. **Driver accepts** the order in the portal (`assigned → accepted`,
+   timestamp `driver_accepted_at`).
+7. **Driver marks Ramassée** when picking up the food
+   (`accepted → picked_up`, timestamp `picked_up_at`).
+8. **Driver marks Livrée** at the customer's door
+   (`picked_up → delivered`, timestamp `delivered_at`; order status
+   flips to `completed`).
+9. **Customer tracking** at `/track/<orderNumber>` updates live via
+   SSE for every step (assigned → accepted → picked up → delivered)
+   plus driver name/phone and status pill.
+
+**Admin overrides** in `/admin/dispatch`:
+- *Retirer* — unassigns the driver, order returns to `ready`.
+- *Réassigner* — pick another active driver and confirm; timestamps reset.
