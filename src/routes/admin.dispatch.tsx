@@ -212,25 +212,54 @@ function DispatchPage() {
           <ul className="space-y-2">
             {assignments.map((a) => {
               const mapsHref = a.delivery_address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.delivery_address)}` : "";
+              const dOnline = !!a.driver_shift_online;
               return (
                 <li key={a.id} className="flex flex-wrap items-start justify-between gap-2 rounded-lg border border-border p-3">
                   <div className="min-w-0 flex-1">
-                    <div><strong>{a.order_number}</strong> → 🚚 <strong>{a.driver_name}</strong>{a.driver_phone && <> • <a href={`tel:${a.driver_phone}`} className="text-primary underline"><Phone className="inline h-3 w-3" /> {a.driver_phone}</a></>}</div>
-                    <div className="text-xs text-muted-foreground">{a.customer_name} • <a href={`tel:${a.customer_phone}`} className="text-primary underline">{a.customer_phone}</a></div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <strong>{a.order_number}</strong>
+                      <span>→ 🚚 <strong>{a.driver_name}</strong></span>
+                      <span className={`inline-block h-2 w-2 rounded-full ${dOnline ? "bg-emerald-500" : "bg-muted-foreground/40"}`} title={dOnline ? "En ligne" : "Hors ligne"} />
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusClass(a.driver_status)}`}>{statusLabel(a.driver_status)}</span>
+                      {a.driver_phone && (
+                        <a href={`tel:${a.driver_phone}`} className="inline-flex items-center gap-1 text-xs text-primary underline">
+                          <Phone className="h-3 w-3" /> {a.driver_phone}
+                        </a>
+                      )}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">{a.customer_name} • <a href={`tel:${a.customer_phone}`} className="text-primary underline">{a.customer_phone}</a></div>
                     <div className="text-xs text-muted-foreground">📍 {a.delivery_address}</div>
                     {a.notes && <div className="text-xs italic text-muted-foreground">📝 {a.notes}</div>}
-                    <div className="text-xs text-muted-foreground">Assigné à {new Date(a.assigned_at).toLocaleTimeString("fr-CA")}{a.delivered_at && <> • Livrée à {new Date(a.delivered_at).toLocaleTimeString("fr-CA")}</>}</div>
+                    <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground sm:grid-cols-4">
+                      <span>Assignée : <strong>{fmtTime(a.assigned_at)}</strong></span>
+                      <span>Acceptée : <strong>{fmtTime(a.driver_accepted_at)}</strong></span>
+                      <span>Ramassée : <strong>{fmtTime(a.picked_up_at)}</strong></span>
+                      <span>Livrée : <strong>{fmtTime(a.delivered_at)}</strong></span>
+                    </div>
                   </div>
-                  <div className="flex flex-col gap-2 sm:flex-row">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                     {mapsHref && (
                       <a href={mapsHref} target="_blank" rel="noreferrer">
                         <Button variant="outline" size="sm"><MapPin className="mr-1 h-4 w-4" /> Maps</Button>
                       </a>
                     )}
                     {!a.delivered_at && (
-                      <Button onClick={() => markDelivered(a.order_id)} className="bg-emerald-600 hover:bg-emerald-700">
-                        <CheckCircle2 className="mr-1 h-4 w-4" /> Livrée
-                      </Button>
+                      <>
+                        <Select value={pick[a.order_id]?.toString() || ""} onValueChange={(v) => setPick((p) => ({ ...p, [a.order_id]: Number(v) }))}>
+                          <SelectTrigger className="w-40 h-9"><SelectValue placeholder="Réassigner…" /></SelectTrigger>
+                          <SelectContent>
+                            {activeDrivers.filter((d) => d.id !== a.driver_id).map((d) => {
+                              const online = !!(d as Driver & { shift_online?: number | boolean }).shift_online;
+                              return <SelectItem key={d.id} value={d.id.toString()}>{online ? "🟢 " : "⚪ "}{d.name}</SelectItem>;
+                            })}
+                          </SelectContent>
+                        </Select>
+                        <Button variant="outline" size="sm" onClick={() => reassign(a.order_id, pick[a.order_id])} disabled={!pick[a.order_id]}>Réassigner</Button>
+                        <Button variant="outline" size="sm" onClick={() => unassign(a.order_id)}>Retirer</Button>
+                        <Button size="sm" onClick={() => markDelivered(a.order_id)} className="bg-emerald-600 hover:bg-emerald-700">
+                          <CheckCircle2 className="mr-1 h-4 w-4" /> Livrée
+                        </Button>
+                      </>
                     )}
                   </div>
                 </li>
