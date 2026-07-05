@@ -42,7 +42,16 @@ function TrackPage() {
       .finally(() => setLoading(false));
     load();
     const rt: RealtimeConnection = connectOrderEvents(orderNumber, (ev) => {
-      if (ev === "order_status_changed" || ev === "driver_assigned" || ev === "order_delivered" || ev === "payment_status_changed" || ev === "order_created") load();
+      if (
+        ev === "order_status_changed" ||
+        ev === "driver_assigned" ||
+        ev === "driver_unassigned" ||
+        ev === "driver_accepted" ||
+        ev === "driver_picked_up" ||
+        ev === "order_delivered" ||
+        ev === "payment_status_changed" ||
+        ev === "order_created"
+      ) load();
     }, { fallbackPoll: load, pollIntervalMs: 10000 });
     const safety = setInterval(load, 30000);
     return () => { rt.close(); clearInterval(safety); };
@@ -56,8 +65,21 @@ function TrackPage() {
     </div>
   );
 
-  const currentStep = order.status === "cancelled" ? -1 : STEPS.findIndex((s) => s.key === order.status);
+  // Compute farthest reached step from status + driver timeline.
+  const stepIdx = (k: string) => STEPS.findIndex((s) => s.key === k);
+  let currentStep = order.status === "cancelled" ? -1 : stepIdx(order.status);
+  if (order.status !== "cancelled") {
+    if (order.assigned_at) currentStep = Math.max(currentStep, stepIdx("assigned"));
+    if (order.driver_accepted_at || order.driver_status === "accepted") currentStep = Math.max(currentStep, stepIdx("driver_accepted"));
+    if (order.picked_up_at || order.driver_status === "picked_up") currentStep = Math.max(currentStep, stepIdx("picked_up"));
+    if (order.status === "dispatched") currentStep = Math.max(currentStep, stepIdx("dispatched"));
+    if (order.status === "completed" || order.delivered_at) currentStep = stepIdx("completed");
+  }
   const eta = order.order_type === "delivery" ? settings?.est_delivery_min : settings?.est_pickup_min;
+  const driverStatusLabel = order.driver_status === "accepted" ? "A accepté"
+    : order.driver_status === "picked_up" ? "A ramassé la commande"
+    : order.driver_status === "delivered" ? "Livrée"
+    : order.driver_status === "assigned" ? "Assigné" : null;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
