@@ -419,6 +419,7 @@ export type Driver = {
   name: string;
   phone: string | null;
   active: number | boolean;
+  shift_online?: number | boolean;
   created_at: string;
 };
 
