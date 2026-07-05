@@ -38,7 +38,12 @@ function DispatchPage() {
     load();
     if (!password) return;
     const rt: RealtimeConnection = connectAdminEvents(password, (ev) => {
-      if (ev === "order_created" || ev === "order_status_changed" || ev === "order_assigned" || ev === "order_delivered") load();
+      if (
+        ev === "order_created" || ev === "order_status_changed" ||
+        ev === "order_assigned" || ev === "order_unassigned" ||
+        ev === "order_delivered" || ev === "driver_accepted" ||
+        ev === "driver_picked_up" || ev === "driver_online" || ev === "driver_offline"
+      ) load();
     }, { fallbackPoll: load, pollIntervalMs: 10000 });
     const safety = setInterval(load, 30000);
     return () => { rt.close(); clearInterval(safety); };
