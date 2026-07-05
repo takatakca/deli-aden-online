@@ -1141,7 +1141,10 @@ app.get("/api/orders/:orderNumber", async (req, res) => {
           if (a) {
             order.driver_name = a.driver_name || null;
             order.driver_phone = a.driver_phone || null;
+            order.driver_status = a.driver_status || null;
             order.assigned_at = a.assigned_at instanceof Date ? a.assigned_at.toISOString() : (a.assigned_at || null);
+            order.driver_accepted_at = a.driver_accepted_at instanceof Date ? a.driver_accepted_at.toISOString() : (a.driver_accepted_at || null);
+            order.picked_up_at = a.picked_up_at instanceof Date ? a.picked_up_at.toISOString() : (a.picked_up_at || null);
             order.delivered_at = a.delivered_at instanceof Date ? a.delivered_at.toISOString() : (a.delivered_at || null);
           }
         } catch (_) {}
