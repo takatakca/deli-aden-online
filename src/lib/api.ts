@@ -426,8 +426,12 @@ export type Assignment = {
   notes: string | null;
   assigned_at: string;
   delivered_at: string | null;
+  driver_status?: "assigned" | "accepted" | "picked_up" | "delivered" | null;
+  driver_accepted_at?: string | null;
+  picked_up_at?: string | null;
   driver_name: string;
   driver_phone: string | null;
+  driver_shift_online?: number | boolean | null;
   order_number: string;
   customer_name: string;
   customer_phone: string;
