@@ -919,8 +919,21 @@ if (READY_ALERTS_ENABLED) {
         ).all(cutoffIso);
       }
       for (const o of rows) {
-        try { sms.notifyAdmin({ id: o.id, order_number: o.order_number, customer_name: o.customer_name, total: Number(o.total) || 0 }, "unassigned_ready", { minutes: READY_ALERT_MINUTES }); }
-        catch (e) { console.error("[ready-alert]", e.message); }
+        try {
+          // Dedupe: skip if we already sent this admin alert for this order
+          let alreadyAlerted = false;
+          if (dbApi.kind === "mysql" && mysqlPool) {
+            const [ex] = await mysqlPool.query(
+              "SELECT 1 FROM sms_logs WHERE order_id=? AND message_type='admin_unassigned_ready' AND status='sent' LIMIT 1",
+              [o.id]
+            );
+            alreadyAlerted = ex.length > 0;
+          } else if (dbApi.kind === "sqlite" && sqliteDb) {
+            alreadyAlerted = !!sqliteDb.prepare("SELECT 1 FROM sms_logs WHERE order_id=? AND message_type='admin_unassigned_ready' AND status='sent' LIMIT 1").get(o.id);
+          }
+          if (alreadyAlerted) continue;
+          sms.notifyAdmin({ id: o.id, order_number: o.order_number, customer_name: o.customer_name, total: Number(o.total) || 0 }, "unassigned_ready", { minutes: READY_ALERT_MINUTES });
+        } catch (e) { console.error("[ready-alert]", e.message); }
       }
     } catch (e) { console.error("[ready-alert] scan failed", e.message); }
   }, 60 * 1000).unref?.();
