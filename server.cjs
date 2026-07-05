@@ -886,6 +886,47 @@ drivers.mount(app, { requireAdmin });
   try { await drivers.init(); } catch (e) { console.error("[drivers] init failed", e.message); }
 })();
 
+// ---- Ready-order unassigned SMS alert scheduler ----
+// Fires an admin SMS when a delivery order has been `ready` (with no active
+// driver assignment) for more than UNASSIGNED_READY_ALERT_MINUTES minutes.
+// Deduplicated per order via sms_logs.message_type = 'admin_unassigned_ready'.
+// Disabled unless ENABLE_READY_ORDER_ALERTS=true.
+const READY_ALERTS_ENABLED = String(process.env.ENABLE_READY_ORDER_ALERTS || "").toLowerCase() === "true";
+const READY_ALERT_MINUTES = Math.max(1, parseInt(process.env.UNASSIGNED_READY_ALERT_MINUTES || "10", 10) || 10);
+if (READY_ALERTS_ENABLED) {
+  setInterval(async () => {
+    try {
+      const cutoffMs = Date.now() - READY_ALERT_MINUTES * 60 * 1000;
+      let rows = [];
+      if (dbApi.kind === "mysql" && mysqlPool) {
+        const [r] = await mysqlPool.query(
+          `SELECT o.id, o.order_number, o.customer_name, o.total, o.updated_at
+           FROM orders o
+           WHERE o.status='ready' AND o.order_type='delivery'
+             AND NOT EXISTS (SELECT 1 FROM driver_assignments a WHERE a.order_id=o.id AND a.delivered_at IS NULL)
+             AND o.updated_at <= FROM_UNIXTIME(?)`,
+          [Math.floor(cutoffMs / 1000)]
+        );
+        rows = r;
+      } else if (dbApi.kind === "sqlite" && sqliteDb) {
+        const cutoffIso = new Date(cutoffMs).toISOString().slice(0,19).replace("T"," ");
+        rows = sqliteDb.prepare(
+          `SELECT o.id, o.order_number, o.customer_name, o.total, o.updated_at
+           FROM orders o
+           WHERE o.status='ready' AND o.order_type='delivery'
+             AND NOT EXISTS (SELECT 1 FROM driver_assignments a WHERE a.order_id=o.id AND a.delivered_at IS NULL)
+             AND o.updated_at <= ?`
+        ).all(cutoffIso);
+      }
+      for (const o of rows) {
+        try { sms.notifyAdmin({ id: o.id, order_number: o.order_number, customer_name: o.customer_name, total: Number(o.total) || 0 }, "unassigned_ready", { minutes: READY_ALERT_MINUTES }); }
+        catch (e) { console.error("[ready-alert]", e.message); }
+      }
+    } catch (e) { console.error("[ready-alert] scan failed", e.message); }
+  }, 60 * 1000).unref?.();
+  console.log(`[Deli Aden] Ready-order alert scheduler enabled (>${READY_ALERT_MINUTES} min)`);
+}
+
 // ---- SMS admin routes ----
 app.get("/api/admin/sms/logs", requireAdmin, async (req, res) => {
   try {
