@@ -17,12 +17,15 @@ export const Route = createFileRoute("/track/$orderNumber")({
 });
 
 const STEPS: Array<{ key: string; label: string }> = [
-  { key: "new", label: "Reçue" },
+  { key: "new", label: "Commande reçue" },
   { key: "accepted", label: "Acceptée" },
   { key: "preparing", label: "En préparation" },
   { key: "ready", label: "Prête" },
-  { key: "dispatched", label: "En route / À récupérer" },
-  { key: "completed", label: "Terminée" },
+  { key: "assigned", label: "Livreur assigné" },
+  { key: "driver_accepted", label: "Livreur a accepté" },
+  { key: "picked_up", label: "Ramassée par le livreur" },
+  { key: "dispatched", label: "En route" },
+  { key: "completed", label: "Livrée" },
 ];
 
 function TrackPage() {
@@ -39,7 +42,16 @@ function TrackPage() {
       .finally(() => setLoading(false));
     load();
     const rt: RealtimeConnection = connectOrderEvents(orderNumber, (ev) => {
-      if (ev === "order_status_changed" || ev === "driver_assigned" || ev === "order_delivered" || ev === "payment_status_changed" || ev === "order_created") load();
+      if (
+        ev === "order_status_changed" ||
+        ev === "driver_assigned" ||
+        ev === "driver_unassigned" ||
+        ev === "driver_accepted" ||
+        ev === "driver_picked_up" ||
+        ev === "order_delivered" ||
+        ev === "payment_status_changed" ||
+        ev === "order_created"
+      ) load();
     }, { fallbackPoll: load, pollIntervalMs: 10000 });
     const safety = setInterval(load, 30000);
     return () => { rt.close(); clearInterval(safety); };
@@ -53,8 +65,21 @@ function TrackPage() {
     </div>
   );
 
-  const currentStep = order.status === "cancelled" ? -1 : STEPS.findIndex((s) => s.key === order.status);
+  // Compute farthest reached step from status + driver timeline.
+  const stepIdx = (k: string) => STEPS.findIndex((s) => s.key === k);
+  let currentStep = order.status === "cancelled" ? -1 : stepIdx(order.status);
+  if (order.status !== "cancelled") {
+    if (order.assigned_at) currentStep = Math.max(currentStep, stepIdx("assigned"));
+    if (order.driver_accepted_at || order.driver_status === "accepted") currentStep = Math.max(currentStep, stepIdx("driver_accepted"));
+    if (order.picked_up_at || order.driver_status === "picked_up") currentStep = Math.max(currentStep, stepIdx("picked_up"));
+    if (order.status === "dispatched") currentStep = Math.max(currentStep, stepIdx("dispatched"));
+    if (order.status === "completed" || order.delivered_at) currentStep = stepIdx("completed");
+  }
   const eta = order.order_type === "delivery" ? settings?.est_delivery_min : settings?.est_pickup_min;
+  const driverStatusLabel = order.driver_status === "accepted" ? "A accepté"
+    : order.driver_status === "picked_up" ? "A ramassé la commande"
+    : order.driver_status === "delivered" ? "Livrée"
+    : order.driver_status === "assigned" ? "Assigné" : null;
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
@@ -81,18 +106,27 @@ function TrackPage() {
       {order.status !== "cancelled" && (
         <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
           <ol className="space-y-3">
-            {STEPS.map((s, i) => {
-              const done = i <= currentStep;
-              const current = i === currentStep;
-              return (
-                <li key={s.key} className={`flex items-center gap-3 ${done ? "" : "opacity-40"}`}>
-                  <div className={`flex h-8 w-8 items-center justify-center rounded-full border-2 ${current ? "border-primary bg-primary text-primary-foreground animate-pulse" : done ? "border-emerald-600 bg-emerald-600 text-white" : "border-border bg-background"}`}>
-                    {done ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
-                  </div>
-                  <span className={`font-medium ${current ? "text-primary" : ""}`}>{s.label}</span>
-                </li>
-              );
-            })}
+            {STEPS
+              .filter((s) => order.order_type === "delivery" || !["assigned","driver_accepted","picked_up","dispatched"].includes(s.key))
+              .map((s) => {
+                const idx = STEPS.findIndex((x) => x.key === s.key);
+                const done = idx <= currentStep;
+                const current = idx === currentStep;
+                const ts = s.key === "assigned" ? order.assigned_at
+                  : s.key === "driver_accepted" ? order.driver_accepted_at
+                  : s.key === "picked_up" ? order.picked_up_at
+                  : s.key === "completed" ? order.delivered_at
+                  : null;
+                return (
+                  <li key={s.key} className={`flex items-center gap-3 ${done ? "" : "opacity-40"}`}>
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 ${current ? "border-primary bg-primary text-primary-foreground animate-pulse" : done ? "border-emerald-600 bg-emerald-600 text-white" : "border-border bg-background"}`}>
+                      {done ? <CheckCircle2 className="h-4 w-4" /> : idx + 1}
+                    </div>
+                    <span className={`font-medium ${current ? "text-primary" : ""}`}>{s.label}</span>
+                    {ts && <span className="ml-auto text-xs text-muted-foreground">{new Date(ts).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" })}</span>}
+                  </li>
+                );
+              })}
           </ol>
         </div>
       )}
@@ -101,6 +135,9 @@ function TrackPage() {
         <div className="mt-6 rounded-2xl border border-emerald-500/40 bg-emerald-50 p-4 dark:bg-emerald-950/30">
           <div className="text-xs uppercase tracking-wide text-muted-foreground">Votre livreur</div>
           <div className="mt-1 font-display text-lg font-semibold">🚚 {order.driver_name}</div>
+          {driverStatusLabel && (
+            <div className="mt-1 text-sm text-emerald-800 dark:text-emerald-200">Statut : {driverStatusLabel}</div>
+          )}
           {order.driver_phone && (
             <a href={`tel:${order.driver_phone}`} className="mt-2 inline-block">
               <Button variant="outline" size="sm"><Phone className="mr-2 h-4 w-4" /> Appeler le livreur — {order.driver_phone}</Button>

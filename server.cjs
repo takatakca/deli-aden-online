@@ -392,12 +392,12 @@ if (USE_MYSQL) {
     },
     async listAssignments({ activeOnly = false } = {}) {
       const where = activeOnly ? "WHERE a.delivered_at IS NULL" : "";
-      const [r] = await mysqlPool.query(`SELECT a.*, d.name AS driver_name, d.phone AS driver_phone, o.order_number, o.customer_name, o.customer_phone, o.delivery_address, o.total
+      const [r] = await mysqlPool.query(`SELECT a.*, d.name AS driver_name, d.phone AS driver_phone, d.shift_online AS driver_shift_online, o.order_number, o.customer_name, o.customer_phone, o.delivery_address, o.total
         FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id JOIN orders o ON o.id=a.order_id ${where} ORDER BY a.assigned_at DESC LIMIT 200`);
       return r;
     },
     async getOrderAssignment(orderId) {
-      const [r] = await mysqlPool.query("SELECT a.*, d.name AS driver_name, d.phone AS driver_phone FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id WHERE a.order_id=? ORDER BY a.assigned_at DESC LIMIT 1", [orderId]);
+      const [r] = await mysqlPool.query("SELECT a.*, d.name AS driver_name, d.phone AS driver_phone, d.shift_online AS driver_shift_online FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id WHERE a.order_id=? ORDER BY a.assigned_at DESC LIMIT 1", [orderId]);
       return r[0] || null;
     },
     async metrics() {
@@ -639,11 +639,11 @@ if (USE_MYSQL) {
     },
     async listAssignments({ activeOnly = false } = {}) {
       const where = activeOnly ? "WHERE a.delivered_at IS NULL" : "";
-      return sqliteDb.prepare(`SELECT a.*, d.name AS driver_name, d.phone AS driver_phone, o.order_number, o.customer_name, o.customer_phone, o.delivery_address, o.total
+      return sqliteDb.prepare(`SELECT a.*, d.name AS driver_name, d.phone AS driver_phone, d.shift_online AS driver_shift_online, o.order_number, o.customer_name, o.customer_phone, o.delivery_address, o.total
         FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id JOIN orders o ON o.id=a.order_id ${where} ORDER BY a.assigned_at DESC LIMIT 200`).all();
     },
     async getOrderAssignment(orderId) {
-      return sqliteDb.prepare("SELECT a.*, d.name AS driver_name, d.phone AS driver_phone FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id WHERE a.order_id=? ORDER BY a.assigned_at DESC LIMIT 1").get(orderId) || null;
+      return sqliteDb.prepare("SELECT a.*, d.name AS driver_name, d.phone AS driver_phone, d.shift_online AS driver_shift_online FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id WHERE a.order_id=? ORDER BY a.assigned_at DESC LIMIT 1").get(orderId) || null;
     },
     async metrics() {
       const byStatus = sqliteDb.prepare("SELECT status, COUNT(*) c FROM orders GROUP BY status").all();
@@ -885,6 +885,60 @@ drivers.mount(app, { requireAdmin });
   try { await sms.init(); } catch (e) { console.error("[sms] init failed", e.message); }
   try { await drivers.init(); } catch (e) { console.error("[drivers] init failed", e.message); }
 })();
+
+// ---- Ready-order unassigned SMS alert scheduler ----
+// Fires an admin SMS when a delivery order has been `ready` (with no active
+// driver assignment) for more than UNASSIGNED_READY_ALERT_MINUTES minutes.
+// Deduplicated per order via sms_logs.message_type = 'admin_unassigned_ready'.
+// Disabled unless ENABLE_READY_ORDER_ALERTS=true.
+const READY_ALERTS_ENABLED = String(process.env.ENABLE_READY_ORDER_ALERTS || "").toLowerCase() === "true";
+const READY_ALERT_MINUTES = Math.max(1, parseInt(process.env.UNASSIGNED_READY_ALERT_MINUTES || "10", 10) || 10);
+if (READY_ALERTS_ENABLED) {
+  setInterval(async () => {
+    try {
+      const cutoffMs = Date.now() - READY_ALERT_MINUTES * 60 * 1000;
+      let rows = [];
+      if (dbApi.kind === "mysql" && mysqlPool) {
+        const [r] = await mysqlPool.query(
+          `SELECT o.id, o.order_number, o.customer_name, o.total, o.updated_at
+           FROM orders o
+           WHERE o.status='ready' AND o.order_type='delivery'
+             AND NOT EXISTS (SELECT 1 FROM driver_assignments a WHERE a.order_id=o.id AND a.delivered_at IS NULL)
+             AND o.updated_at <= FROM_UNIXTIME(?)`,
+          [Math.floor(cutoffMs / 1000)]
+        );
+        rows = r;
+      } else if (dbApi.kind === "sqlite" && sqliteDb) {
+        const cutoffIso = new Date(cutoffMs).toISOString().slice(0,19).replace("T"," ");
+        rows = sqliteDb.prepare(
+          `SELECT o.id, o.order_number, o.customer_name, o.total, o.updated_at
+           FROM orders o
+           WHERE o.status='ready' AND o.order_type='delivery'
+             AND NOT EXISTS (SELECT 1 FROM driver_assignments a WHERE a.order_id=o.id AND a.delivered_at IS NULL)
+             AND o.updated_at <= ?`
+        ).all(cutoffIso);
+      }
+      for (const o of rows) {
+        try {
+          // Dedupe: skip if we already sent this admin alert for this order
+          let alreadyAlerted = false;
+          if (dbApi.kind === "mysql" && mysqlPool) {
+            const [ex] = await mysqlPool.query(
+              "SELECT 1 FROM sms_logs WHERE order_id=? AND message_type='admin_unassigned_ready' AND status='sent' LIMIT 1",
+              [o.id]
+            );
+            alreadyAlerted = ex.length > 0;
+          } else if (dbApi.kind === "sqlite" && sqliteDb) {
+            alreadyAlerted = !!sqliteDb.prepare("SELECT 1 FROM sms_logs WHERE order_id=? AND message_type='admin_unassigned_ready' AND status='sent' LIMIT 1").get(o.id);
+          }
+          if (alreadyAlerted) continue;
+          sms.notifyAdmin({ id: o.id, order_number: o.order_number, customer_name: o.customer_name, total: Number(o.total) || 0 }, "unassigned_ready", { minutes: READY_ALERT_MINUTES });
+        } catch (e) { console.error("[ready-alert]", e.message); }
+      }
+    } catch (e) { console.error("[ready-alert] scan failed", e.message); }
+  }, 60 * 1000).unref?.();
+  console.log(`[Deli Aden] Ready-order alert scheduler enabled (>${READY_ALERT_MINUTES} min)`);
+}
 
 // ---- SMS admin routes ----
 app.get("/api/admin/sms/logs", requireAdmin, async (req, res) => {
@@ -1141,7 +1195,10 @@ app.get("/api/orders/:orderNumber", async (req, res) => {
           if (a) {
             order.driver_name = a.driver_name || null;
             order.driver_phone = a.driver_phone || null;
+            order.driver_status = a.driver_status || null;
             order.assigned_at = a.assigned_at instanceof Date ? a.assigned_at.toISOString() : (a.assigned_at || null);
+            order.driver_accepted_at = a.driver_accepted_at instanceof Date ? a.driver_accepted_at.toISOString() : (a.driver_accepted_at || null);
+            order.picked_up_at = a.picked_up_at instanceof Date ? a.picked_up_at.toISOString() : (a.picked_up_at || null);
             order.delivered_at = a.delivered_at instanceof Date ? a.delivered_at.toISOString() : (a.delivered_at || null);
           }
         } catch (_) {}

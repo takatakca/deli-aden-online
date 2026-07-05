@@ -22,6 +22,7 @@ export type CreateOrderPayload = {
   paymentMethod: "pay_at_restaurant" | "cash" | "card_on_arrival" | "online";
   couponCode?: string;
   specialNotes?: string;
+  smsOptIn?: boolean;
   items: CartItemPayload[];
   subtotal: number;
   gst: number;
@@ -362,7 +363,10 @@ export type AdminOrder = {
   // Public delivery tracking enrichments (returned by GET /api/orders/:orderNumber for delivery orders)
   driver_name?: string | null;
   driver_phone?: string | null;
+  driver_status?: "assigned" | "accepted" | "picked_up" | "delivered" | null;
   assigned_at?: string | null;
+  driver_accepted_at?: string | null;
+  picked_up_at?: string | null;
   delivered_at?: string | null;
   // Phase 3 payments
   payment_status?: "unpaid" | "pending" | "paid" | "failed" | "refunded" | "partially_refunded";
@@ -415,6 +419,7 @@ export type Driver = {
   name: string;
   phone: string | null;
   active: number | boolean;
+  shift_online?: number | boolean;
   created_at: string;
 };
 
@@ -425,8 +430,12 @@ export type Assignment = {
   notes: string | null;
   assigned_at: string;
   delivered_at: string | null;
+  driver_status?: "assigned" | "accepted" | "picked_up" | "delivered" | null;
+  driver_accepted_at?: string | null;
+  picked_up_at?: string | null;
   driver_name: string;
   driver_phone: string | null;
+  driver_shift_online?: number | boolean | null;
   order_number: string;
   customer_name: string;
   customer_phone: string;
