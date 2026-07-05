@@ -17,12 +17,15 @@ export const Route = createFileRoute("/track/$orderNumber")({
 });
 
 const STEPS: Array<{ key: string; label: string }> = [
-  { key: "new", label: "Reçue" },
+  { key: "new", label: "Commande reçue" },
   { key: "accepted", label: "Acceptée" },
   { key: "preparing", label: "En préparation" },
   { key: "ready", label: "Prête" },
-  { key: "dispatched", label: "En route / À récupérer" },
-  { key: "completed", label: "Terminée" },
+  { key: "assigned", label: "Livreur assigné" },
+  { key: "driver_accepted", label: "Livreur a accepté" },
+  { key: "picked_up", label: "Ramassée par le livreur" },
+  { key: "dispatched", label: "En route" },
+  { key: "completed", label: "Livrée" },
 ];
 
 function TrackPage() {
