@@ -137,6 +137,9 @@ const ORDER_EVENTS = [
   "order_created",
   "order_status_changed",
   "driver_assigned",
+  "driver_unassigned",
+  "driver_accepted",
+  "driver_picked_up",
   "order_delivered",
   "payment_status_changed",
 ];
