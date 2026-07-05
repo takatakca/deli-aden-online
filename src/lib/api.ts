@@ -22,6 +22,7 @@ export type CreateOrderPayload = {
   paymentMethod: "pay_at_restaurant" | "cash" | "card_on_arrival" | "online";
   couponCode?: string;
   specialNotes?: string;
+  smsOptIn?: boolean;
   items: CartItemPayload[];
   subtotal: number;
   gst: number;
