@@ -82,6 +82,25 @@ function DispatchPage() {
     catch (err) { toast.error(err instanceof Error ? err.message : "Erreur"); }
   };
 
+  const unassign = async (orderId: number) => {
+    if (!confirm("Retirer ce livreur ? La commande repassera à 'Prête'.")) return;
+    try { await api.adminUnassignOrder(password, orderId); toast.success("Livreur retiré"); load(); }
+    catch (err) { toast.error(err instanceof Error ? err.message : "Erreur"); }
+  };
+  const reassign = async (orderId: number, driverId: number) => {
+    if (!driverId) return;
+    try { await api.adminReassignOrder(password, orderId, driverId); toast.success("Livreur réassigné"); load(); }
+    catch (err) { toast.error(err instanceof Error ? err.message : "Erreur"); }
+  };
+
+  const statusLabel = (s?: string | null) => s === "accepted" ? "Acceptée" : s === "picked_up" ? "Ramassée" : s === "delivered" ? "Livrée" : "Assignée";
+  const statusClass = (s?: string | null) =>
+    s === "delivered" ? "bg-emerald-600 text-white"
+    : s === "picked_up" ? "bg-amber-500 text-white"
+    : s === "accepted" ? "bg-blue-600 text-white"
+    : "bg-muted text-foreground";
+  const fmtTime = (t?: string | null) => t ? new Date(t).toLocaleTimeString("fr-CA", { hour: "2-digit", minute: "2-digit" }) : "—";
+
   const activeDrivers = drivers.filter((d) => d.active);
 
   return (
