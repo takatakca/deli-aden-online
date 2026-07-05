@@ -639,11 +639,11 @@ if (USE_MYSQL) {
     },
     async listAssignments({ activeOnly = false } = {}) {
       const where = activeOnly ? "WHERE a.delivered_at IS NULL" : "";
-      return sqliteDb.prepare(`SELECT a.*, d.name AS driver_name, d.phone AS driver_phone, o.order_number, o.customer_name, o.customer_phone, o.delivery_address, o.total
+      return sqliteDb.prepare(`SELECT a.*, d.name AS driver_name, d.phone AS driver_phone, d.shift_online AS driver_shift_online, o.order_number, o.customer_name, o.customer_phone, o.delivery_address, o.total
         FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id JOIN orders o ON o.id=a.order_id ${where} ORDER BY a.assigned_at DESC LIMIT 200`).all();
     },
     async getOrderAssignment(orderId) {
-      return sqliteDb.prepare("SELECT a.*, d.name AS driver_name, d.phone AS driver_phone FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id WHERE a.order_id=? ORDER BY a.assigned_at DESC LIMIT 1").get(orderId) || null;
+      return sqliteDb.prepare("SELECT a.*, d.name AS driver_name, d.phone AS driver_phone, d.shift_online AS driver_shift_online FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id WHERE a.order_id=? ORDER BY a.assigned_at DESC LIMIT 1").get(orderId) || null;
     },
     async metrics() {
       const byStatus = sqliteDb.prepare("SELECT status, COUNT(*) c FROM orders GROUP BY status").all();
