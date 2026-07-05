@@ -118,21 +118,34 @@ function DispatchPage() {
           <p className="text-sm text-muted-foreground">Aucun livreur. Ajoutez-en un ci-dessus.</p>
         ) : (
           <ul className="divide-y divide-border">
-            {drivers.map((d) => (
-              <li key={d.id} className="flex items-center justify-between py-2">
-                <div>
-                  <div className="font-medium">{d.name}</div>
-                  {d.phone && <div className="text-xs text-muted-foreground">{d.phone}</div>}
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    <Label className="text-xs">Actif</Label>
-                    <Switch checked={!!d.active} onCheckedChange={() => toggleActive(d)} />
+            {drivers.map((d) => {
+              const online = !!(d as Driver & { shift_online?: number | boolean }).shift_online;
+              return (
+                <li key={d.id} className="flex items-center justify-between py-2">
+                  <div>
+                    <div className="flex items-center gap-2 font-medium">
+                      <span className={`inline-block h-2 w-2 rounded-full ${online ? "bg-emerald-500" : "bg-muted-foreground/40"}`} title={online ? "En ligne" : "Hors ligne"} />
+                      {d.name}
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${online ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100" : "bg-muted text-muted-foreground"}`}>
+                        {online ? "En ligne" : "Hors ligne"}
+                      </span>
+                    </div>
+                    {d.phone && (
+                      <div className="text-xs text-muted-foreground">
+                        <a href={`tel:${d.phone}`} className="text-primary underline">{d.phone}</a>
+                      </div>
+                    )}
                   </div>
-                  <Button variant="ghost" size="icon" onClick={() => removeDriver(d.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                </div>
-              </li>
-            ))}
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs">Actif</Label>
+                      <Switch checked={!!d.active} onCheckedChange={() => toggleActive(d)} />
+                    </div>
+                    <Button variant="ghost" size="icon" onClick={() => removeDriver(d.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
