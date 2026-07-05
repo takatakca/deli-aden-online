@@ -392,12 +392,12 @@ if (USE_MYSQL) {
     },
     async listAssignments({ activeOnly = false } = {}) {
       const where = activeOnly ? "WHERE a.delivered_at IS NULL" : "";
-      const [r] = await mysqlPool.query(`SELECT a.*, d.name AS driver_name, d.phone AS driver_phone, o.order_number, o.customer_name, o.customer_phone, o.delivery_address, o.total
+      const [r] = await mysqlPool.query(`SELECT a.*, d.name AS driver_name, d.phone AS driver_phone, d.shift_online AS driver_shift_online, o.order_number, o.customer_name, o.customer_phone, o.delivery_address, o.total
         FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id JOIN orders o ON o.id=a.order_id ${where} ORDER BY a.assigned_at DESC LIMIT 200`);
       return r;
     },
     async getOrderAssignment(orderId) {
-      const [r] = await mysqlPool.query("SELECT a.*, d.name AS driver_name, d.phone AS driver_phone FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id WHERE a.order_id=? ORDER BY a.assigned_at DESC LIMIT 1", [orderId]);
+      const [r] = await mysqlPool.query("SELECT a.*, d.name AS driver_name, d.phone AS driver_phone, d.shift_online AS driver_shift_online FROM driver_assignments a JOIN drivers d ON d.id=a.driver_id WHERE a.order_id=? ORDER BY a.assigned_at DESC LIMIT 1", [orderId]);
       return r[0] || null;
     },
     async metrics() {
