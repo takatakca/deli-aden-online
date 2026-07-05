@@ -341,6 +341,18 @@ function CheckoutPage() {
                 <Input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} maxLength={200} placeholder="vous@exemple.com" />
               </Field>
               <p className="text-xs text-muted-foreground">Nous utilisons votre numéro uniquement pour confirmer la commande.</p>
+              <label className="mt-2 flex items-start gap-2 rounded-lg border border-border bg-secondary/40 p-3 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 h-4 w-4 accent-primary"
+                  checked={smsOptIn}
+                  onChange={(e) => setSmsOptIn(e.target.checked)}
+                />
+                <span>
+                  <span className="font-medium">J'accepte de recevoir des SMS concernant ma commande.</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">Vous recevrez seulement les mises à jour de cette commande.</span>
+                </span>
+              </label>
             </Section>
           )}
 
