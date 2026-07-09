@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "sdk_version": "0.20.0",
+  "path": "/mcp",
+  "auth": {
+    "type": "none"
+  },
+  "mcp": {
+    "server": {
+      "name": "deli-aden-mcp",
+      "version": "0.1.0",
+      "title": "Les Délices d'Aden"
+    },
+    "tools": [
+      {
+        "name": "get_menu",
+        "title": "Get menu",
+        "description": "Return the full public menu for Les Délices d'Aden: all categories, items, prices (CAD), and descriptions. Optionally filter to a single category by id.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "categoryId": {
+              "description": "Optional category id to return only that category (e.g. 'tacos', 'grillades').",
+              "type": "string"
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "find_menu_item",
+        "title": "Find menu item",
+        "description": "Search the public menu by keyword. Matches against item name and description (case-insensitive). Returns matching items with their category, price (CAD), and available options.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Search text, e.g. 'tacos', 'poulet', 'merguez'."
+            },
+            "limit": {
+              "description": "Max results (default 20).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            }
+          },
+          "required": [
+            "query"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_restaurant_info",
+        "title": "Get restaurant info",
+        "description": "Return public information about Les Délices d'Aden restaurant: name, cuisine, contact, opening hours, and ordering links.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
