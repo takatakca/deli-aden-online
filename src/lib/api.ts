@@ -62,6 +62,20 @@ export const api = {
       method: "PATCH", headers: adminHeaders(password), body: JSON.stringify(patch),
     }),
 
+  // Registered customers (admin directory + history)
+  adminCustomers: (password: string, search?: string) =>
+    request<{ customers: AdminCustomer[] }>(
+      `/api/admin/customers${search ? `?search=${encodeURIComponent(search)}` : ""}`,
+      { headers: adminHeaders(password) }
+    ),
+  adminCustomerDetail: (password: string, id: number) =>
+    request<{
+      customer: AdminCustomer;
+      addresses: { id: number; label: string; address: string; unit: string | null; is_default: boolean }[];
+      orders: { id: number; order_number: string; status: string; order_type: string; total: number; created_at: string }[];
+    }>(`/api/admin/customers/${id}`, { headers: adminHeaders(password) }),
+
+
   adminGetMenu: (password: string) =>
     request<{ overrides: MenuOverride[] }>("/api/admin/menu", { headers: adminHeaders(password) }),
   adminUpsertMenuOverride: (password: string, itemId: string, o: Partial<MenuOverride>) =>
