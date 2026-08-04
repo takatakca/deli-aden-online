@@ -425,6 +425,26 @@ function CheckoutPage() {
 
               {orderType === "delivery" && (
                 <>
+                  {customer && savedAddresses.length > 0 && (
+                    <div className="rounded-xl border border-border bg-secondary/40 p-3">
+                      <Label className="mb-2 block text-sm font-medium">Adresses enregistrées</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {savedAddresses.map((a) => (
+                          <button
+                            key={a.id}
+                            type="button"
+                            onClick={() => applySavedAddress(a)}
+                            className={`rounded-lg border px-3 py-2 text-left text-sm transition ${
+                              address === a.address ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary"
+                            }`}
+                          >
+                            <span className="font-medium">{a.label}</span>
+                            <span className="block text-xs text-muted-foreground">{a.address}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <Field label="Adresse de livraison *" error={errors.address}>
                     <Textarea
                       value={address}
@@ -445,6 +465,24 @@ function CheckoutPage() {
                   <Field label="Instructions pour le livreur (optionnel)">
                     <Textarea value={deliveryInstructions} onChange={(e) => setDeliveryInstructions(e.target.value)} maxLength={500} placeholder="Sonner deux fois, laisser à la porte..." rows={2} />
                   </Field>
+                  {customer && (
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-primary"
+                        checked={saveAddress}
+                        onChange={(e) => setSaveAddress(e.target.checked)}
+                      />
+                      Enregistrer cette adresse dans mon compte
+                    </label>
+                  )}
+                  {!customer && (
+                    <p className="text-xs text-muted-foreground">
+                      <Link to="/customer/login" className="text-primary underline">Connectez-vous</Link>{" "}
+                      pour retrouver vos adresses et commander plus vite.
+                    </p>
+                  )}
+
                   <div className="rounded-xl border border-border bg-secondary/40 p-3 text-sm space-y-1">
                     <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> Livraison estimée : ~{settings?.est_delivery_min ?? 45} min</div>
                     {settings?.delivery_zone_text && (
