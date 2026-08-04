@@ -286,7 +286,7 @@ async function mountCustomers(app, ctx) {
       if (!name) return res.status(400).json({ error: "Nom requis" });
       if (await findCustomerByEmail(email)) return res.status(409).json({ error: "Un compte existe déjà avec cet email" });
       const customer = await createCustomer({ email, password, name, phone });
-      const token = signToken(customer);
+      const token = await createSession(customer, req.header("user-agent"));
       res.json({ token, customer: publicCustomer(customer) });
     } catch (err) { console.error("[customers] signup", err); res.status(500).json({ error: "Erreur" }); }
   });
