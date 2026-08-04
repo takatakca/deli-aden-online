@@ -673,6 +673,8 @@ function rowToOrder(row) {
   const iso = (v) => v instanceof Date ? v.toISOString() : (v || null);
   return {
     id: row.id, order_number: row.order_number, status: row.status,
+    customer_id: row.customer_id != null ? Number(row.customer_id) : null,
+
     customer_name: row.customer_name, customer_phone: row.customer_phone, customer_email: row.customer_email,
     order_type: row.order_type, delivery_address: row.delivery_address,
     delivery_unit: row.delivery_unit || null,
