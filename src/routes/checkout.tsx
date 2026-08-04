@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart, cartStore, computeTotals, fmt } from "@/lib/cart-store";
 import { api, type PublicSettings, type PaymentQuote, type CreateOrderPayload } from "@/lib/api";
+import { useCustomer, customerApi, type SavedAddress } from "@/lib/customer-auth";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
