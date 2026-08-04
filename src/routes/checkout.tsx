@@ -145,13 +145,29 @@ function CheckoutPage() {
       .catch(() => {});
   }, [customer]);
   const applySavedAddress = (a: SavedAddress) => {
-
     setAddress(a.address);
     setUnit(a.unit || "");
     setDoorCode(a.door_code || "");
     setDeliveryInstructions(a.instructions || "");
     setSaveAddress(false);
   };
+  /** Persists the typed delivery address to the signed-in account when requested. */
+  const maybeSaveAddress = async () => {
+    if (!customer || !saveAddress || orderType !== "delivery" || !address.trim()) return;
+    try {
+      await customerApi.createAddress({
+        label: "Livraison",
+        address: address.trim(),
+        unit: unit.trim() || null,
+        door_code: doorCode.trim() || null,
+        instructions: deliveryInstructions.trim() || null,
+        is_default: savedAddresses.length === 0,
+      });
+    } catch {
+      // Non-blocking: the order already went through.
+    }
+  };
+
 
 
   useEffect(() => {
