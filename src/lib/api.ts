@@ -330,7 +330,9 @@ export type AdminOrder = {
   id: number;
   order_number: string;
   status: string;
+  customer_id?: number | null;
   customer_name: string;
+
   customer_phone: string;
   customer_email: string | null;
   order_type: string;
