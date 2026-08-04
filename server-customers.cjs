@@ -18,9 +18,9 @@ function clean(v, max = 500) {
   return String(v).replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, "").trim().slice(0, max);
 }
 function isEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
-function signToken(customer) {
+function signToken(customer, jti) {
   return jwt.sign(
-    { sub: String(customer.id), email: customer.email, name: customer.name },
+    { sub: String(customer.id), email: customer.email, name: customer.name, jti },
     JWT_SECRET,
     { expiresIn: JWT_TTL, audience: TOKEN_AUDIENCE }
   );
@@ -29,6 +29,8 @@ function verifyToken(token) {
   try { return jwt.verify(token, JWT_SECRET, { audience: TOKEN_AUDIENCE }); }
   catch { return null; }
 }
+function hashToken(t) { return crypto.createHash("sha256").update(String(t)).digest("hex"); }
+
 
 /**
  * @param {import('express').Express} app
