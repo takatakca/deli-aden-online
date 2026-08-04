@@ -299,7 +299,9 @@ async function mountCustomers(app, ctx) {
       if (!cust || !(await bcrypt.compare(password, cust.password_hash))) {
         return res.status(401).json({ error: "Email ou mot de passe invalide" });
       }
-      res.json({ token: signToken(cust), customer: publicCustomer(cust) });
+      const token = await createSession(cust, req.header("user-agent"));
+      res.json({ token, customer: publicCustomer(cust) });
+
     } catch (err) { console.error("[customers] login", err); res.status(500).json({ error: "Erreur" }); }
   });
 
