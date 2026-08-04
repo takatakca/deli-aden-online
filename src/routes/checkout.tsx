@@ -145,6 +145,7 @@ function CheckoutPage() {
       .catch(() => {});
   }, [customer]);
   const applySavedAddress = (a: SavedAddress) => {
+
     setAddress(a.address);
     setUnit(a.unit || "");
     setDoorCode(a.door_code || "");
