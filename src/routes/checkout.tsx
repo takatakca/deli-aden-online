@@ -115,6 +115,42 @@ function CheckoutPage() {
     }).catch(() => { setPaymentsEnabled(false); });
   }, []);
 
+  // ---- Signed-in customer: prefill contact + saved addresses ----
+  const { customer } = useCustomer();
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [saveAddress, setSaveAddress] = useState(false);
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (!customer || prefilled.current) return;
+    prefilled.current = true;
+    setName((v) => v || customer.name);
+    setPhone((v) => v || formatCAPhone(customer.phone || ""));
+    setEmail((v) => v || customer.email);
+  }, [customer]);
+  useEffect(() => {
+    if (!customer) { setSavedAddresses([]); return; }
+    customerApi.addresses()
+      .then((r) => {
+        setSavedAddresses(r.addresses);
+        const def = r.addresses.find((a) => a.is_default) || r.addresses[0];
+        if (def) {
+          setAddress((v) => v || def.address);
+          setUnit((v) => v || def.unit || "");
+          setDoorCode((v) => v || def.door_code || "");
+          setDeliveryInstructions((v) => v || def.instructions || "");
+        }
+      })
+      .catch(() => {});
+  }, [customer]);
+  const applySavedAddress = (a: SavedAddress) => {
+    setAddress(a.address);
+    setUnit(a.unit || "");
+    setDoorCode(a.door_code || "");
+    setDeliveryInstructions(a.instructions || "");
+    setSaveAddress(false);
+  };
+
+
   useEffect(() => {
     if (!settings) return;
     if (orderType === "pickup" && !allowPickup && allowDelivery) setOrderType("delivery");
