@@ -25,6 +25,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TrackOrderNumberRouteImport } from './routes/track.$orderNumber'
 import { Route as CustomerRegisterRouteImport } from './routes/customer.register'
 import { Route as CustomerLoginRouteImport } from './routes/customer.login'
+import { Route as CustomerAccountRouteImport } from './routes/customer.account'
 import { Route as ConfirmationOrderNumberRouteImport } from './routes/confirmation.$orderNumber'
 import { Route as AdminSmsRouteImport } from './routes/admin.sms'
 import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
@@ -118,6 +119,11 @@ const CustomerLoginRoute = CustomerLoginRouteImport.update({
   path: '/customer/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CustomerAccountRoute = CustomerAccountRouteImport.update({
+  id: '/customer/account',
+  path: '/customer/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConfirmationOrderNumberRoute = ConfirmationOrderNumberRouteImport.update({
   id: '/confirmation/$orderNumber',
   path: '/confirmation/$orderNumber',
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/sms': typeof AdminSmsRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
+  '/customer/account': typeof CustomerAccountRoute
   '/customer/login': typeof CustomerLoginRoute
   '/customer/register': typeof CustomerRegisterRoute
   '/track/$orderNumber': typeof TrackOrderNumberRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/sms': typeof AdminSmsRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
+  '/customer/account': typeof CustomerAccountRoute
   '/customer/login': typeof CustomerLoginRoute
   '/customer/register': typeof CustomerRegisterRoute
   '/track/$orderNumber': typeof TrackOrderNumberRoute
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/admin/settings': typeof AdminSettingsRoute
   '/admin/sms': typeof AdminSmsRoute
   '/confirmation/$orderNumber': typeof ConfirmationOrderNumberRoute
+  '/customer/account': typeof CustomerAccountRoute
   '/customer/login': typeof CustomerLoginRoute
   '/customer/register': typeof CustomerRegisterRoute
   '/track/$orderNumber': typeof TrackOrderNumberRoute
@@ -298,6 +307,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/sms'
     | '/confirmation/$orderNumber'
+    | '/customer/account'
     | '/customer/login'
     | '/customer/register'
     | '/track/$orderNumber'
@@ -327,6 +337,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/sms'
     | '/confirmation/$orderNumber'
+    | '/customer/account'
     | '/customer/login'
     | '/customer/register'
     | '/track/$orderNumber'
@@ -357,6 +368,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/sms'
     | '/confirmation/$orderNumber'
+    | '/customer/account'
     | '/customer/login'
     | '/customer/register'
     | '/track/$orderNumber'
@@ -380,6 +392,7 @@ export interface RootRouteChildren {
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   ConfirmationOrderNumberRoute: typeof ConfirmationOrderNumberRoute
+  CustomerAccountRoute: typeof CustomerAccountRoute
   CustomerLoginRoute: typeof CustomerLoginRoute
   CustomerRegisterRoute: typeof CustomerRegisterRoute
   TrackOrderNumberRoute: typeof TrackOrderNumberRoute
@@ -498,6 +511,13 @@ declare module '@tanstack/react-router' {
       path: '/customer/login'
       fullPath: '/customer/login'
       preLoaderRoute: typeof CustomerLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customer/account': {
+      id: '/customer/account'
+      path: '/customer/account'
+      fullPath: '/customer/account'
+      preLoaderRoute: typeof CustomerAccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/confirmation/$orderNumber': {
@@ -630,6 +650,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   ConfirmationOrderNumberRoute: ConfirmationOrderNumberRoute,
+  CustomerAccountRoute: CustomerAccountRoute,
   CustomerLoginRoute: CustomerLoginRoute,
   CustomerRegisterRoute: CustomerRegisterRoute,
   TrackOrderNumberRoute: TrackOrderNumberRoute,
