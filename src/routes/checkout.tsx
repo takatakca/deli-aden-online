@@ -311,9 +311,11 @@ function CheckoutPage() {
         total: totals.total,
       });
       console.info("[checkout]", "order_submit_success", { orderNumber: res.orderNumber });
+      await maybeSaveAddress();
       cartStore.clear();
       toast.success("Commande envoyée !");
       navigate({ to: "/confirmation/$orderNumber", params: { orderNumber: res.orderNumber } });
+
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erreur lors de l'envoi";
       console.info("[checkout]", "order_submit_error", { message });
