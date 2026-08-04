@@ -124,6 +124,18 @@ async function mountCustomers(app, ctx) {
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
       CREATE INDEX IF NOT EXISTS idx_fav_customer ON customer_favorites(customer_id);
+      CREATE TABLE IF NOT EXISTS customer_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER NOT NULL,
+        token_hash TEXT NOT NULL UNIQUE,
+        user_agent TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        last_seen_at TEXT,
+        expires_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_sess_customer ON customer_sessions(customer_id);
+      CREATE INDEX IF NOT EXISTS idx_sess_expires ON customer_sessions(expires_at);
+
     `);
     try { sqliteDb.exec(`ALTER TABLE orders ADD COLUMN customer_id INTEGER`); } catch (_) {}
   }
