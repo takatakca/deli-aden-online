@@ -340,7 +340,18 @@ export type RefundRow = {
   created_at: string;
 };
 
+export type AdminCustomer = {
+  id: number;
+  email: string;
+  name: string;
+  phone: string;
+  created_at: string;
+  orders_count?: number;
+  lifetime_total?: number;
+};
+
 export type AdminOrder = {
+
   id: number;
   order_number: string;
   status: string;
