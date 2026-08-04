@@ -220,26 +220,52 @@ async function mountCustomers(app, ctx) {
     await exec("UPDATE orders SET customer_id = ? WHERE id = ?", [customerId, orderId]);
   };
 
+  // ---- Sessions (hashed server-side, revocable) ----
+  const dt = (d) => isMysql ? d.toISOString().slice(0, 19).replace("T", " ") : d.toISOString();
+  async function createSession(customer, userAgent) {
+    const jti = crypto.randomBytes(16).toString("hex");
+    const token = signToken(customer, jti);
+    const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await exec(
+      "INSERT INTO customer_sessions (customer_id, token_hash, user_agent, expires_at) VALUES (?,?,?,?)",
+      [customer.id, hashToken(token), clean(userAgent, 255) || null, dt(expires)]
+    );
+    // Opportunistic cleanup of expired sessions
+    try { await exec("DELETE FROM customer_sessions WHERE expires_at < ?", [dt(new Date())]); } catch (_) {}
+    return token;
+  }
+  async function findSession(token) {
+    return one("SELECT * FROM customer_sessions WHERE token_hash = ?", [hashToken(token)]);
+  }
+  async function revokeSession(token) {
+    await exec("DELETE FROM customer_sessions WHERE token_hash = ?", [hashToken(token)]);
+  }
+
   // ---- Middleware ----
-  function requireCustomer(req, res, next) {
-    const h = req.header("authorization") || "";
-    const m = h.match(/^Bearer\s+(.+)$/i);
-    if (!m) return res.status(401).json({ error: "Connexion requise" });
-    const payload = verifyToken(m[1]);
-    if (!payload || !payload.sub) return res.status(401).json({ error: "Session invalide" });
-    req.customerId = parseInt(payload.sub, 10);
-    next();
-  }
-  // Optional — populates req.customerId if a valid token is present, otherwise continues
-  function optionalCustomer(req, _res, next) {
-    const h = req.header("authorization") || "";
-    const m = h.match(/^Bearer\s+(.+)$/i);
-    if (m) {
+  async function requireCustomer(req, res, next) {
+    try {
+      const h = req.header("authorization") || "";
+      const m = h.match(/^Bearer\s+(.+)$/i);
+      if (!m) return res.status(401).json({ error: "Connexion requise" });
       const payload = verifyToken(m[1]);
-      if (payload && payload.sub) req.customerId = parseInt(payload.sub, 10);
+      if (!payload || !payload.sub) return res.status(401).json({ error: "Session invalide" });
+      const sess = await findSession(m[1]);
+      if (!sess) return res.status(401).json({ error: "Session expirée" });
+      const exp = sess.expires_at instanceof Date ? sess.expires_at.getTime() : Date.parse(sess.expires_at);
+      if (exp && exp < Date.now()) {
+        await revokeSession(m[1]);
+        return res.status(401).json({ error: "Session expirée" });
+      }
+      req.customerId = parseInt(payload.sub, 10);
+      req.customerToken = m[1];
+      try { await exec("UPDATE customer_sessions SET last_seen_at = ? WHERE id = ?", [dt(new Date()), sess.id]); } catch (_) {}
+      next();
+    } catch (err) {
+      console.error("[customers] auth", err);
+      res.status(500).json({ error: "Erreur" });
     }
-    next();
   }
+
   // NOTE: do not app.use here — order routes are already registered.
   // server.cjs uses verifyToken() inline in the create-order route instead.
 
