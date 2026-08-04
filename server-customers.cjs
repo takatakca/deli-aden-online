@@ -18,9 +18,9 @@ function clean(v, max = 500) {
   return String(v).replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, "").trim().slice(0, max);
 }
 function isEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s); }
-function signToken(customer) {
+function signToken(customer, jti) {
   return jwt.sign(
-    { sub: String(customer.id), email: customer.email, name: customer.name },
+    { sub: String(customer.id), email: customer.email, name: customer.name, jti },
     JWT_SECRET,
     { expiresIn: JWT_TTL, audience: TOKEN_AUDIENCE }
   );
@@ -29,6 +29,8 @@ function verifyToken(token) {
   try { return jwt.verify(token, JWT_SECRET, { audience: TOKEN_AUDIENCE }); }
   catch { return null; }
 }
+function hashToken(t) { return crypto.createHash("sha256").update(String(t)).digest("hex"); }
+
 
 /**
  * @param {import('express').Express} app
@@ -74,7 +76,19 @@ async function mountCustomers(app, ctx) {
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_fav_customer (customer_id)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+      await conn.query(`CREATE TABLE IF NOT EXISTS customer_sessions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        customer_id INT NOT NULL,
+        token_hash VARCHAR(64) NOT NULL UNIQUE,
+        user_agent VARCHAR(255),
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        last_seen_at DATETIME NULL,
+        expires_at DATETIME NOT NULL,
+        INDEX idx_sess_customer (customer_id),
+        INDEX idx_sess_expires (expires_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
       // Link orders to customers (nullable for guest checkout)
+
       try { await conn.query(`ALTER TABLE orders ADD COLUMN customer_id INT NULL`); } catch (_) {}
       try { await conn.query(`ALTER TABLE orders ADD INDEX idx_orders_customer (customer_id)`); } catch (_) {}
     } finally { conn.release(); }
@@ -110,6 +124,18 @@ async function mountCustomers(app, ctx) {
         created_at TEXT NOT NULL DEFAULT (datetime('now'))
       );
       CREATE INDEX IF NOT EXISTS idx_fav_customer ON customer_favorites(customer_id);
+      CREATE TABLE IF NOT EXISTS customer_sessions (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        customer_id INTEGER NOT NULL,
+        token_hash TEXT NOT NULL UNIQUE,
+        user_agent TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now')),
+        last_seen_at TEXT,
+        expires_at TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_sess_customer ON customer_sessions(customer_id);
+      CREATE INDEX IF NOT EXISTS idx_sess_expires ON customer_sessions(expires_at);
+
     `);
     try { sqliteDb.exec(`ALTER TABLE orders ADD COLUMN customer_id INTEGER`); } catch (_) {}
   }
@@ -194,26 +220,52 @@ async function mountCustomers(app, ctx) {
     await exec("UPDATE orders SET customer_id = ? WHERE id = ?", [customerId, orderId]);
   };
 
+  // ---- Sessions (hashed server-side, revocable) ----
+  const dt = (d) => isMysql ? d.toISOString().slice(0, 19).replace("T", " ") : d.toISOString();
+  async function createSession(customer, userAgent) {
+    const jti = crypto.randomBytes(16).toString("hex");
+    const token = signToken(customer, jti);
+    const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await exec(
+      "INSERT INTO customer_sessions (customer_id, token_hash, user_agent, expires_at) VALUES (?,?,?,?)",
+      [customer.id, hashToken(token), clean(userAgent, 255) || null, dt(expires)]
+    );
+    // Opportunistic cleanup of expired sessions
+    try { await exec("DELETE FROM customer_sessions WHERE expires_at < ?", [dt(new Date())]); } catch (_) {}
+    return token;
+  }
+  async function findSession(token) {
+    return one("SELECT * FROM customer_sessions WHERE token_hash = ?", [hashToken(token)]);
+  }
+  async function revokeSession(token) {
+    await exec("DELETE FROM customer_sessions WHERE token_hash = ?", [hashToken(token)]);
+  }
+
   // ---- Middleware ----
-  function requireCustomer(req, res, next) {
-    const h = req.header("authorization") || "";
-    const m = h.match(/^Bearer\s+(.+)$/i);
-    if (!m) return res.status(401).json({ error: "Connexion requise" });
-    const payload = verifyToken(m[1]);
-    if (!payload || !payload.sub) return res.status(401).json({ error: "Session invalide" });
-    req.customerId = parseInt(payload.sub, 10);
-    next();
-  }
-  // Optional — populates req.customerId if a valid token is present, otherwise continues
-  function optionalCustomer(req, _res, next) {
-    const h = req.header("authorization") || "";
-    const m = h.match(/^Bearer\s+(.+)$/i);
-    if (m) {
+  async function requireCustomer(req, res, next) {
+    try {
+      const h = req.header("authorization") || "";
+      const m = h.match(/^Bearer\s+(.+)$/i);
+      if (!m) return res.status(401).json({ error: "Connexion requise" });
       const payload = verifyToken(m[1]);
-      if (payload && payload.sub) req.customerId = parseInt(payload.sub, 10);
+      if (!payload || !payload.sub) return res.status(401).json({ error: "Session invalide" });
+      const sess = await findSession(m[1]);
+      if (!sess) return res.status(401).json({ error: "Session expirée" });
+      const exp = sess.expires_at instanceof Date ? sess.expires_at.getTime() : Date.parse(sess.expires_at);
+      if (exp && exp < Date.now()) {
+        await revokeSession(m[1]);
+        return res.status(401).json({ error: "Session expirée" });
+      }
+      req.customerId = parseInt(payload.sub, 10);
+      req.customerToken = m[1];
+      try { await exec("UPDATE customer_sessions SET last_seen_at = ? WHERE id = ?", [dt(new Date()), sess.id]); } catch (_) {}
+      next();
+    } catch (err) {
+      console.error("[customers] auth", err);
+      res.status(500).json({ error: "Erreur" });
     }
-    next();
   }
+
   // NOTE: do not app.use here — order routes are already registered.
   // server.cjs uses verifyToken() inline in the create-order route instead.
 
@@ -234,7 +286,7 @@ async function mountCustomers(app, ctx) {
       if (!name) return res.status(400).json({ error: "Nom requis" });
       if (await findCustomerByEmail(email)) return res.status(409).json({ error: "Un compte existe déjà avec cet email" });
       const customer = await createCustomer({ email, password, name, phone });
-      const token = signToken(customer);
+      const token = await createSession(customer, req.header("user-agent"));
       res.json({ token, customer: publicCustomer(customer) });
     } catch (err) { console.error("[customers] signup", err); res.status(500).json({ error: "Erreur" }); }
   });
@@ -247,7 +299,9 @@ async function mountCustomers(app, ctx) {
       if (!cust || !(await bcrypt.compare(password, cust.password_hash))) {
         return res.status(401).json({ error: "Email ou mot de passe invalide" });
       }
-      res.json({ token: signToken(cust), customer: publicCustomer(cust) });
+      const token = await createSession(cust, req.header("user-agent"));
+      res.json({ token, customer: publicCustomer(cust) });
+
     } catch (err) { console.error("[customers] login", err); res.status(500).json({ error: "Erreur" }); }
   });
 
@@ -361,7 +415,65 @@ async function mountCustomers(app, ctx) {
     try { await deleteFavorite(req.customerId, parseInt(req.params.id, 10)); res.json({ ok: true }); }
     catch (err) { console.error("[customers] fav del", err); res.status(500).json({ error: "Erreur" }); }
   });
+
+  // Sign out — revokes the current session server-side.
+  app.post("/api/customers/logout", requireCustomer, async (req, res) => {
+    try { await revokeSession(req.customerToken); res.json({ ok: true }); }
+    catch (err) { console.error("[customers] logout", err); res.status(500).json({ error: "Erreur" }); }
+  });
+  // Sign out everywhere
+  app.post("/api/customers/logout-all", requireCustomer, async (req, res) => {
+    try { await exec("DELETE FROM customer_sessions WHERE customer_id = ?", [req.customerId]); res.json({ ok: true }); }
+    catch (err) { console.error("[customers] logout-all", err); res.status(500).json({ error: "Erreur" }); }
+  });
+
+  // ---- Admin: customer directory + history ----
+  const { requireAdmin } = ctx;
+  if (typeof requireAdmin === "function") {
+    app.get("/api/admin/customers", requireAdmin, async (req, res) => {
+      try {
+        const search = clean(req.query?.search, 120);
+        const params = [];
+        let where = "";
+        if (search) {
+          where = "WHERE c.email LIKE ? OR c.name LIKE ? OR c.phone LIKE ?";
+          const like = `%${search}%`; params.push(like, like, like);
+        }
+        const rows = await q(
+          `SELECT c.id, c.email, c.name, c.phone, c.created_at,
+                  (SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.id) AS orders_count,
+                  (SELECT COALESCE(SUM(o.total),0) FROM orders o WHERE o.customer_id = c.id) AS lifetime_total
+           FROM customers c ${where} ORDER BY c.id DESC LIMIT 200`, params);
+        res.json({ customers: rows.map((r) => ({
+          id: r.id, email: r.email, name: r.name, phone: r.phone || "",
+          created_at: r.created_at instanceof Date ? r.created_at.toISOString() : r.created_at,
+          orders_count: Number(r.orders_count) || 0,
+          lifetime_total: Number(r.lifetime_total) || 0,
+        })) });
+      } catch (err) { console.error("[customers] admin list", err); res.status(500).json({ error: "Erreur" }); }
+    });
+
+    app.get("/api/admin/customers/:id", requireAdmin, async (req, res) => {
+      try {
+        const id = parseInt(req.params.id, 10);
+        const cust = await findCustomerById(id);
+        if (!cust) return res.status(404).json({ error: "Client introuvable" });
+        const orders = await listOrdersForCustomer(id);
+        const addresses = await listAddresses(id);
+        res.json({
+          customer: publicCustomer(cust),
+          addresses: addresses.map((a) => ({ id: a.id, label: a.label, address: a.address, unit: a.unit, is_default: a.is_default === 1 || a.is_default === true })),
+          orders: orders.map((row) => ({
+            id: row.id, order_number: row.order_number, status: row.status,
+            order_type: row.order_type, total: Number(row.total),
+            created_at: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+          })),
+        });
+      } catch (err) { console.error("[customers] admin detail", err); res.status(500).json({ error: "Erreur" }); }
+    });
+  }
 }
+
 
 function publicCustomer(c) {
   return {

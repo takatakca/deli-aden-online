@@ -2,6 +2,8 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useCart, cartStore, computeTotals, fmt } from "@/lib/cart-store";
 import { api, type PublicSettings, type PaymentQuote, type CreateOrderPayload } from "@/lib/api";
+import { useCustomer, customerApi, type SavedAddress } from "@/lib/customer-auth";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -114,6 +116,59 @@ function CheckoutPage() {
       setPublishableKey(r.publishableKey);
     }).catch(() => { setPaymentsEnabled(false); });
   }, []);
+
+  // ---- Signed-in customer: prefill contact + saved addresses ----
+  const { customer } = useCustomer();
+  const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
+  const [saveAddress, setSaveAddress] = useState(false);
+  const prefilled = useRef(false);
+  useEffect(() => {
+    if (!customer || prefilled.current) return;
+    prefilled.current = true;
+    setName((v) => v || customer.name);
+    setPhone((v) => v || formatCAPhone(customer.phone || ""));
+    setEmail((v) => v || customer.email);
+  }, [customer]);
+  useEffect(() => {
+    if (!customer) { setSavedAddresses([]); return; }
+    customerApi.addresses()
+      .then((r) => {
+        setSavedAddresses(r.addresses);
+        const def = r.addresses.find((a) => a.is_default) || r.addresses[0];
+        if (def) {
+          setAddress((v) => v || def.address);
+          setUnit((v) => v || def.unit || "");
+          setDoorCode((v) => v || def.door_code || "");
+          setDeliveryInstructions((v) => v || def.instructions || "");
+        }
+      })
+      .catch(() => {});
+  }, [customer]);
+  const applySavedAddress = (a: SavedAddress) => {
+    setAddress(a.address);
+    setUnit(a.unit || "");
+    setDoorCode(a.door_code || "");
+    setDeliveryInstructions(a.instructions || "");
+    setSaveAddress(false);
+  };
+  /** Persists the typed delivery address to the signed-in account when requested. */
+  const maybeSaveAddress = async () => {
+    if (!customer || !saveAddress || orderType !== "delivery" || !address.trim()) return;
+    try {
+      await customerApi.createAddress({
+        label: "Livraison",
+        address: address.trim(),
+        unit: unit.trim() || null,
+        door_code: doorCode.trim() || null,
+        instructions: deliveryInstructions.trim() || null,
+        is_default: savedAddresses.length === 0,
+      });
+    } catch {
+      // Non-blocking: the order already went through.
+    }
+  };
+
+
 
   useEffect(() => {
     if (!settings) return;
@@ -273,9 +328,11 @@ function CheckoutPage() {
         total: totals.total,
       });
       console.info("[checkout]", "order_submit_success", { orderNumber: res.orderNumber });
+      await maybeSaveAddress();
       cartStore.clear();
       toast.success("Commande envoyée !");
       navigate({ to: "/confirmation/$orderNumber", params: { orderNumber: res.orderNumber } });
+
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erreur lors de l'envoi";
       console.info("[checkout]", "order_submit_error", { message });
@@ -387,6 +444,26 @@ function CheckoutPage() {
 
               {orderType === "delivery" && (
                 <>
+                  {customer && savedAddresses.length > 0 && (
+                    <div className="rounded-xl border border-border bg-secondary/40 p-3">
+                      <Label className="mb-2 block text-sm font-medium">Adresses enregistrées</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {savedAddresses.map((a) => (
+                          <button
+                            key={a.id}
+                            type="button"
+                            onClick={() => applySavedAddress(a)}
+                            className={`rounded-lg border px-3 py-2 text-left text-sm transition ${
+                              address === a.address ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary"
+                            }`}
+                          >
+                            <span className="font-medium">{a.label}</span>
+                            <span className="block text-xs text-muted-foreground">{a.address}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <Field label="Adresse de livraison *" error={errors.address}>
                     <Textarea
                       value={address}
@@ -407,6 +484,24 @@ function CheckoutPage() {
                   <Field label="Instructions pour le livreur (optionnel)">
                     <Textarea value={deliveryInstructions} onChange={(e) => setDeliveryInstructions(e.target.value)} maxLength={500} placeholder="Sonner deux fois, laisser à la porte..." rows={2} />
                   </Field>
+                  {customer && (
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-primary"
+                        checked={saveAddress}
+                        onChange={(e) => setSaveAddress(e.target.checked)}
+                      />
+                      Enregistrer cette adresse dans mon compte
+                    </label>
+                  )}
+                  {!customer && (
+                    <p className="text-xs text-muted-foreground">
+                      <Link to="/customer/login" className="text-primary underline">Connectez-vous</Link>{" "}
+                      pour retrouver vos adresses et commander plus vite.
+                    </p>
+                  )}
+
                   <div className="rounded-xl border border-border bg-secondary/40 p-3 text-sm space-y-1">
                     <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> Livraison estimée : ~{settings?.est_delivery_min ?? 45} min</div>
                     {settings?.delivery_zone_text && (
@@ -511,10 +606,12 @@ function CheckoutPage() {
                   publishableKey={publishableKey}
                   buildPayload={buildPayload}
                   total={totals.total}
-                  onSuccess={(orderNumber) => {
+                  onSuccess={async (orderNumber) => {
+                    await maybeSaveAddress();
                     cartStore.clear();
                     navigate({ to: "/confirmation/$orderNumber", params: { orderNumber } });
                   }}
+
                 />
               )}
             </>

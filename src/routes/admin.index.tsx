@@ -367,6 +367,14 @@ function OrderCard({
             {o.coupon_code && (
               <span className="rounded-full border border-primary/40 bg-primary/5 px-2 py-0.5 text-xs text-primary">{o.coupon_code}</span>
             )}
+            {o.customer_id ? (
+              <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-700">
+                Client #{o.customer_id}
+              </span>
+            ) : (
+              <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">Invité</span>
+            )}
+
           </div>
           <div className="mt-1 text-sm text-muted-foreground">
             {new Date(o.created_at).toLocaleString("fr-CA")} • {o.customer_name} • {o.customer_phone}

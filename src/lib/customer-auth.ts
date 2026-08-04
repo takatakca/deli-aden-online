@@ -152,7 +152,24 @@ export const customerApi = {
     request<{ ok: true }>(`/api/customers/me/favorites/${id}`, { method: "DELETE" }, true),
 };
 
+/** Clears the local session only. */
 export function signOut() { setSession(null, null); }
+
+/** Revokes the session server-side (hashed session row), then clears it locally. */
+export async function signOutRemote() {
+  const token = state.token;
+  setSession(null, null);
+  if (!token) return;
+  try {
+    await fetch("/api/customers/logout", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    // Best-effort: local session is already cleared.
+  }
+}
+
 
 /** Attach Bearer token to outgoing /api/orders create so the order links to the customer. */
 export function getAuthHeader(): Record<string, string> {
