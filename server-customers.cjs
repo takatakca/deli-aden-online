@@ -415,7 +415,65 @@ async function mountCustomers(app, ctx) {
     try { await deleteFavorite(req.customerId, parseInt(req.params.id, 10)); res.json({ ok: true }); }
     catch (err) { console.error("[customers] fav del", err); res.status(500).json({ error: "Erreur" }); }
   });
+
+  // Sign out — revokes the current session server-side.
+  app.post("/api/customers/logout", requireCustomer, async (req, res) => {
+    try { await revokeSession(req.customerToken); res.json({ ok: true }); }
+    catch (err) { console.error("[customers] logout", err); res.status(500).json({ error: "Erreur" }); }
+  });
+  // Sign out everywhere
+  app.post("/api/customers/logout-all", requireCustomer, async (req, res) => {
+    try { await exec("DELETE FROM customer_sessions WHERE customer_id = ?", [req.customerId]); res.json({ ok: true }); }
+    catch (err) { console.error("[customers] logout-all", err); res.status(500).json({ error: "Erreur" }); }
+  });
+
+  // ---- Admin: customer directory + history ----
+  const { requireAdmin } = ctx;
+  if (typeof requireAdmin === "function") {
+    app.get("/api/admin/customers", requireAdmin, async (req, res) => {
+      try {
+        const search = clean(req.query?.search, 120);
+        const params = [];
+        let where = "";
+        if (search) {
+          where = "WHERE c.email LIKE ? OR c.name LIKE ? OR c.phone LIKE ?";
+          const like = `%${search}%`; params.push(like, like, like);
+        }
+        const rows = await q(
+          `SELECT c.id, c.email, c.name, c.phone, c.created_at,
+                  (SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.id) AS orders_count,
+                  (SELECT COALESCE(SUM(o.total),0) FROM orders o WHERE o.customer_id = c.id) AS lifetime_total
+           FROM customers c ${where} ORDER BY c.id DESC LIMIT 200`, params);
+        res.json({ customers: rows.map((r) => ({
+          id: r.id, email: r.email, name: r.name, phone: r.phone || "",
+          created_at: r.created_at instanceof Date ? r.created_at.toISOString() : r.created_at,
+          orders_count: Number(r.orders_count) || 0,
+          lifetime_total: Number(r.lifetime_total) || 0,
+        })) });
+      } catch (err) { console.error("[customers] admin list", err); res.status(500).json({ error: "Erreur" }); }
+    });
+
+    app.get("/api/admin/customers/:id", requireAdmin, async (req, res) => {
+      try {
+        const id = parseInt(req.params.id, 10);
+        const cust = await findCustomerById(id);
+        if (!cust) return res.status(404).json({ error: "Client introuvable" });
+        const orders = await listOrdersForCustomer(id);
+        const addresses = await listAddresses(id);
+        res.json({
+          customer: publicCustomer(cust),
+          addresses: addresses.map((a) => ({ id: a.id, label: a.label, address: a.address, unit: a.unit, is_default: a.is_default === 1 || a.is_default === true })),
+          orders: orders.map((row) => ({
+            id: row.id, order_number: row.order_number, status: row.status,
+            order_type: row.order_type, total: Number(row.total),
+            created_at: row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+          })),
+        });
+      } catch (err) { console.error("[customers] admin detail", err); res.status(500).json({ error: "Erreur" }); }
+    });
+  }
 }
+
 
 function publicCustomer(c) {
   return {
