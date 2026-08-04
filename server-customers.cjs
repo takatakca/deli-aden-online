@@ -76,7 +76,19 @@ async function mountCustomers(app, ctx) {
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_fav_customer (customer_id)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+      await conn.query(`CREATE TABLE IF NOT EXISTS customer_sessions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        customer_id INT NOT NULL,
+        token_hash VARCHAR(64) NOT NULL UNIQUE,
+        user_agent VARCHAR(255),
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        last_seen_at DATETIME NULL,
+        expires_at DATETIME NOT NULL,
+        INDEX idx_sess_customer (customer_id),
+        INDEX idx_sess_expires (expires_at)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
       // Link orders to customers (nullable for guest checkout)
+
       try { await conn.query(`ALTER TABLE orders ADD COLUMN customer_id INT NULL`); } catch (_) {}
       try { await conn.query(`ALTER TABLE orders ADD INDEX idx_orders_customer (customer_id)`); } catch (_) {}
     } finally { conn.release(); }
