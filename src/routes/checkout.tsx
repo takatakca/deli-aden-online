@@ -606,10 +606,12 @@ function CheckoutPage() {
                   publishableKey={publishableKey}
                   buildPayload={buildPayload}
                   total={totals.total}
-                  onSuccess={(orderNumber) => {
+                  onSuccess={async (orderNumber) => {
+                    await maybeSaveAddress();
                     cartStore.clear();
                     navigate({ to: "/confirmation/$orderNumber", params: { orderNumber } });
                   }}
+
                 />
               )}
             </>
