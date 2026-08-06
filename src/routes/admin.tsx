@@ -14,7 +14,9 @@ const NAV: Array<{ to: string; label: string; icon: typeof LogOut; exact?: boole
   { to: "/admin/kitchen", label: "Cuisine", icon: ChefHat },
   { to: "/admin/dispatch", label: "Livraison", icon: Truck },
   { to: "/admin/menu", label: "Menu", icon: KanbanSquare },
+  { to: "/admin/inventory", label: "Inventaire", icon: Boxes },
   { to: "/admin/coupons", label: "Codes promo", icon: Tag },
+
   { to: "/admin/sms", label: "SMS", icon: MessageSquare },
   { to: "/admin/metrics", label: "Statistiques", icon: BarChart3 },
   { to: "/admin/settings", label: "Réglages", icon: Settings },
