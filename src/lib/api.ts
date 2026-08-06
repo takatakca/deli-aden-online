@@ -258,7 +258,208 @@ export const api = {
     request<{ ok: true; online: boolean }>("/api/driver/shift", {
       method: "POST", headers: { Authorization: `Bearer ${token}` }, body: JSON.stringify({ online }),
     }),
+
+  // ---------------- Turn 6 — Inventory ----------------
+  invIngredients: (password: string, params: { search?: string; low?: boolean; active?: boolean } = {}) => {
+    const qs = new URLSearchParams();
+    if (params.search) qs.set("search", params.search);
+    if (params.low) qs.set("low", "1");
+    if (params.active) qs.set("active", "1");
+    return request<{ ingredients: Ingredient[]; units: string[] }>(
+      `/api/admin/inventory/ingredients${qs.toString() ? `?${qs}` : ""}`,
+      { headers: adminHeaders(password) }
+    );
+  },
+  invCreateIngredient: (password: string, body: Partial<Ingredient>) =>
+    request<{ ok: true; id: number }>("/api/admin/inventory/ingredients", {
+      method: "POST", headers: adminHeaders(password), body: JSON.stringify(body),
+    }),
+  invUpdateIngredient: (password: string, id: number, body: Partial<Ingredient>) =>
+    request<{ ok: true }>(`/api/admin/inventory/ingredients/${id}`, {
+      method: "PATCH", headers: adminHeaders(password), body: JSON.stringify(body),
+    }),
+  invDeleteIngredient: (password: string, id: number) =>
+    request<{ ok: true }>(`/api/admin/inventory/ingredients/${id}`, {
+      method: "DELETE", headers: adminHeaders(password),
+    }),
+  invTransactions: (password: string, id: number) =>
+    request<{ transactions: InventoryTransaction[] }>(`/api/admin/inventory/ingredients/${id}/transactions`, {
+      headers: adminHeaders(password),
+    }),
+  invAdjust: (password: string, id: number, body: { quantity: number; transaction_type?: string; note?: string }) =>
+    request<{ ok: true; current_stock: number }>(`/api/admin/inventory/ingredients/${id}/adjust`, {
+      method: "POST", headers: adminHeaders(password), body: JSON.stringify(body),
+    }),
+
+  invSuppliers: (password: string) =>
+    request<{ suppliers: Supplier[] }>("/api/admin/inventory/suppliers", { headers: adminHeaders(password) }),
+  invCreateSupplier: (password: string, body: Partial<Supplier>) =>
+    request<{ ok: true; id: number }>("/api/admin/inventory/suppliers", {
+      method: "POST", headers: adminHeaders(password), body: JSON.stringify(body),
+    }),
+  invUpdateSupplier: (password: string, id: number, body: Partial<Supplier>) =>
+    request<{ ok: true }>(`/api/admin/inventory/suppliers/${id}`, {
+      method: "PATCH", headers: adminHeaders(password), body: JSON.stringify(body),
+    }),
+  invDeleteSupplier: (password: string, id: number) =>
+    request<{ ok: true }>(`/api/admin/inventory/suppliers/${id}`, {
+      method: "DELETE", headers: adminHeaders(password),
+    }),
+
+  invRecipes: (password: string, menuItemId?: string) =>
+    request<{ recipes: RecipeLine[] }>(
+      `/api/admin/inventory/recipes${menuItemId ? `?menu_item_id=${encodeURIComponent(menuItemId)}` : ""}`,
+      { headers: adminHeaders(password) }
+    ),
+  invSaveRecipe: (password: string, body: { menu_item_id: string; ingredient_id: number; quantity_required: number; unit: string }) =>
+    request<{ ok: true }>("/api/admin/inventory/recipes", {
+      method: "POST", headers: adminHeaders(password), body: JSON.stringify(body),
+    }),
+  invUpdateRecipe: (password: string, id: number, body: { quantity_required: number; unit?: string }) =>
+    request<{ ok: true }>(`/api/admin/inventory/recipes/${id}`, {
+      method: "PATCH", headers: adminHeaders(password), body: JSON.stringify(body),
+    }),
+  invDeleteRecipe: (password: string, id: number) =>
+    request<{ ok: true }>(`/api/admin/inventory/recipes/${id}`, { method: "DELETE", headers: adminHeaders(password) }),
+
+  invPurchases: (password: string) =>
+    request<{ purchases: PurchaseOrder[] }>("/api/admin/inventory/purchases", { headers: adminHeaders(password) }),
+  invPurchase: (password: string, id: number) =>
+    request<{ purchase: PurchaseOrder; items: PurchaseOrderItem[] }>(`/api/admin/inventory/purchases/${id}`, {
+      headers: adminHeaders(password),
+    }),
+  invCreatePurchase: (password: string, body: {
+    supplier_id?: number | null; tax?: number; expected_at?: string | null; notes?: string | null;
+    items: Array<{ ingredient_id: number; quantity: number; unit_cost: number }>;
+  }) =>
+    request<{ ok: true; id: number }>("/api/admin/inventory/purchases", {
+      method: "POST", headers: adminHeaders(password), body: JSON.stringify(body),
+    }),
+  invUpdatePurchase: (password: string, id: number, body: { status?: string; notes?: string; expected_at?: string }) =>
+    request<{ ok: true }>(`/api/admin/inventory/purchases/${id}`, {
+      method: "PATCH", headers: adminHeaders(password), body: JSON.stringify(body),
+    }),
+  invReceivePurchase: (password: string, id: number, lines?: Array<{ item_id: number; received_quantity: number }>) =>
+    request<{ ok: true; status: string }>(`/api/admin/inventory/purchases/${id}/receive`, {
+      method: "POST", headers: adminHeaders(password), body: JSON.stringify({ lines: lines || [] }),
+    }),
+
+  invWaste: (password: string) =>
+    request<{ waste: WasteLog[] }>("/api/admin/inventory/waste", { headers: adminHeaders(password) }),
+  invRecordWaste: (password: string, body: { ingredient_id: number; quantity: number; reason: string; note?: string }) =>
+    request<{ ok: true; estimated_cost: number }>("/api/admin/inventory/waste", {
+      method: "POST", headers: adminHeaders(password), body: JSON.stringify(body),
+    }),
+
+  invMetrics: (password: string) =>
+    request<InventoryMetrics>("/api/admin/inventory/metrics", { headers: adminHeaders(password) }),
+  invLowStock: (password: string) =>
+    request<{ ingredients: Ingredient[] }>("/api/admin/inventory/low-stock", { headers: adminHeaders(password) }),
 };
+
+// ---------------- Turn 6 — Inventory types ----------------
+export const INVENTORY_UNITS = ["g", "kg", "ml", "l", "unit", "portion"] as const;
+export type InventoryUnit = (typeof INVENTORY_UNITS)[number];
+
+export type Supplier = {
+  id: number;
+  name: string;
+  contact_name: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  active: number | boolean;
+  ingredient_count?: number;
+  created_at: string;
+};
+
+export type Ingredient = {
+  id: number;
+  name: string;
+  sku: string | null;
+  unit: string;
+  current_stock: number;
+  minimum_stock: number;
+  reorder_quantity: number;
+  average_unit_cost: number;
+  supplier_id: number | null;
+  supplier_name?: string | null;
+  active: number | boolean;
+  created_at: string;
+};
+
+export type InventoryTransaction = {
+  id: number;
+  ingredient_id: number;
+  transaction_type: string;
+  quantity: number;
+  unit_cost: number | null;
+  reference_type: string | null;
+  reference_id: string | null;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type RecipeLine = {
+  id: number;
+  menu_item_id: string;
+  ingredient_id: number;
+  ingredient_name: string;
+  quantity_required: number;
+  unit: string;
+  stock_unit: string;
+  average_unit_cost: number;
+  line_cost: number;
+};
+
+export type PurchaseOrder = {
+  id: number;
+  supplier_id: number | null;
+  supplier_name?: string | null;
+  status: string;
+  subtotal: number;
+  tax: number;
+  total: number;
+  expected_at: string | null;
+  received_at: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
+export type PurchaseOrderItem = {
+  id: number;
+  purchase_order_id: number;
+  ingredient_id: number;
+  ingredient_name?: string | null;
+  unit?: string | null;
+  quantity: number;
+  unit_cost: number;
+  received_quantity: number;
+};
+
+export type WasteLog = {
+  id: number;
+  ingredient_id: number;
+  ingredient_name?: string | null;
+  unit?: string | null;
+  quantity: number;
+  reason: string;
+  estimated_cost: number;
+  note: string | null;
+  created_at: string;
+};
+
+export type InventoryMetrics = {
+  inventory_value: number;
+  ingredient_count: number;
+  low_stock_count: number;
+  waste_today: number;
+  waste_week: number;
+  waste_month: number;
+  item_costs: Record<string, number>;
+};
+
 
 export type SmsLog = {
   id: number;
