@@ -882,11 +882,32 @@ const { createDrivers } = require("./server-drivers.cjs");
 const drivers = createDrivers({ dbApi, sms, realtime, emitOrderStatus: (id, ev) => emitOrderStatus(id, ev) });
 drivers.mount(app, { requireAdmin });
 
-// Async table init for phase 5/6 (non-blocking; log any error)
+// ---- Inventory (Turn 6) ----
+const { createInventory } = require("./server-inventory.cjs");
+const inventory = createInventory({
+  dbApi,
+  realtime,
+  logOrderEvent: (orderId, event, meta) => logOrderEvent(orderId, event, meta),
+  sendAdminSms: async (text) => {
+    try { await sms.send({ orderId: null, to: process.env.SMS_RESTAURANT_ADMIN_PHONE, type: "admin_low_stock", body: text, force: true }); }
+    catch (e) { console.error("[inventory] sms", e.message); }
+  },
+  sendAdminEmail: async (subject, text) => {
+    const t = getTransporter();
+    if (!t) return;
+    try { await t.sendMail({ from: `"Deli Aden" <${FROM_EMAIL}>`, to: RESTAURANT_EMAIL, subject, text }); }
+    catch (e) { console.error("[inventory] mail", e.message); }
+  },
+});
+inventory.mount(app, { requireAdmin });
+
+// Async table init for phase 5/6/inventory (non-blocking; log any error)
 (async () => {
   try { await sms.init(); } catch (e) { console.error("[sms] init failed", e.message); }
   try { await drivers.init(); } catch (e) { console.error("[drivers] init failed", e.message); }
+  try { await inventory.init(); } catch (e) { console.error("[inventory] init failed", e.message); }
 })();
+
 
 // ---- Ready-order unassigned SMS alert scheduler ----
 // Fires an admin SMS when a delivery order has been `ready` (with no active
