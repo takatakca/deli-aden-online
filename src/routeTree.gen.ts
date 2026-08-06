@@ -40,6 +40,7 @@ import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
 import { Route as AdminBoardRouteImport } from './routes/admin.board'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
+import { Route as AdminInventoryIndexRouteImport } from './routes/admin.inventory.index'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
@@ -199,6 +200,11 @@ const Char91DotmcpChar93ListToolsRoute =
     path: '/.mcp/list-tools',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AdminInventoryIndexRoute = AdminInventoryIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminInventoryRoute,
+} as any)
 const Char91DotmcpChar93InvokeToolToolRoute =
   Char91DotmcpChar93InvokeToolToolRouteImport.update({
     id: '/.mcp/invoke-tool/$tool',
@@ -224,7 +230,7 @@ export interface FileRoutesByFullPath {
   '/admin/board': typeof AdminBoardRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/dispatch': typeof AdminDispatchRoute
-  '/admin/inventory': typeof AdminInventoryRoute
+  '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/kitchen': typeof AdminKitchenRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/metrics': typeof AdminMetricsRoute
@@ -239,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/track/$orderNumber': typeof TrackOrderNumberRoute
   '/admin/': typeof AdminIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/admin/inventory/': typeof AdminInventoryIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -257,7 +264,6 @@ export interface FileRoutesByTo {
   '/admin/board': typeof AdminBoardRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/dispatch': typeof AdminDispatchRoute
-  '/admin/inventory': typeof AdminInventoryRoute
   '/admin/kitchen': typeof AdminKitchenRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/metrics': typeof AdminMetricsRoute
@@ -272,6 +278,7 @@ export interface FileRoutesByTo {
   '/track/$orderNumber': typeof TrackOrderNumberRoute
   '/admin': typeof AdminIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/admin/inventory': typeof AdminInventoryIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -292,7 +299,7 @@ export interface FileRoutesById {
   '/admin/board': typeof AdminBoardRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/dispatch': typeof AdminDispatchRoute
-  '/admin/inventory': typeof AdminInventoryRoute
+  '/admin/inventory': typeof AdminInventoryRouteWithChildren
   '/admin/kitchen': typeof AdminKitchenRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/metrics': typeof AdminMetricsRoute
@@ -307,6 +314,7 @@ export interface FileRoutesById {
   '/track/$orderNumber': typeof TrackOrderNumberRoute
   '/admin/': typeof AdminIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
+  '/admin/inventory/': typeof AdminInventoryIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -343,6 +351,7 @@ export interface FileRouteTypes {
     | '/track/$orderNumber'
     | '/admin/'
     | '/.mcp/invoke-tool/$tool'
+    | '/admin/inventory/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -361,7 +370,6 @@ export interface FileRouteTypes {
     | '/admin/board'
     | '/admin/coupons'
     | '/admin/dispatch'
-    | '/admin/inventory'
     | '/admin/kitchen'
     | '/admin/menu'
     | '/admin/metrics'
@@ -376,6 +384,7 @@ export interface FileRouteTypes {
     | '/track/$orderNumber'
     | '/admin'
     | '/.mcp/invoke-tool/$tool'
+    | '/admin/inventory'
   id:
     | '__root__'
     | '/'
@@ -410,6 +419,7 @@ export interface FileRouteTypes {
     | '/track/$orderNumber'
     | '/admin/'
     | '/.mcp/invoke-tool/$tool'
+    | '/admin/inventory/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -656,6 +666,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/inventory/': {
+      id: '/admin/inventory/'
+      path: '/'
+      fullPath: '/admin/inventory/'
+      preLoaderRoute: typeof AdminInventoryIndexRouteImport
+      parentRoute: typeof AdminInventoryRoute
+    }
     '/.mcp/invoke-tool/$tool': {
       id: '/.mcp/invoke-tool/$tool'
       path: '/.mcp/invoke-tool/$tool'
@@ -666,11 +683,23 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminInventoryRouteChildren {
+  AdminInventoryIndexRoute: typeof AdminInventoryIndexRoute
+}
+
+const AdminInventoryRouteChildren: AdminInventoryRouteChildren = {
+  AdminInventoryIndexRoute: AdminInventoryIndexRoute,
+}
+
+const AdminInventoryRouteWithChildren = AdminInventoryRoute._addFileChildren(
+  AdminInventoryRouteChildren,
+)
+
 interface AdminRouteChildren {
   AdminBoardRoute: typeof AdminBoardRoute
   AdminCouponsRoute: typeof AdminCouponsRoute
   AdminDispatchRoute: typeof AdminDispatchRoute
-  AdminInventoryRoute: typeof AdminInventoryRoute
+  AdminInventoryRoute: typeof AdminInventoryRouteWithChildren
   AdminKitchenRoute: typeof AdminKitchenRoute
   AdminMenuRoute: typeof AdminMenuRoute
   AdminMetricsRoute: typeof AdminMetricsRoute
@@ -683,7 +712,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminBoardRoute: AdminBoardRoute,
   AdminCouponsRoute: AdminCouponsRoute,
   AdminDispatchRoute: AdminDispatchRoute,
-  AdminInventoryRoute: AdminInventoryRoute,
+  AdminInventoryRoute: AdminInventoryRouteWithChildren,
   AdminKitchenRoute: AdminKitchenRoute,
   AdminMenuRoute: AdminMenuRoute,
   AdminMetricsRoute: AdminMetricsRoute,
