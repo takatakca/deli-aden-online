@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { useAdminAuth, AdminLogin } from "@/lib/admin-shared";
-import { LogOut, LayoutDashboard, ChefHat, KanbanSquare, Settings, ListOrdered, Truck, BarChart3, Tag, MessageSquare } from "lucide-react";
+import { LogOut, LayoutDashboard, ChefHat, KanbanSquare, Settings, ListOrdered, Truck, BarChart3, Tag, MessageSquare, Boxes } from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({ meta: [{ title: "Admin — Les Délices d'Aden" }, { name: "robots", content: "noindex" }] }),
