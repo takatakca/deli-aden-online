@@ -882,11 +882,43 @@ const { createDrivers } = require("./server-drivers.cjs");
 const drivers = createDrivers({ dbApi, sms, realtime, emitOrderStatus: (id, ev) => emitOrderStatus(id, ev) });
 drivers.mount(app, { requireAdmin });
 
-// Async table init for phase 5/6 (non-blocking; log any error)
+// ---- Shared order-event logger ----
+function logOrderEvent(orderId, event, meta) {
+  try {
+    if (dbApi.kind === "mysql") {
+      mysqlPool.query("INSERT INTO order_events (order_id, event, meta) VALUES (?,?,?)", [orderId, event, meta || null]);
+    } else {
+      sqliteDb.prepare("INSERT INTO order_events (order_id, event, meta) VALUES (?,?,?)").run(orderId, event, meta || null);
+    }
+  } catch (e) { console.error("[event log]", e.message); }
+}
+
+// ---- Inventory (Turn 6) ----
+const { createInventory } = require("./server-inventory.cjs");
+const inventory = createInventory({
+  dbApi,
+  realtime,
+  logOrderEvent: (orderId, event, meta) => logOrderEvent(orderId, event, meta),
+  sendAdminSms: async (text) => {
+    try { await sms.send({ orderId: null, to: process.env.SMS_RESTAURANT_ADMIN_PHONE, type: "admin_low_stock", body: text, force: true }); }
+    catch (e) { console.error("[inventory] sms", e.message); }
+  },
+  sendAdminEmail: async (subject, text) => {
+    const t = getTransporter();
+    if (!t) return;
+    try { await t.sendMail({ from: `"Deli Aden" <${FROM_EMAIL}>`, to: RESTAURANT_EMAIL, subject, text }); }
+    catch (e) { console.error("[inventory] mail", e.message); }
+  },
+});
+inventory.mount(app, { requireAdmin });
+
+// Async table init for phase 5/6/inventory (non-blocking; log any error)
 (async () => {
   try { await sms.init(); } catch (e) { console.error("[sms] init failed", e.message); }
   try { await drivers.init(); } catch (e) { console.error("[drivers] init failed", e.message); }
+  try { await inventory.init(); } catch (e) { console.error("[inventory] init failed", e.message); }
 })();
+
 
 // ---- Ready-order unassigned SMS alert scheduler ----
 // Fires an admin SMS when a delivery order has been `ready` (with no active
@@ -1258,6 +1290,11 @@ app.patch("/api/orders/:id/status", requireAdmin, async (req, res) => {
       note: clean(req.body.note, 500) || undefined,
       reason: clean(req.body.reason, 500) || undefined,
     });
+    // Turn 6 — inventory deduction / restore
+    try {
+      const orderRow = await dbApi.getOrderById(orderId);
+      if (orderRow) await inventory.onOrderStatus(rowToOrder(orderRow), req.body.status);
+    } catch (e) { console.error("[inventory] hook", e.message); }
     // Phase 5 — customer SMS on status transitions
     try {
       const row = await dbApi.getOrderById(orderId);
@@ -1440,15 +1477,7 @@ let server;
       kind: dbApi.kind, mysqlPool, sqliteDb, rateLimit, dbApi, requireAdmin,
       buildOrderPayload,
       getSettings: () => SETTINGS,
-      logOrderEvent: (orderId, event, meta) => {
-        try {
-          if (dbApi.kind === "mysql") {
-            mysqlPool.query("INSERT INTO order_events (order_id, event, meta) VALUES (?,?,?)", [orderId, event, meta || null]);
-          } else {
-            sqliteDb.prepare("INSERT INTO order_events (order_id, event, meta) VALUES (?,?,?)").run(orderId, event, meta || null);
-          }
-        } catch (e) { console.error("[event log]", e.message); }
-      },
+      logOrderEvent,
       attachCustomerByToken: async (token, orderId) => {
         const payload = verifyCustomerToken(token);
         if (payload && payload.sub && typeof dbApi.attachOrderToCustomer === "function") {
