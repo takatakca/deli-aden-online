@@ -34,6 +34,7 @@ import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
 import { Route as AdminMetricsRouteImport } from './routes/admin.metrics'
 import { Route as AdminMenuRouteImport } from './routes/admin.menu'
 import { Route as AdminKitchenRouteImport } from './routes/admin.kitchen'
+import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
 import { Route as AdminDispatchRouteImport } from './routes/admin.dispatch'
 import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
 import { Route as AdminBoardRouteImport } from './routes/admin.board'
@@ -166,6 +167,11 @@ const AdminKitchenRoute = AdminKitchenRouteImport.update({
   path: '/kitchen',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminInventoryRoute = AdminInventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminDispatchRoute = AdminDispatchRouteImport.update({
   id: '/dispatch',
   path: '/dispatch',
@@ -218,6 +224,7 @@ export interface FileRoutesByFullPath {
   '/admin/board': typeof AdminBoardRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/dispatch': typeof AdminDispatchRoute
+  '/admin/inventory': typeof AdminInventoryRoute
   '/admin/kitchen': typeof AdminKitchenRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/metrics': typeof AdminMetricsRoute
@@ -250,6 +257,7 @@ export interface FileRoutesByTo {
   '/admin/board': typeof AdminBoardRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/dispatch': typeof AdminDispatchRoute
+  '/admin/inventory': typeof AdminInventoryRoute
   '/admin/kitchen': typeof AdminKitchenRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/metrics': typeof AdminMetricsRoute
@@ -284,6 +292,7 @@ export interface FileRoutesById {
   '/admin/board': typeof AdminBoardRoute
   '/admin/coupons': typeof AdminCouponsRoute
   '/admin/dispatch': typeof AdminDispatchRoute
+  '/admin/inventory': typeof AdminInventoryRoute
   '/admin/kitchen': typeof AdminKitchenRoute
   '/admin/menu': typeof AdminMenuRoute
   '/admin/metrics': typeof AdminMetricsRoute
@@ -319,6 +328,7 @@ export interface FileRouteTypes {
     | '/admin/board'
     | '/admin/coupons'
     | '/admin/dispatch'
+    | '/admin/inventory'
     | '/admin/kitchen'
     | '/admin/menu'
     | '/admin/metrics'
@@ -351,6 +361,7 @@ export interface FileRouteTypes {
     | '/admin/board'
     | '/admin/coupons'
     | '/admin/dispatch'
+    | '/admin/inventory'
     | '/admin/kitchen'
     | '/admin/menu'
     | '/admin/metrics'
@@ -384,6 +395,7 @@ export interface FileRouteTypes {
     | '/admin/board'
     | '/admin/coupons'
     | '/admin/dispatch'
+    | '/admin/inventory'
     | '/admin/kitchen'
     | '/admin/menu'
     | '/admin/metrics'
@@ -602,6 +614,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminKitchenRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/inventory': {
+      id: '/admin/inventory'
+      path: '/inventory'
+      fullPath: '/admin/inventory'
+      preLoaderRoute: typeof AdminInventoryRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/dispatch': {
       id: '/admin/dispatch'
       path: '/dispatch'
@@ -651,6 +670,7 @@ interface AdminRouteChildren {
   AdminBoardRoute: typeof AdminBoardRoute
   AdminCouponsRoute: typeof AdminCouponsRoute
   AdminDispatchRoute: typeof AdminDispatchRoute
+  AdminInventoryRoute: typeof AdminInventoryRoute
   AdminKitchenRoute: typeof AdminKitchenRoute
   AdminMenuRoute: typeof AdminMenuRoute
   AdminMetricsRoute: typeof AdminMetricsRoute
@@ -663,6 +683,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminBoardRoute: AdminBoardRoute,
   AdminCouponsRoute: AdminCouponsRoute,
   AdminDispatchRoute: AdminDispatchRoute,
+  AdminInventoryRoute: AdminInventoryRoute,
   AdminKitchenRoute: AdminKitchenRoute,
   AdminMenuRoute: AdminMenuRoute,
   AdminMetricsRoute: AdminMetricsRoute,
