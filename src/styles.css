@@ -110,17 +110,43 @@
   h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.01em; }
 }
 
+@utility text-gold-gradient {
+  background-image: var(--gradient-gold);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@utility hairline-gold {
+  border: 1px solid color-mix(in oklab, var(--gold) 28%, transparent);
+}
+
+@utility bento-tile {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-2xl);
+  border: 1px solid color-mix(in oklab, var(--gold) 20%, transparent);
+  background-color: var(--card);
+  transition: border-color 400ms ease, transform 400ms ease, box-shadow 400ms ease;
+  &:hover {
+    border-color: color-mix(in oklab, var(--gold) 55%, transparent);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-gold);
+  }
+}
+
 @layer components {
   .category-bar {
-    background: var(--color-primary);
-    color: var(--color-primary-foreground);
-    padding: 0.75rem 1.5rem;
-    border-radius: 0.5rem;
-    font-family: var(--font-display);
-    font-weight: 700;
-    letter-spacing: 0.04em;
+    background: transparent;
+    color: var(--color-primary);
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in oklab, var(--gold) 45%, transparent);
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
     display: inline-block;
-    box-shadow: 0 4px 14px -4px color-mix(in oklab, var(--color-primary) 50%, transparent);
   }
+
 }
