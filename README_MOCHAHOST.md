@@ -297,3 +297,99 @@ SMS OTP login). No admin password required for drivers.
 **Admin overrides** in `/admin/dispatch`:
 - *Retirer* — unassigns the driver, order returns to `ready`.
 - *Réassigner* — pick another active driver and confirm; timestamps reset.
+
+---
+
+## Inventaire, recettes et coût matière (Turn 6)
+
+### Mise en route
+
+1. `/admin/inventory/suppliers` — créer les fournisseurs (nom, contact,
+   téléphone, courriel, adresse).
+2. `/admin/inventory/ingredients` — créer les ingrédients : nom, SKU,
+   unité, stock actuel, stock minimum, quantité de réapprovisionnement,
+   coût unitaire moyen, fournisseur.
+3. `/admin/inventory/recipes` — relier chaque article du menu à ses
+   ingrédients avec la quantité requise par portion.
+4. `/admin/inventory` — aperçu : valeur du stock, coût matière
+   théorique, marges, alertes stock bas, exports CSV.
+
+### Guide des unités
+
+| Unité     | Code      | Notes                                  |
+|-----------|-----------|----------------------------------------|
+| gramme    | `g`       | converti automatiquement avec `kg`     |
+| kilogramme| `kg`      | 1 kg = 1000 g                          |
+| millilitre| `ml`      | converti automatiquement avec `l`      |
+| litre     | `l`       | 1 L = 1000 ml                          |
+| unité     | `unit`    | pièces (œufs, pains…)                  |
+| portion   | `portion` | portions préparées                     |
+
+Les quantités fractionnaires sont supportées; les calculs utilisent une
+arithmétique entière mise à l'échelle (`SCALE = 1e6`) pour éviter les
+erreurs de virgule flottante.
+
+### Réception d'un bon de commande
+
+1. `/admin/inventory/purchases` → *Nouveau bon* → choisir le fournisseur.
+2. Ajouter les lignes (ingrédient, quantité, coût unitaire).
+3. À la livraison, saisir les quantités reçues (partielles permises) et
+   valider *Recevoir*.
+4. Le stock augmente et le **coût unitaire moyen pondéré** est recalculé.
+   Une transaction `purchase` est enregistrée par ligne reçue.
+
+### Ajustement quotidien du stock
+
+`/admin/inventory/ingredients` → sélectionner l'ingrédient →
+*Ajuster* : ajout (`manual_add`), retrait (`manual_remove`) ou
+correction d'inventaire (`correction`) avec note. L'historique complet
+des transactions reste consultable et exportable.
+
+### Enregistrement des pertes
+
+`/admin/inventory/waste` → ingrédient, quantité, motif (périmé, abîmé,
+erreur de préparation, renversé, autre). Le coût est estimé au coût
+unitaire moyen, le stock est déduit et une transaction `waste` est créée.
+
+### Déduction automatique liée aux commandes
+
+- Au passage d'une commande en `accepted` / `preparing`, les
+  ingrédients des recettes sont déduits **une seule fois**
+  (`inventory_deducted_at`), avec une transaction
+  `order_consumption` par ingrédient (`reference_type = "order"`).
+- Une annulation avant préparation restaure le stock une seule fois
+  (`inventory_restored_at`) via des transactions `correction`.
+- Un article sans recette ne bloque jamais la commande : un événement
+  `recipe_missing` est journalisé pour l'admin.
+
+### Alertes stock bas
+
+Déclenchement quand `current_stock <= minimum_stock`, une seule fois
+tant que le stock ne remonte pas au-dessus du minimum.
+
+```
+ENABLE_LOW_STOCK_EMAIL=false
+ENABLE_LOW_STOCK_SMS=false
+```
+
+Les alertes sont aussi diffusées en direct aux écrans admin par SSE
+(`inventory_low_stock`, `inventory_adjusted`, `purchase_received`,
+`waste_recorded`, `recipe_updated`).
+
+### Coût matière et marges
+
+```
+coût matière   = Σ (quantité recette × coût unitaire moyen)
+marge brute    = prix de vente − coût matière
+coût matière % = coût matière / prix de vente × 100
+```
+
+Code couleur : vert ≤ 30 %, ambre 30–40 %, rouge > 40 %.
+
+### Sauvegardes
+
+En mode MySQL, inclure les nouvelles tables dans le dump habituel
+(`mysqldump`). En mode SQLite, sauvegarder le fichier `data/deliaden.db`
+(ou `data/orders.json` en repli JSON) — les tables inventaire y sont
+incluses. Faire une sauvegarde **avant** toute réception de bon de
+commande massive ou correction d'inventaire globale.
