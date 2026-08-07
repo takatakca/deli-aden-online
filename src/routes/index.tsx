@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { FEATURED_CATEGORIES } from "@/lib/menu";
+import { SmartSearch } from "@/components/SmartSearch";
 import { ArrowRight, Phone, ChefHat, Truck, Award, Clock, MapPin, Star } from "lucide-react";
 
 const HERO_IMAGE =
@@ -58,6 +59,10 @@ function Home() {
   const cats = FEATURED_CATEGORIES.slice(0, 6);
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 md:py-12">
+      <div className="mb-6">
+        <SmartSearch />
+      </div>
+
       {/* BENTO GRID */}
       <section className="grid auto-rows-[minmax(0,auto)] gap-4 md:grid-cols-6">
         {/* Hero tile */}

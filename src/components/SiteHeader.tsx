@@ -4,16 +4,18 @@ import { useState } from "react";
 import { useCart } from "@/lib/cart-store";
 import { useCustomer } from "@/lib/customer-auth";
 import { Button } from "@/components/ui/button";
+import { LANGS, i18n, useT } from "@/lib/i18n";
 
 const NAV = [
-  { to: "/", label: "Accueil" },
-  { to: "/menu", label: "Menu" },
-  { to: "/delivery", label: "Livraison" },
-  { to: "/about", label: "À propos" },
-  { to: "/contact", label: "Contact" },
+  { to: "/", key: "nav.home" as const },
+  { to: "/menu", key: "nav.menu" as const },
+  { to: "/delivery", key: "nav.delivery" as const },
+  { to: "/about", key: "nav.about" as const },
+  { to: "/contact", key: "nav.contact" as const },
 ];
 
 export function SiteHeader() {
+  const { t, lang } = useT();
   const cart = useCart();
   const { customer } = useCustomer();
   const count = cart.reduce((s, i) => s + i.quantity, 0);
@@ -38,21 +40,34 @@ export function SiteHeader() {
               className="text-sm font-medium text-foreground/80 transition hover:text-primary"
               activeProps={{ className: "text-primary font-semibold" }}
             >
-              {n.label}
+              {t(n.key)}
             </Link>
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          <div className="hidden items-center rounded-full border border-border p-0.5 sm:flex" role="group" aria-label={t("nav.language")}>
+            {LANGS.map((l) => (
+              <button
+                key={l.code}
+                type="button"
+                onClick={() => i18n.set(l.code)}
+                aria-pressed={lang === l.code}
+                className={`rounded-full px-2.5 py-1 text-xs font-semibold transition ${lang === l.code ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
           <Link to="/account">
             <Button variant="ghost" size="sm" className="gap-2">
               <User className="h-4 w-4" />
-              <span className="hidden sm:inline">{customer ? customer.name.split(" ")[0] : "Compte"}</span>
+              <span className="hidden sm:inline">{customer ? customer.name.split(" ")[0] : t("nav.account")}</span>
             </Button>
           </Link>
           <Link to="/cart">
             <Button variant="default" size="sm" className="relative gap-2">
               <ShoppingBag className="h-4 w-4" />
-              <span className="hidden sm:inline">Panier</span>
+              <span className="hidden sm:inline">{t("nav.cart")}</span>
               {count > 0 && (
                 <span className="ml-1 rounded-full bg-accent px-2 py-0.5 text-xs font-bold text-accent-foreground">
                   {count}
@@ -80,7 +95,7 @@ export function SiteHeader() {
                 className="rounded-md px-3 py-2 text-sm font-medium hover:bg-secondary"
                 activeProps={{ className: "bg-secondary text-primary" }}
               >
-                {n.label}
+                {t(n.key)}
               </Link>
             ))}
           </nav>
