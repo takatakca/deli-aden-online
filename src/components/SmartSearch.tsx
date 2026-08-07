@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useT, i18n } from "@/lib/i18n";
 import { analytics } from "@/lib/analytics";
 
-type SpeechCtor = new () => {
+type SpeechRec = {
   lang: string;
   interimResults: boolean;
   continuous: boolean;
@@ -17,6 +17,7 @@ type SpeechCtor = new () => {
   onerror: (() => void) | null;
   onend: (() => void) | null;
 };
+type SpeechCtor = new () => SpeechRec;
 
 function speechCtor(): SpeechCtor | null {
   if (typeof window === "undefined") return null;
@@ -32,7 +33,7 @@ export function SmartSearch({ compact = false }: { compact?: boolean }) {
   const [heard, setHeard] = useState<string | null>(null);
   const [overrides, setOverrides] = useState<MenuOverride[]>([]);
   const [settings, setSettings] = useState<PublicSettings | null>(null);
-  const recRef = useRef<ReturnType<SpeechCtor> | null>(null);
+  const recRef = useRef<SpeechRec | null>(null);
   const voiceSupported = useMemo(() => Boolean(speechCtor()), []);
 
   useEffect(() => {
