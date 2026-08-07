@@ -1,6 +1,6 @@
 // Rules-based, honest recommendations. Real menu items only, no fake urgency.
 import type { LiveItem } from "@/lib/menu-search";
-import type { CartLine } from "@/lib/cart-store";
+import type { CartItem } from "@/lib/cart-store";
 
 const pick = (live: LiveItem[], ids: string[]) =>
   ids.map((id) => live.find((i) => i.id === id && i.available)).filter((x): x is LiveItem => Boolean(x));
@@ -21,7 +21,7 @@ export function popularNow(live: LiveItem[], limit = 6): LiveItem[] {
 }
 
 /** "Parfait avec votre commande" — complements based on what is already in the cart. */
-export function completeYourMeal(live: LiveItem[], cart: CartLine[], limit = 4): LiveItem[] {
+export function completeYourMeal(live: LiveItem[], cart: CartItem[], limit = 4): LiveItem[] {
   const inCart = new Set(cart.map((l) => l.itemId));
   const wanted: string[] = [];
   const has = (re: RegExp) => cart.some((l) => re.test(l.itemId));
