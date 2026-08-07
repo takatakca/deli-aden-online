@@ -4,6 +4,7 @@ import { MENU } from "@/lib/menu";
 import { MenuItemCard, type MenuItemOverride } from "@/components/MenuItemCard";
 import { useCart, fmt, computeTotals } from "@/lib/cart-store";
 import { ShoppingBag } from "lucide-react";
+import { SmartSearch } from "@/components/SmartSearch";
 import { api, type MenuOverride, type PublicSettings } from "@/lib/api";
 
 export const Route = createFileRoute("/menu")({
@@ -64,6 +65,8 @@ function MenuPage() {
         <h1 className="mt-4 font-display text-4xl font-bold md:text-5xl">Commander en ligne</h1>
         <p className="mt-2 text-muted-foreground">Choisissez vos plats préférés et finalisez votre commande.</p>
       </header>
+
+      <div className="mb-6"><SmartSearch compact /></div>
 
       {/* Sticky tabs */}
       <nav className="sticky top-16 z-30 -mx-4 mb-6 overflow-x-auto border-y border-border bg-background/90 px-4 py-3 backdrop-blur">

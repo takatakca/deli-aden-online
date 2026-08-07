@@ -150,3 +150,14 @@
   }
 
 }
+
+
+/* ---- Mobile-first ergonomics (Turn 7) ---- */
+html, body { overflow-x: hidden; }
+.safe-bottom { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+@media (max-width: 640px) {
+  button, [role="button"], a.button, input[type="submit"] { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
