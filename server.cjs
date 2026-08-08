@@ -899,6 +899,14 @@ const inventory = createInventory({
   dbApi,
   realtime,
   logOrderEvent: (orderId, event, meta) => logOrderEvent(orderId, event, meta),
+  onLowStock: (payload) => {
+    // TAKATAK merchant relay (takatak is initialized just below, before any request)
+    try {
+      takatak.enqueue("merchant.inventory.low", {
+        inventory: { name: payload.name, unit: payload.unit, on_hand: payload.current_stock, threshold: payload.minimum_stock },
+      }, `ingredient:${payload.ingredient_id}`);
+    } catch (_) {}
+  },
   sendAdminSms: async (text) => {
     try { await sms.send({ orderId: null, to: process.env.SMS_RESTAURANT_ADMIN_PHONE, type: "admin_low_stock", body: text, force: true }); }
     catch (e) { console.error("[inventory] sms", e.message); }

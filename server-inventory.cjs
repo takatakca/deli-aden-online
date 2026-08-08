@@ -38,7 +38,7 @@ function convert(qty, fromUnit, toUnit) {
   return dec(qty); // incompatible units: use as-is
 }
 
-function createInventory({ dbApi, realtime, sendAdminSms, sendAdminEmail, logOrderEvent }) {
+function createInventory({ dbApi, realtime, sendAdminSms, sendAdminEmail, logOrderEvent, onLowStock }) {
   const isMysql = dbApi.kind === "mysql";
   const LOW_EMAIL = String(process.env.ENABLE_LOW_STOCK_EMAIL || "").toLowerCase() === "true";
   const LOW_SMS = String(process.env.ENABLE_LOW_STOCK_SMS || "").toLowerCase() === "true";
@@ -275,6 +275,7 @@ function createInventory({ dbApi, realtime, sendAdminSms, sendAdminEmail, logOrd
       current_stock: dec(ing.current_stock), minimum_stock: dec(ing.minimum_stock), unit: ing.unit,
     };
     try { realtime?.emitAdmin("inventory_low_stock", payload); } catch (_) {}
+    try { onLowStock?.(payload); } catch (_) {}
     const msg = `Deli Aden — stock bas : ${ing.name} (${dec(ing.current_stock)} ${ing.unit}, min ${dec(ing.minimum_stock)}).`;
     if (LOW_SMS && typeof sendAdminSms === "function") {
       try { await sendAdminSms(msg); } catch (e) { console.error("[inventory] low-stock sms", e.message); }
