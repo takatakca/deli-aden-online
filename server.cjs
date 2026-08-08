@@ -1032,6 +1032,8 @@ async function emitOrderStatus(orderId, extraEvent) {
     };
     realtime.emitAdmin(extraEvent || "order_status_changed", safe);
     realtime.emitOrder(row.order_number, extraEvent || "order_status_changed", safe);
+    // TAKATAK merchant relay — never blocks restaurant operations
+    try { takatak.emitOrderStatus(rowToOrder(row), row.status); } catch (e) { console.warn("[takatak] hook", e.message); }
   } catch (e) { console.error("[realtime] emitOrderStatus", e.message); }
 }
 
