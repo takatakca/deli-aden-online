@@ -1512,6 +1512,15 @@ let server;
                            : event === "payment_succeeded" ? "payment_status_changed"
                            : event;
           realtime.emitOrder(row.order_number, publicEvent, { ...safe, kind: event });
+          // TAKATAK merchant relay for payment lifecycle (no payment secrets)
+          try {
+            const o = rowToOrder(row);
+            if (event === "payment_succeeded") {
+              takatak.enqueue("merchant.payment.succeeded", { order: o, payment: { amount: o.total, status: "succeeded" } }, row.order_number);
+            } else if (event === "refund_created") {
+              takatak.enqueue("merchant.refund.created", { order: o, refund: { amount: (data && data.amount) || null, reason: (data && data.reason) || null } }, row.order_number);
+            }
+          } catch (_) {}
           // Phase 5 — SMS on payment events
           try {
             const o = rowToOrder(row);
