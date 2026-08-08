@@ -1219,6 +1219,8 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
     realtime.emitOrder(order.order_number, "order_created", {
       order_number: order.order_number, status: order.status, order_type: order.order_type,
     });
+    // TAKATAK merchant relay (queued; inert when the integration is disabled)
+    try { takatak.enqueue("merchant.order.created", { order }, order.order_number); } catch (_) {}
 
     res.json({ orderNumber, id });
   } catch (err) {
