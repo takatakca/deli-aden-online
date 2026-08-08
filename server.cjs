@@ -1376,6 +1376,7 @@ app.post("/api/admin/orders/:id/assign", requireAdmin, async (req, res) => {
         driver_phone: a && a.driver_phone ? a.driver_phone : null,
       };
       realtime.emitAdmin("order_assigned", { order_id: orderId, driver_id: driverId, order_number: row && row.order_number });
+      try { takatak.enqueue("merchant.driver.assigned", { order: row ? rowToOrder(row) : null, driver: { id: driverId, name: a && a.driver_name } }, row && row.order_number); } catch (_) {}
       realtime.emitOrder(row && row.order_number, "driver_assigned", publicPayload);
     } catch (_) {}
     try { const r = await dbApi.getOrderById(orderId); if (r) sms.notifyCustomer(rowToOrder(r), "order_dispatched"); } catch (_) {}
