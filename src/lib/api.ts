@@ -355,6 +355,68 @@ export const api = {
     request<InventoryMetrics>("/api/admin/inventory/metrics", { headers: adminHeaders(password) }),
   invLowStock: (password: string) =>
     request<{ ingredients: Ingredient[] }>("/api/admin/inventory/low-stock", { headers: adminHeaders(password) }),
+
+  // ---------------- Turn 7 — AI concierge ----------------
+  aiStatus: () => request<AiStatus>("/api/ai/status"),
+  aiMenuSearch: (body: { query: string; language: string; sessionContext?: { orderType?: "pickup" | "delivery" | null; cartItemIds?: string[] } }) =>
+    request<AiMenuSearchResponse>("/api/ai/menu-search", { method: "POST", body: JSON.stringify(body) }),
+  aiTranslate: (body: { texts: string[]; language: string }) =>
+    request<{ translations: string[]; translated: boolean; language: string }>("/api/ai/translate", {
+      method: "POST", body: JSON.stringify(body),
+    }),
+
+  // ---------------- Turn 7 — TAKATAK merchant integration ----------------
+  adminTakatak: (password: string) =>
+    request<TakatakDiagnostics>("/api/admin/integrations/takatak", { headers: adminHeaders(password) }),
+  adminTakatakRetry: (password: string) =>
+    request<{ ok: true }>("/api/admin/integrations/takatak/retry", { method: "POST", headers: adminHeaders(password) }),
+};
+
+export type AiStatus = { enabled: boolean; configured: boolean; model: string | null; catalogItems: number };
+
+export type AiProduct = {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  reason?: string;
+  available: boolean;
+  hasOptions?: boolean;
+  categoryName?: string;
+};
+
+export type AiMenuSearchResponse = {
+  answer: string;
+  detectedIntent: string;
+  products: AiProduct[];
+  suggestedQueries: string[];
+  meta?: { source: "local" | "ai"; aiEnabled: boolean; language: string };
+};
+
+export type TakatakDiagnostics = {
+  provider: string;
+  enabled: boolean;
+  configured: boolean;
+  base_url_set: boolean;
+  merchant_id_set: boolean;
+  api_key_set: boolean;
+  max_attempts: number;
+  supported_events: string[];
+  pending_events: number;
+  failed_events: number;
+  sent_events: number;
+  skipped_events: number;
+  last_success_at: string | null;
+  recent?: Array<{
+    id: number;
+    event_type: string;
+    external_id: string | null;
+    status: string;
+    attempts: number;
+    last_error: string | null;
+    created_at: string;
+    sent_at: string | null;
+  }>;
 };
 
 // ---------------- Turn 6 — Inventory types ----------------
