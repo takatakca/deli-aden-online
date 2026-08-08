@@ -1,0 +1,1224 @@
+{
+  "generatedAt": "2026-08-08T01:02:34.791Z",
+  "comboDelta": 4,
+  "categories": [
+    {
+      "id": "plats-algeriens",
+      "name": "Plats Algériens",
+      "blurb": "Spécialités traditionnelles, mijotées avec amour.",
+      "items": [
+        {
+          "id": "rechta",
+          "name": "Rechta",
+          "description": "Fines pâtes en nouilles servies avec viande tendre, poulet ou légumes. Un plat traditionnel réconfortant et raffiné.",
+          "price": 14.99,
+          "image": "https://images.unsplash.com/photo-1604908554049-29bce8a47b75?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "tajine-zitoun",
+          "name": "Tajine Zitoun",
+          "description": "Plat mijoté de viande ou poulet avec olives vertes et sauce parfumée.",
+          "price": 12.99,
+          "image": "https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "dolma",
+          "name": "Dolma",
+          "description": "Légumes farcis savoureux dans une sauce maison.",
+          "price": 14.99,
+          "image": "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "chakchoukha",
+          "name": "Chakchoukha Biskria",
+          "description": "Plat traditionnel avec msemen, sauce rouge, légumes et viande.",
+          "price": 14.99,
+          "image": "https://images.unsplash.com/photo-1574484284002-952d92456975?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "couscous-royal",
+          "name": "Couscous Royal",
+          "description": "Semoule légère avec légumes, pois chiches et viande dans une sauce parfumée.",
+          "price": 12.99,
+          "image": "https://images.unsplash.com/photo-1541518763669-27fef04b14ea?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "mtewem",
+          "name": "Mtewem",
+          "description": "Viande marinée et boulettes dans une sauce riche à base de tomate et d'épices.",
+          "price": 14.99,
+          "image": "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "zfiti",
+          "name": "Zfiti Bou-Saada",
+          "description": "Plat traditionnel épicé avec galette émiettée, tomate, piment et huile d'olive.",
+          "price": 14.99,
+          "image": "https://images.unsplash.com/photo-1606755962773-d324e0a13086?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        }
+      ]
+    },
+    {
+      "id": "grillades",
+      "name": "Grillades",
+      "blurb": "Grillées à la perfection, servies avec garniture et sauce au choix.",
+      "items": [
+        {
+          "id": "mix-grill",
+          "name": "Mix Grill",
+          "description": "Assortiment savoureux de poulet, veau et merguez épicées.",
+          "price": 19.99,
+          "image": "https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": [
+            {
+              "id": "garniture",
+              "label": "Garniture",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Frites",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Salade",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Salade",
+                  "priceDelta": 0
+                }
+              ]
+            },
+            {
+              "id": "sauce",
+              "label": "Sauce",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Sauce Fromage",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce Poivrée",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce Maison",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce à la crème",
+                  "priceDelta": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "kebda",
+          "name": "Kebda Mchermla",
+          "description": "Foie tendre mijoté dans une sauce épicée à base de tomates, ail et citron.",
+          "price": 17.99,
+          "image": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": [
+            {
+              "id": "garniture",
+              "label": "Garniture",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Frites",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Salade",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Salade",
+                  "priceDelta": 0
+                }
+              ]
+            },
+            {
+              "id": "sauce",
+              "label": "Sauce",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Sauce Fromage",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce Poivrée",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce Maison",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce à la crème",
+                  "priceDelta": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "chich-taouk",
+          "name": "Chich Taouk Poulet",
+          "description": "Morceaux de poulet marinés au yaourt, citron et épices.",
+          "price": 16.99,
+          "image": "https://images.unsplash.com/photo-1633237308525-cd587cf71926?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": [
+            {
+              "id": "garniture",
+              "label": "Garniture",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Frites",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Salade",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Salade",
+                  "priceDelta": 0
+                }
+              ]
+            },
+            {
+              "id": "sauce",
+              "label": "Sauce",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Sauce Fromage",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce Poivrée",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce Maison",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce à la crème",
+                  "priceDelta": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "chich-kebab",
+          "name": "Chich Kebab",
+          "description": "Brochettes de viande hachée finement épicée et grillée à la perfection.",
+          "price": 17.99,
+          "image": "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": [
+            {
+              "id": "garniture",
+              "label": "Garniture",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Frites",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Salade",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Salade",
+                  "priceDelta": 0
+                }
+              ]
+            },
+            {
+              "id": "sauce",
+              "label": "Sauce",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Sauce Fromage",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce Poivrée",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce Maison",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce à la crème",
+                  "priceDelta": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "supreme",
+          "name": "Suprême de Poulet Grillé",
+          "description": "Filet de poulet tendre et juteux, délicatement assaisonné.",
+          "price": 16.99,
+          "image": "https://images.unsplash.com/photo-1598103442097-8b74394b95c6?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": [
+            {
+              "id": "garniture",
+              "label": "Garniture",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Frites",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Salade",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Salade",
+                  "priceDelta": 0
+                }
+              ]
+            },
+            {
+              "id": "sauce",
+              "label": "Sauce",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Sauce Fromage",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce Poivrée",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce Maison",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce à la crème",
+                  "priceDelta": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "poulet-roti",
+          "name": "Poulet Rôti au Four",
+          "description": "Poulet tendre et juteux, assaisonné d'herbes et d'épices, peau dorée et croustillante.",
+          "price": 18.99,
+          "image": "https://images.unsplash.com/photo-1598103442097-8b74394b95c6?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": [
+            {
+              "id": "garniture",
+              "label": "Garniture",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Frites",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Salade",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Salade",
+                  "priceDelta": 0
+                }
+              ]
+            },
+            {
+              "id": "sauce",
+              "label": "Sauce",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Sauce Fromage",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce Poivrée",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce Maison",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce à la crème",
+                  "priceDelta": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "mechoui",
+          "name": "Mechoui / Mhamer (Rôti au four)",
+          "description": "Viande tendre et parfumée, rôtie lentement avec épices et touche d'ail.",
+          "price": 22.99,
+          "image": "https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": [
+            {
+              "id": "garniture",
+              "label": "Garniture",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Frites",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Salade",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Salade",
+                  "priceDelta": 0
+                }
+              ]
+            },
+            {
+              "id": "sauce",
+              "label": "Sauce",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Sauce Fromage",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce Poivrée",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce Maison",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce à la crème",
+                  "priceDelta": 0
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fast-food",
+      "name": "Fast Food",
+      "blurb": "Pizza, chawarma, paninis, burgers, tacos.",
+      "items": [
+        {
+          "id": "pizza-couverte",
+          "name": "Pizza Couverte",
+          "description": "Pizza couverte, pâte moelleuse et garniture généreuse.",
+          "price": 14.99,
+          "image": "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=800&q=70",
+          "combo": true,
+          "options": []
+        },
+        {
+          "id": "mini-pizza",
+          "name": "Mini Pizza",
+          "description": "Format individuel, parfait pour une pause gourmande.",
+          "price": 8.99,
+          "image": "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "souffle",
+          "name": "Soufflé",
+          "description": "Soufflé doré, croustillant et fondant à l'intérieur.",
+          "price": 9.99,
+          "image": "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "pizza-carre",
+          "name": "Pizza Carré",
+          "description": "Pizza carrée style maison, généreuse en garniture.",
+          "price": 13.99,
+          "image": "https://images.unsplash.com/photo-1571407970349-bc81e7e96d47?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "chawarma-poulet",
+          "name": "Chawarma Poulet",
+          "description": "Chawarma poulet mariné, sauces maison.",
+          "price": 11.99,
+          "image": "https://images.unsplash.com/photo-1561651823-34feb02250e4?auto=format&fit=crop&w=800&q=70",
+          "combo": true,
+          "options": []
+        },
+        {
+          "id": "sandwich-vh",
+          "name": "Sandwich Viande Hachée",
+          "description": "Sandwich généreux de viande hachée épicée.",
+          "price": 11.99,
+          "image": "https://images.unsplash.com/photo-1606755962773-d324e0a13086?auto=format&fit=crop&w=800&q=70",
+          "combo": true,
+          "options": []
+        },
+        {
+          "id": "sandwich-poulet-roti",
+          "name": "Sandwich Poulet Rôti",
+          "description": "Sandwich poulet rôti, salade et sauces.",
+          "price": 11.99,
+          "image": "https://images.unsplash.com/photo-1539252554453-80ab65ce3586?auto=format&fit=crop&w=800&q=70",
+          "combo": true,
+          "options": []
+        },
+        {
+          "id": "panini-vh",
+          "name": "Panini Viande Hachée",
+          "description": null,
+          "price": 10.99,
+          "image": "https://images.unsplash.com/photo-1539252554453-80ab65ce3586?auto=format&fit=crop&w=800&q=70",
+          "combo": true,
+          "options": []
+        },
+        {
+          "id": "panini-poulet",
+          "name": "Panini Poulet Mariné",
+          "description": null,
+          "price": 10.99,
+          "image": "https://images.unsplash.com/photo-1626700051175-d4c9b0a35e0b?auto=format&fit=crop&w=800&q=70",
+          "combo": true,
+          "options": []
+        },
+        {
+          "id": "panini-thon",
+          "name": "Panini Thon",
+          "description": null,
+          "price": 10.99,
+          "image": "https://images.unsplash.com/photo-1539252554453-80ab65ce3586?auto=format&fit=crop&w=800&q=70",
+          "combo": true,
+          "options": []
+        },
+        {
+          "id": "panini-3f",
+          "name": "Panini 3 Fromages",
+          "description": null,
+          "price": 10.99,
+          "image": "https://images.unsplash.com/photo-1528736235302-52922df5c122?auto=format&fit=crop&w=800&q=70",
+          "combo": true,
+          "options": []
+        },
+        {
+          "id": "cheese-burger",
+          "name": "Cheese Burger",
+          "description": null,
+          "price": 10.99,
+          "image": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=70",
+          "combo": true,
+          "options": []
+        },
+        {
+          "id": "chicken-burger",
+          "name": "Chicken Burger",
+          "description": null,
+          "price": 11.99,
+          "image": "https://images.unsplash.com/photo-1606755962773-d324e0a13086?auto=format&fit=crop&w=800&q=70",
+          "combo": true,
+          "options": []
+        },
+        {
+          "id": "double-burger",
+          "name": "Double Burger",
+          "description": null,
+          "price": 13.99,
+          "image": "https://images.unsplash.com/photo-1572802419224-296b0aeee0d9?auto=format&fit=crop&w=800&q=70",
+          "combo": true,
+          "options": []
+        },
+        {
+          "id": "big-burger",
+          "name": "Big Burger",
+          "description": null,
+          "price": 14.99,
+          "image": "https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=800&q=70",
+          "combo": true,
+          "options": []
+        },
+        {
+          "id": "tacos-classique",
+          "name": "Tacos Classique",
+          "description": "Composez votre tacos en 4 étapes.",
+          "price": 9.99,
+          "image": "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?auto=format&fit=crop&w=800&q=70",
+          "combo": true,
+          "options": [
+            {
+              "id": "size",
+              "label": "Taille",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "S",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "L",
+                  "priceDelta": 2
+                },
+                {
+                  "label": "XL",
+                  "priceDelta": 4
+                }
+              ]
+            },
+            {
+              "id": "viande",
+              "label": "Viande",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Poulet",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Viande Hachée",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Merguez",
+                  "priceDelta": 0
+                }
+              ]
+            },
+            {
+              "id": "sauces",
+              "label": "Sauces",
+              "type": "multi",
+              "required": false,
+              "choices": [
+                {
+                  "label": "Algérienne",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Mayonnaise",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Harissa",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Ketchup",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Cocktail",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce à l'ail",
+                  "priceDelta": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tacos-gratine",
+          "name": "Tacos Gratiné",
+          "description": "Tacos gratiné au fromage fondu.",
+          "price": 11.99,
+          "image": "https://images.unsplash.com/photo-1599974579688-8dbdd335c77f?auto=format&fit=crop&w=800&q=70",
+          "combo": true,
+          "options": [
+            {
+              "id": "size",
+              "label": "Taille",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "S",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "L",
+                  "priceDelta": 2
+                },
+                {
+                  "label": "XL",
+                  "priceDelta": 4
+                }
+              ]
+            },
+            {
+              "id": "viande",
+              "label": "Viande",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Poulet",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Viande Hachée",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Merguez",
+                  "priceDelta": 0
+                }
+              ]
+            },
+            {
+              "id": "sauces",
+              "label": "Sauces",
+              "type": "multi",
+              "required": false,
+              "choices": [
+                {
+                  "label": "Algérienne",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Mayonnaise",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Harissa",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Ketchup",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Cocktail",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Sauce à l'ail",
+                  "priceDelta": 0
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "poissons",
+      "name": "Poissons",
+      "blurb": "Poissons frais, grillés ou poêlés, servis avec accompagnement.",
+      "items": [
+        {
+          "id": "sardine",
+          "name": "Plat Sardine",
+          "description": "Sardines grillées ou poêlées, relevées d'épices, servies avec salade fraîche, riz parfumé ou pommes de terre.",
+          "price": 15.99,
+          "image": "https://images.unsplash.com/photo-1535140728325-a4d3707eee94?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": [
+            {
+              "id": "garniture",
+              "label": "Garniture",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Frites",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Salade",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Salade",
+                  "priceDelta": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "merlan",
+          "name": "Plat Merlan",
+          "description": "Filet de merlan tendre, délicatement grillé ou poêlé, accompagné de votre choix.",
+          "price": 17.99,
+          "image": "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": [
+            {
+              "id": "garniture",
+              "label": "Garniture",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Frites",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Salade",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Salade",
+                  "priceDelta": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "dorade",
+          "name": "Plat Dorade",
+          "description": "Dorade grillée à la perfection, accompagnée de salade fraîche, riz parfumé ou pommes de terre dorées.",
+          "price": 22.99,
+          "image": "https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": [
+            {
+              "id": "garniture",
+              "label": "Garniture",
+              "type": "single",
+              "required": true,
+              "choices": [
+                {
+                  "label": "Frites",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Salade",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Riz",
+                  "priceDelta": 0
+                },
+                {
+                  "label": "Frites + Salade",
+                  "priceDelta": 0
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "plats-sales",
+      "name": "Plats Salés",
+      "blurb": "Spécialités salées maison.",
+      "items": [
+        {
+          "id": "mhadjeb",
+          "name": "Mhadjeb",
+          "description": "Délicieuses crêpes fines à base de semoule, farcies de légumes épicés.",
+          "price": 3.99,
+          "image": "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "frites-omlette",
+          "name": "Frites + Omlettes",
+          "description": null,
+          "price": 8,
+          "image": "https://images.unsplash.com/photo-1623238913973-21e45cced554?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "frites",
+          "name": "Frites",
+          "description": null,
+          "price": 4,
+          "image": "https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "brik",
+          "name": "Brik Annabi",
+          "description": "Feuilleté croustillant farci de viande ou de thon, parfumé aux épices et herbes traditionnelles.",
+          "price": 8,
+          "image": "https://images.unsplash.com/photo-1626700051175-d4c9b0a35e0b?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "hmiss",
+          "name": "Hmiss",
+          "description": "Salade cuite de poivrons, tomates et épices.",
+          "price": 7.99,
+          "image": "https://images.unsplash.com/photo-1604152135912-04a022e23696?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "bourek",
+          "name": "Bourek",
+          "description": "Feuilletés croustillants garnis de viande, épices et herbes fraîches.",
+          "price": 3,
+          "image": "https://images.unsplash.com/photo-1626700051175-d4c9b0a35e0b?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "msemen",
+          "name": "Msemen",
+          "description": "Crêpes feuilletées dorées à base de semoule et d'huile végétale.",
+          "price": 2.5,
+          "image": "https://images.unsplash.com/photo-1565299543923-37dd37887442?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "macedoine",
+          "name": "Salade Macédoine",
+          "description": "Mélange coloré de légumes croquants et de pommes de terre, sauce crémeuse.",
+          "price": 7.99,
+          "image": "https://images.unsplash.com/photo-1505253758473-96b7015fcd40?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        }
+      ]
+    },
+    {
+      "id": "desserts",
+      "name": "Desserts",
+      "blurb": "Douceurs maison pour finir en beauté.",
+      "items": [
+        {
+          "id": "tiramisu",
+          "name": "Tiramisu au café",
+          "description": "Biscuits imbibés de café, crème onctueuse au mascarpone et cacao.",
+          "price": 6.99,
+          "image": "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "flan",
+          "name": "Flan au caramel",
+          "description": "Crème délicate à la vanille, nappée d'un caramel doré et fondant.",
+          "price": 5.99,
+          "image": "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "kalb-el-louz",
+          "name": "Kalb El Louz",
+          "description": "Gâteau traditionnel à base de semoule, parfumé à l'amande, imbibé de sirop de fleur d'oranger.",
+          "price": 5.99,
+          "image": "https://images.unsplash.com/photo-1519915028121-7d3463d20b13?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "tarte-pecan",
+          "name": "Tarte Pécan",
+          "description": "Pâte sablée garnie d'un mélange sucré et crémeux de noix de pécan, caramel et sirop d'érable.",
+          "price": 6.99,
+          "image": "https://images.unsplash.com/photo-1568571780765-9276ac8b75a2?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        }
+      ]
+    },
+    {
+      "id": "boissons-chaudes",
+      "name": "Boissons Chaudes",
+      "blurb": "Cafés, laits, thés.",
+      "items": [
+        {
+          "id": "espresso",
+          "name": "Espresso",
+          "description": "Court ou allongé.",
+          "price": 2.99,
+          "image": "https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "latte",
+          "name": "Latté",
+          "description": null,
+          "price": 2.99,
+          "image": "https://images.unsplash.com/photo-1572442388796-11668a67e53d?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "mochaccino",
+          "name": "Mochaccino",
+          "description": null,
+          "price": 2.99,
+          "image": "https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "americano",
+          "name": "Americano",
+          "description": null,
+          "price": 2.99,
+          "image": "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "cappuccino",
+          "name": "Cappuccino",
+          "description": null,
+          "price": 2.99,
+          "image": "https://images.unsplash.com/photo-1572442388796-11668a67e53d?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "arabica",
+          "name": "Arabica",
+          "description": null,
+          "price": 2.99,
+          "image": "https://images.unsplash.com/photo-1497636577773-f1231844b336?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "lait-choco",
+          "name": "Lait Choco Milk",
+          "description": null,
+          "price": 2.49,
+          "image": "https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "original-milk",
+          "name": "Original Milk",
+          "description": null,
+          "price": 2.49,
+          "image": "https://images.unsplash.com/photo-1550583724-b2692b85b150?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "green-tea",
+          "name": "Green Tea",
+          "description": null,
+          "price": 2,
+          "image": "https://images.unsplash.com/photo-1556679343-c7306c1976bc?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "thai-tea",
+          "name": "Thai Tea",
+          "description": null,
+          "price": 2,
+          "image": "https://images.unsplash.com/photo-1558160074-4d7d8bdf4256?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "milk-tea",
+          "name": "Milk Tea",
+          "description": null,
+          "price": 2,
+          "image": "https://images.unsplash.com/photo-1558857563-c0c6ee6ff8a7?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "lemon-tea",
+          "name": "Lemon Tea",
+          "description": null,
+          "price": 2,
+          "image": "https://images.unsplash.com/photo-1556881286-fc6915169721?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "black-tea",
+          "name": "Black Tea",
+          "description": null,
+          "price": 2,
+          "image": "https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        }
+      ]
+    },
+    {
+      "id": "soupes",
+      "name": "Soupes",
+      "blurb": "Soupes traditionnelles, généreuses et parfumées.",
+      "items": [
+        {
+          "id": "loubia",
+          "name": "Soupe Loubia",
+          "description": "Soupe traditionnelle aux haricots blancs, tomate et épices.",
+          "price": 7.99,
+          "image": "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "lentilles",
+          "name": "Soupe Lentilles",
+          "description": "Soupe veloutée de lentilles, parfumée aux épices.",
+          "price": 7.99,
+          "image": "https://images.unsplash.com/photo-1606755962773-d324e0a13086?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        },
+        {
+          "id": "chorba",
+          "name": "Chorba Frik",
+          "description": "Soupe traditionnelle algérienne au blé concassé et viande.",
+          "price": 7.99,
+          "image": "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=70",
+          "combo": false,
+          "options": []
+        }
+      ]
+    }
+  ]
+}

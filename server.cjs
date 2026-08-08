@@ -899,6 +899,14 @@ const inventory = createInventory({
   dbApi,
   realtime,
   logOrderEvent: (orderId, event, meta) => logOrderEvent(orderId, event, meta),
+  onLowStock: (payload) => {
+    // TAKATAK merchant relay (takatak is initialized just below, before any request)
+    try {
+      takatak.enqueue("merchant.inventory.low", {
+        inventory: { name: payload.name, unit: payload.unit, on_hand: payload.current_stock, threshold: payload.minimum_stock },
+      }, `ingredient:${payload.ingredient_id}`);
+    } catch (_) {}
+  },
   sendAdminSms: async (text) => {
     try { await sms.send({ orderId: null, to: process.env.SMS_RESTAURANT_ADMIN_PHONE, type: "admin_low_stock", body: text, force: true }); }
     catch (e) { console.error("[inventory] sms", e.message); }
@@ -912,11 +920,22 @@ const inventory = createInventory({
 });
 inventory.mount(app, { requireAdmin });
 
+// ---- AI menu concierge (Turn 7) — works with or without OPENAI_API_KEY ----
+const { createAi } = require("./server-ai.cjs");
+const ai = createAi({ dbApi, rateLimit, publicSettings: () => publicSettings() });
+ai.mount(app);
+
+// ---- TAKATAK merchant integration (Turn 7) — inert when disabled ----
+const { createTakatak } = require("./server-takatak.cjs");
+const takatak = createTakatak({ dbApi });
+takatak.mount(app, { requireAdmin });
+
 // Async table init for phase 5/6/inventory (non-blocking; log any error)
 (async () => {
   try { await sms.init(); } catch (e) { console.error("[sms] init failed", e.message); }
   try { await drivers.init(); } catch (e) { console.error("[drivers] init failed", e.message); }
   try { await inventory.init(); } catch (e) { console.error("[inventory] init failed", e.message); }
+  try { await takatak.init(); } catch (e) { console.error("[takatak] init failed", e.message); }
 })();
 
 
@@ -1021,6 +1040,8 @@ async function emitOrderStatus(orderId, extraEvent) {
     };
     realtime.emitAdmin(extraEvent || "order_status_changed", safe);
     realtime.emitOrder(row.order_number, extraEvent || "order_status_changed", safe);
+    // TAKATAK merchant relay — never blocks restaurant operations
+    try { takatak.emitOrderStatus(rowToOrder(row), row.status); } catch (e) { console.warn("[takatak] hook", e.message); }
   } catch (e) { console.error("[realtime] emitOrderStatus", e.message); }
 }
 
@@ -1206,6 +1227,8 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
     realtime.emitOrder(order.order_number, "order_created", {
       order_number: order.order_number, status: order.status, order_type: order.order_type,
     });
+    // TAKATAK merchant relay (queued; inert when the integration is disabled)
+    try { takatak.enqueue("merchant.order.created", { order }, order.order_number); } catch (_) {}
 
     res.json({ orderNumber, id });
   } catch (err) {
@@ -1361,6 +1384,7 @@ app.post("/api/admin/orders/:id/assign", requireAdmin, async (req, res) => {
         driver_phone: a && a.driver_phone ? a.driver_phone : null,
       };
       realtime.emitAdmin("order_assigned", { order_id: orderId, driver_id: driverId, order_number: row && row.order_number });
+      try { takatak.enqueue("merchant.driver.assigned", { order: row ? rowToOrder(row) : null, driver: { id: driverId, name: a && a.driver_name } }, row && row.order_number); } catch (_) {}
       realtime.emitOrder(row && row.order_number, "driver_assigned", publicPayload);
     } catch (_) {}
     try { const r = await dbApi.getOrderById(orderId); if (r) sms.notifyCustomer(rowToOrder(r), "order_dispatched"); } catch (_) {}
@@ -1497,6 +1521,15 @@ let server;
                            : event === "payment_succeeded" ? "payment_status_changed"
                            : event;
           realtime.emitOrder(row.order_number, publicEvent, { ...safe, kind: event });
+          // TAKATAK merchant relay for payment lifecycle (no payment secrets)
+          try {
+            const o = rowToOrder(row);
+            if (event === "payment_succeeded") {
+              takatak.enqueue("merchant.payment.succeeded", { order: o, payment: { amount: o.total, status: "succeeded" } }, row.order_number);
+            } else if (event === "refund_created") {
+              takatak.enqueue("merchant.refund.created", { order: o, refund: { amount: (data && data.amount) || null, reason: (data && data.reason) || null } }, row.order_number);
+            }
+          } catch (_) {}
           // Phase 5 — SMS on payment events
           try {
             const o = rowToOrder(row);
