@@ -912,11 +912,22 @@ const inventory = createInventory({
 });
 inventory.mount(app, { requireAdmin });
 
+// ---- AI menu concierge (Turn 7) — works with or without OPENAI_API_KEY ----
+const { createAi } = require("./server-ai.cjs");
+const ai = createAi({ dbApi, rateLimit, publicSettings: () => publicSettings() });
+ai.mount(app);
+
+// ---- TAKATAK merchant integration (Turn 7) — inert when disabled ----
+const { createTakatak } = require("./server-takatak.cjs");
+const takatak = createTakatak({ dbApi });
+takatak.mount(app, { requireAdmin });
+
 // Async table init for phase 5/6/inventory (non-blocking; log any error)
 (async () => {
   try { await sms.init(); } catch (e) { console.error("[sms] init failed", e.message); }
   try { await drivers.init(); } catch (e) { console.error("[drivers] init failed", e.message); }
   try { await inventory.init(); } catch (e) { console.error("[inventory] init failed", e.message); }
+  try { await takatak.init(); } catch (e) { console.error("[takatak] init failed", e.message); }
 })();
 
 
