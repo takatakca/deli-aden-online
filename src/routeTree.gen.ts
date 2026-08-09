@@ -21,6 +21,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AccountRouteImport } from './routes/account'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as TrackIndexRouteImport } from './routes/track.index'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TrackOrderNumberRouteImport } from './routes/track.$orderNumber'
 import { Route as CustomerRegisterRouteImport } from './routes/customer.register'
@@ -106,6 +107,11 @@ const AboutRoute = AboutRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TrackIndexRoute = TrackIndexRouteImport.update({
+  id: '/track/',
+  path: '/track/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -275,6 +281,7 @@ export interface FileRoutesByFullPath {
   '/customer/register': typeof CustomerRegisterRoute
   '/track/$orderNumber': typeof TrackOrderNumberRoute
   '/admin/': typeof AdminIndexRoute
+  '/track/': typeof TrackIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/inventory/ingredients': typeof AdminInventoryIngredientsRoute
   '/admin/inventory/purchases': typeof AdminInventoryPurchasesRoute
@@ -313,6 +320,7 @@ export interface FileRoutesByTo {
   '/customer/register': typeof CustomerRegisterRoute
   '/track/$orderNumber': typeof TrackOrderNumberRoute
   '/admin': typeof AdminIndexRoute
+  '/track': typeof TrackIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/inventory/ingredients': typeof AdminInventoryIngredientsRoute
   '/admin/inventory/purchases': typeof AdminInventoryPurchasesRoute
@@ -354,6 +362,7 @@ export interface FileRoutesById {
   '/customer/register': typeof CustomerRegisterRoute
   '/track/$orderNumber': typeof TrackOrderNumberRoute
   '/admin/': typeof AdminIndexRoute
+  '/track/': typeof TrackIndexRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/admin/inventory/ingredients': typeof AdminInventoryIngredientsRoute
   '/admin/inventory/purchases': typeof AdminInventoryPurchasesRoute
@@ -396,6 +405,7 @@ export interface FileRouteTypes {
     | '/customer/register'
     | '/track/$orderNumber'
     | '/admin/'
+    | '/track/'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/inventory/ingredients'
     | '/admin/inventory/purchases'
@@ -434,6 +444,7 @@ export interface FileRouteTypes {
     | '/customer/register'
     | '/track/$orderNumber'
     | '/admin'
+    | '/track'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/inventory/ingredients'
     | '/admin/inventory/purchases'
@@ -474,6 +485,7 @@ export interface FileRouteTypes {
     | '/customer/register'
     | '/track/$orderNumber'
     | '/admin/'
+    | '/track/'
     | '/.mcp/invoke-tool/$tool'
     | '/admin/inventory/ingredients'
     | '/admin/inventory/purchases'
@@ -505,6 +517,7 @@ export interface RootRouteChildren {
   CustomerOrdersRoute: typeof CustomerOrdersRoute
   CustomerRegisterRoute: typeof CustomerRegisterRoute
   TrackOrderNumberRoute: typeof TrackOrderNumberRoute
+  TrackIndexRoute: typeof TrackIndexRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
 }
 
@@ -592,6 +605,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/track/': {
+      id: '/track/'
+      path: '/track'
+      fullPath: '/track/'
+      preLoaderRoute: typeof TrackIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -852,6 +872,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomerOrdersRoute: CustomerOrdersRoute,
   CustomerRegisterRoute: CustomerRegisterRoute,
   TrackOrderNumberRoute: TrackOrderNumberRoute,
+  TrackIndexRoute: TrackIndexRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
 }
 export const routeTree = rootRouteImport

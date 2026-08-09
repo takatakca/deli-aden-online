@@ -1,0 +1,24 @@
+{
+  "name": "Les Délices d'Aden — Commander en ligne",
+  "short_name": "Deli Aden",
+  "description": "Cuisine algérienne authentique : grillades, poissons, fast food et pâtisseries. Commandez pour ramassage ou livraison.",
+  "lang": "fr-CA",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0d0d",
+  "theme_color": "#0d0d0d",
+  "categories": ["food", "shopping"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Menu", "url": "/menu" },
+    { "name": "Panier", "url": "/cart" },
+    { "name": "Suivre ma commande", "url": "/track" }
+  ]
+}

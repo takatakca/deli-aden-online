@@ -4,12 +4,18 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
+
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { CartSheet, CartStickyCta } from "@/components/CartSheet";
+import { MobileTabBar } from "@/components/MobileTabBar";
+import { OfflineBanner } from "@/components/OfflineBanner";
+
 
 import appCss from "../styles.css?url";
 
@@ -60,7 +66,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "theme-color", content: "#0d0d0d" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "Deli Aden" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+
       { title: "Les Délices d'Aden — Restaurant algérien, commander en ligne" },
       {
         name: "description",
@@ -80,6 +91,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "apple-touch-icon", href: "/icons/apple-touch-icon.png" },
       {
         rel: "stylesheet",
         href: "https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Fira+Sans:wght@300;400;500;600;700&display=swap",
@@ -87,6 +101,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "stylesheet", href: appCss },
     ],
   }),
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
@@ -107,14 +122,29 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Customer chrome only: staff surfaces keep their own dense layouts.
+  const staffRoute = /^\/(admin|driver)/.test(pathname);
+  const orderingRoute = pathname === "/cart" || pathname.startsWith("/checkout");
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-dvh flex-col">
         <SiteHeader />
-        <main className="flex-1"><Outlet /></main>
+        <OfflineBanner />
+        <main className={`flex-1 ${staffRoute ? "" : "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0"}`}>
+          <Outlet />
+        </main>
         <SiteFooter />
       </div>
+      {!staffRoute && (
+        <>
+          <CartSheet />
+          <CartStickyCta hidden={orderingRoute} />
+          <MobileTabBar />
+        </>
+      )}
       <Toaster richColors position="top-center" />
+
     </QueryClientProvider>
   );
 }

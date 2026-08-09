@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { DishImage } from "@/components/DishImage";
 import { MENU } from "@/lib/menu";
 import { PASSWORD_KEY } from "@/lib/admin-shared";
 import { toast } from "sonner";
@@ -81,8 +82,11 @@ function MenuAdminPage() {
             {cat.items.map((it) => {
               const ov = draft[it.id] ?? defaultOverride(it.id);
               return (
-                <div key={it.id} className="grid gap-3 py-3 md:grid-cols-[1fr_120px_1fr_auto] md:items-center">
-                  <div>
+                <div key={it.id} className="grid gap-3 py-3 md:grid-cols-[64px_1fr_120px_1fr_auto] md:items-center">
+                  <div className="w-16 shrink-0 overflow-hidden rounded-md border border-border">
+                    <DishImage src={ov.image_override || it.image} name={it.name} ratio="aspect-square" />
+                  </div>
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{it.name}</span>
                       <span className="text-xs text-muted-foreground">{it.price.toFixed(2)}$</span>
@@ -97,15 +101,25 @@ function MenuAdminPage() {
                   </div>
                   <div>
                     <Label className="text-[10px] uppercase text-muted-foreground">Image (URL)</Label>
-                    <Input placeholder={it.image} value={ov.image_override ?? ""}
-                      onChange={(e) => setField(it.id, { image_override: e.target.value || null })}
-                      className="h-8" />
+                    <div className="flex gap-1">
+                      <Input placeholder={it.image} value={ov.image_override ?? ""}
+                        onChange={(e) => setField(it.id, { image_override: e.target.value || null })}
+                        className="h-8" />
+                      <Button type="button" size="sm" variant="outline" className="h-8 shrink-0 px-2 text-xs"
+                        onClick={() => setField(it.id, { image_override: null })}>
+                        Défaut
+                      </Button>
+                    </div>
+                    <p className="mt-1 text-[10px] text-muted-foreground">
+                      Texte alternatif généré automatiquement à partir du nom du plat (traduit).
+                    </p>
                   </div>
+
                   <div className="flex items-center gap-2">
                     <Switch checked={!!ov.available} onCheckedChange={(v) => setField(it.id, { available: v })} />
                     <Button size="sm" onClick={() => saveItem(it.id)}>OK</Button>
                   </div>
-                  <div className="md:col-span-4">
+                  <div className="md:col-span-5">
                     <Input placeholder="Description (laisser vide pour défaut)" value={ov.description_override ?? ""}
                       onChange={(e) => setField(it.id, { description_override: e.target.value || null })}
                       className="h-8 text-xs" />

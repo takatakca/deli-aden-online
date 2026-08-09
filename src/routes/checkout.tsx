@@ -1,5 +1,9 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useOffline } from "@/components/OfflineBanner";
+
+// Stripe SDK stays out of the initial bundle until card payment is chosen.
+const StripePaymentBox = lazy(() => import("@/components/checkout/StripePaymentBox"));
 import { useCart, cartStore, computeTotals, fmt } from "@/lib/cart-store";
 import { api, type PublicSettings, type PaymentQuote, type CreateOrderPayload } from "@/lib/api";
 import { useCustomer, customerApi, type SavedAddress } from "@/lib/customer-auth";
@@ -31,8 +35,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import { loadStripe, type Stripe as StripeJs } from "@stripe/stripe-js";
-import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({
@@ -235,10 +237,12 @@ function CheckoutPage() {
   };
   const goBack = () => setStep(((step - 1) as Step));
 
+  const offline = useOffline();
   const canSubmit =
-    !loading && !closed && !paused && !belowMin && cart.length > 0 &&
+    !loading && !closed && !paused && !belowMin && !offline && cart.length > 0 &&
     name.trim() && phoneDigits(phone).length >= 10 &&
     (orderType === "pickup" ? allowPickup : allowDelivery && address.trim());
+
 
   // Build the API payload from current form state (used for coupon quote and online intent).
   const buildPayload = (): CreateOrderPayload & { couponCode?: string } => ({
@@ -602,7 +606,8 @@ function CheckoutPage() {
               </Section>
 
               {payment === "online" && publishableKey && canSubmit && (
-                <OnlinePaymentBox
+                <Suspense fallback={<p className="text-sm text-muted-foreground">Chargement du paiement sécurisé…</p>}>
+                <StripePaymentBox
                   publishableKey={publishableKey}
                   buildPayload={buildPayload}
                   total={totals.total}
@@ -613,6 +618,7 @@ function CheckoutPage() {
                   }}
 
                 />
+                </Suspense>
               )}
             </>
           )}
@@ -698,25 +704,34 @@ function CheckoutPage() {
         </aside>
       </form>
 
-      {/* Mobile sticky bottom bar */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur px-4 py-3 shadow-lg">
+      {/* Mobile sticky bottom bar — step-specific call to action */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-lg backdrop-blur">
         <div className="flex items-center justify-between gap-3">
           <div className="text-sm">
             <div className="text-xs text-muted-foreground">Total</div>
             <div className="font-bold text-primary">{fmt(totals.total)}</div>
           </div>
-          {step < 3 ? (
-            <Button type="button" onClick={goNext} disabled={closed || paused} className="flex-1">
-              Continuer <ArrowRight className="h-4 w-4" />
+          {step === 1 ? (
+            <Button type="button" onClick={goNext} disabled={closed || paused} className="min-h-12 flex-1">
+              Choisir le mode <ArrowRight className="h-4 w-4" />
+            </Button>
+          ) : step === 2 ? (
+            <Button type="button" onClick={goNext} disabled={closed || paused} className="min-h-12 flex-1">
+              Aller au paiement <ArrowRight className="h-4 w-4" />
             </Button>
           ) : payment !== "online" ? (
-            <Button type="button" onClick={(e) => onSubmit(e as unknown as React.FormEvent)} disabled={!canSubmit} className="flex-1">
-              {loading ? "Envoi..." : "Confirmer"}
+            <Button type="button" onClick={(e) => onSubmit(e as unknown as React.FormEvent)} disabled={!canSubmit} className="min-h-12 flex-1">
+              {loading ? "Envoi…" : `Confirmer • ${fmt(totals.total)}`}
             </Button>
           ) : (
-            <span className="flex-1 text-right text-xs text-muted-foreground">↑ Complétez le paiement</span>
+            <span className="flex-1 text-right text-xs text-muted-foreground">↑ Payer par carte ci-dessus</span>
           )}
         </div>
+        {offline && (
+          <p className="mt-2 text-xs text-destructive">
+            Hors ligne — reconnectez-vous pour envoyer votre commande.
+          </p>
+        )}
         {belowMin && (
           <p className="mt-2 text-xs text-destructive">
             Minimum {fmt(minOrder)}. Ajoutez {fmt(minOrder - baseTotals.subtotal)}.
@@ -724,6 +739,7 @@ function CheckoutPage() {
         )}
       </div>
     </div>
+
   );
 }
 
@@ -939,107 +955,5 @@ function BannerCard({ tone, icon, title, body }: { tone: "destructive" | "warnin
         </div>
       </div>
     </div>
-  );
-}
-
-// ============================================================
-// Stripe online payment box
-// ============================================================
-const stripePromiseCache = new Map<string, Promise<StripeJs | null>>();
-function getStripePromise(key: string) {
-  let p = stripePromiseCache.get(key);
-  if (!p) { p = loadStripe(key); stripePromiseCache.set(key, p); }
-  return p;
-}
-
-function OnlinePaymentBox({
-  publishableKey, buildPayload, total, onSuccess,
-}: {
-  publishableKey: string;
-  buildPayload: () => CreateOrderPayload & { couponCode?: string };
-  total: number;
-  onSuccess: (orderNumber: string) => void;
-}) {
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [orderNumber, setOrderNumber] = useState<string | null>(null);
-  const [preparing, setPreparing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const stripePromise = useMemo(() => getStripePromise(publishableKey), [publishableKey]);
-
-  const prepare = async () => {
-    setPreparing(true); setError(null);
-    try {
-      const r = await api.createPaymentIntent(buildPayload());
-      setClientSecret(r.clientSecret);
-      setOrderNumber(r.orderNumber);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Erreur paiement");
-    } finally { setPreparing(false); }
-  };
-
-  return (
-    <Section title="Paiement par carte" icon={<CreditCard className="h-5 w-5 text-primary" />}>
-      {!clientSecret ? (
-        <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Cliquez sur « Préparer le paiement » pour réserver votre commande et afficher le formulaire sécurisé.
-          </p>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="button" size="lg" disabled={preparing} onClick={prepare} className="w-full">
-            {preparing ? <><Loader2 className="h-4 w-4 animate-spin" /> Préparation…</> : <>Préparer le paiement — {fmt(total)}</>}
-          </Button>
-        </div>
-      ) : (
-        <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: "stripe" } }}>
-          <StripeCheckoutForm orderNumber={orderNumber!} total={total} onSuccess={onSuccess} />
-        </Elements>
-      )}
-    </Section>
-  );
-}
-
-function StripeCheckoutForm({
-  orderNumber, total, onSuccess,
-}: { orderNumber: string; total: number; onSuccess: (orderNumber: string) => void }) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [submitting, setSubmitting] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
-  const submittedRef = useRef(false);
-
-  const handlePay = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!stripe || !elements || submittedRef.current) return;
-    submittedRef.current = true;
-    setSubmitting(true); setMsg(null);
-    const { error, paymentIntent } = await stripe.confirmPayment({
-      elements,
-      confirmParams: {
-        return_url: `${window.location.origin}/confirmation/${orderNumber}`,
-      },
-      redirect: "if_required",
-    });
-    if (error) {
-      setMsg(error.message || "Paiement refusé");
-      submittedRef.current = false;
-      setSubmitting(false);
-      return;
-    }
-    if (paymentIntent && (paymentIntent.status === "succeeded" || paymentIntent.status === "processing")) {
-      toast.success("Paiement confirmé");
-      onSuccess(orderNumber);
-      return;
-    }
-    setSubmitting(false);
-  };
-
-  return (
-    <form onSubmit={handlePay} className="space-y-4">
-      <PaymentElement options={{ layout: "tabs" }} />
-      {msg && <p className="text-sm text-destructive">{msg}</p>}
-      <Button type="submit" size="lg" disabled={!stripe || submitting} className="w-full">
-        {submitting ? <><Loader2 className="h-4 w-4 animate-spin" /> Traitement…</> : <>Payer {fmt(total)}</>}
-      </Button>
-    </form>
   );
 }
