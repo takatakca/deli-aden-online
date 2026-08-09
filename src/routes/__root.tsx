@@ -10,6 +10,10 @@ import {
 import { Toaster } from "@/components/ui/sonner";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { CartSheet, CartStickyCta } from "@/components/CartSheet";
+import { MobileTabBar } from "@/components/MobileTabBar";
+import { OfflineBanner } from "@/components/OfflineBanner";
+
 
 import appCss from "../styles.css?url";
 
