@@ -120,14 +120,29 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Customer chrome only: staff surfaces keep their own dense layouts.
+  const staffRoute = /^\/(admin|driver)/.test(pathname);
+  const orderingRoute = pathname === "/cart" || pathname.startsWith("/checkout");
   return (
     <QueryClientProvider client={queryClient}>
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-dvh flex-col">
         <SiteHeader />
-        <main className="flex-1"><Outlet /></main>
+        <OfflineBanner />
+        <main className={`flex-1 ${staffRoute ? "" : "pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-0"}`}>
+          <Outlet />
+        </main>
         <SiteFooter />
       </div>
+      {!staffRoute && (
+        <>
+          <CartSheet />
+          <CartStickyCta hidden={orderingRoute} />
+          <MobileTabBar />
+        </>
+      )}
       <Toaster richColors position="top-center" />
+
     </QueryClientProvider>
   );
 }
