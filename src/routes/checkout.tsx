@@ -704,25 +704,34 @@ function CheckoutPage() {
         </aside>
       </form>
 
-      {/* Mobile sticky bottom bar */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 backdrop-blur px-4 py-3 shadow-lg">
+      {/* Mobile sticky bottom bar — step-specific call to action */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-border bg-background/95 px-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-3 shadow-lg backdrop-blur">
         <div className="flex items-center justify-between gap-3">
           <div className="text-sm">
             <div className="text-xs text-muted-foreground">Total</div>
             <div className="font-bold text-primary">{fmt(totals.total)}</div>
           </div>
-          {step < 3 ? (
-            <Button type="button" onClick={goNext} disabled={closed || paused} className="flex-1">
-              Continuer <ArrowRight className="h-4 w-4" />
+          {step === 1 ? (
+            <Button type="button" onClick={goNext} disabled={closed || paused} className="min-h-12 flex-1">
+              Choisir le mode <ArrowRight className="h-4 w-4" />
+            </Button>
+          ) : step === 2 ? (
+            <Button type="button" onClick={goNext} disabled={closed || paused} className="min-h-12 flex-1">
+              Aller au paiement <ArrowRight className="h-4 w-4" />
             </Button>
           ) : payment !== "online" ? (
-            <Button type="button" onClick={(e) => onSubmit(e as unknown as React.FormEvent)} disabled={!canSubmit} className="flex-1">
-              {loading ? "Envoi..." : "Confirmer"}
+            <Button type="button" onClick={(e) => onSubmit(e as unknown as React.FormEvent)} disabled={!canSubmit} className="min-h-12 flex-1">
+              {loading ? "Envoi…" : `Confirmer • ${fmt(totals.total)}`}
             </Button>
           ) : (
-            <span className="flex-1 text-right text-xs text-muted-foreground">↑ Complétez le paiement</span>
+            <span className="flex-1 text-right text-xs text-muted-foreground">↑ Payer par carte ci-dessus</span>
           )}
         </div>
+        {offline && (
+          <p className="mt-2 text-xs text-destructive">
+            Hors ligne — reconnectez-vous pour envoyer votre commande.
+          </p>
+        )}
         {belowMin && (
           <p className="mt-2 text-xs text-destructive">
             Minimum {fmt(minOrder)}. Ajoutez {fmt(minOrder - baseTotals.subtotal)}.
@@ -730,6 +739,7 @@ function CheckoutPage() {
         )}
       </div>
     </div>
+
   );
 }
 
