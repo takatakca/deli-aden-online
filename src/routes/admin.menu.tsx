@@ -119,7 +119,7 @@ function MenuAdminPage() {
                     <Switch checked={!!ov.available} onCheckedChange={(v) => setField(it.id, { available: v })} />
                     <Button size="sm" onClick={() => saveItem(it.id)}>OK</Button>
                   </div>
-                  <div className="md:col-span-4">
+                  <div className="md:col-span-5">
                     <Input placeholder="Description (laisser vide pour défaut)" value={ov.description_override ?? ""}
                       onChange={(e) => setField(it.id, { description_override: e.target.value || null })}
                       className="h-8 text-xs" />
