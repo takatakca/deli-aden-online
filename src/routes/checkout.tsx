@@ -237,10 +237,12 @@ function CheckoutPage() {
   };
   const goBack = () => setStep(((step - 1) as Step));
 
+  const offline = useOffline();
   const canSubmit =
-    !loading && !closed && !paused && !belowMin && cart.length > 0 &&
+    !loading && !closed && !paused && !belowMin && !offline && cart.length > 0 &&
     name.trim() && phoneDigits(phone).length >= 10 &&
     (orderType === "pickup" ? allowPickup : allowDelivery && address.trim());
+
 
   // Build the API payload from current form state (used for coupon quote and online intent).
   const buildPayload = (): CreateOrderPayload & { couponCode?: string } => ({
