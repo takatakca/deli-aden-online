@@ -38,3 +38,36 @@ export function DishImage({
 }
 
 export const DISH_PLACEHOLDER = placeholder;
+
+/**
+ * Fill-the-parent food image with the same branded fallback as DishImage.
+ * Use inside an element that already defines the aspect ratio / size.
+ */
+export function FoodImg({
+  src,
+  alt,
+  className = "",
+  eager = false,
+  sizes,
+}: {
+  src?: string | null;
+  alt: string;
+  className?: string;
+  eager?: boolean;
+  sizes?: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <img
+      src={!src || failed ? placeholder : src}
+      alt={alt}
+      sizes={sizes}
+      loading={eager ? "eager" : "lazy"}
+      decoding="async"
+      fetchPriority={eager ? "high" : "auto"}
+      onError={() => setFailed(true)}
+      className={`h-full w-full object-cover ${className}`}
+    />
+  );
+}
+
