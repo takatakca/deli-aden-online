@@ -198,7 +198,34 @@ export function SocialBlock() {
   );
 }
 
+/* ------------------------- RECOGNIZED CUSTOMER -------------------------- */
+/** Shown only to signed-in customers. Visitors see nothing. */
+export function WelcomeBlock() {
+  const { customer } = useCustomer();
+  if (!customer) return null;
+  const first = customer.name.split(" ")[0];
+  return (
+    <section className="mx-auto max-w-7xl px-4 pt-5">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3">
+        <p className="font-display text-lg sm:text-xl">Bonjour {first} 👋</p>
+        <div className="flex flex-wrap gap-2 text-sm font-semibold">
+          <Link to="/customer/orders" className="rounded-full border border-border px-3 py-1.5 hover:border-primary/60 hover:text-primary">
+            Mes commandes
+          </Link>
+          <Link to="/customer/account" className="rounded-full border border-border px-3 py-1.5 hover:border-primary/60 hover:text-primary">
+            Mes favoris
+          </Link>
+          <Link to="/menu" className="rounded-full border border-primary/60 px-3 py-1.5 text-primary">
+            Commander
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ------------------------------- REORDER -------------------------------- */
+
 export function ReorderBlock() {
   const { customer, token } = useCustomer();
   const [last, setLast] = useState<CustomerOrder | null>(null);

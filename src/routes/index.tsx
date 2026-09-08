@@ -9,12 +9,14 @@ import {
   CategoryTiles,
   SignatureBlock,
 } from "@/components/home/sections";
-import { BrandStory, DeliveryBlock, ReorderBlock, RestaurantInfo } from "@/components/home/blocks";
+import { BrandStory, DeliveryBlock, ReorderBlock, RestaurantInfo, WelcomeBlock } from "@/components/home/blocks";
 import { useLiveMenu } from "@/lib/use-live-menu";
 import { popularNow, completeYourMeal } from "@/lib/recommend";
+import { currentDaypart, daypartPicks } from "@/lib/daypart";
 import { useCart } from "@/lib/cart-store";
 import { Button } from "@/components/ui/button";
 import { MENU } from "@/lib/menu";
+
 
 const SIGNATURE_IDS = ["couscous-royal", "mix-grill", "rechta", "tacos-gratine", "kalb-el-louz"];
 
