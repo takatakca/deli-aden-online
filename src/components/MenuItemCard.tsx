@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { DishImage } from "@/components/DishImage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useT } from "@/lib/i18n";
-import { cartSheet } from "@/lib/ui-store";
+
 
 export type MenuItemOverride = {
   available?: boolean;
