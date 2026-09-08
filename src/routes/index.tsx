@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SmartSearch } from "@/components/SmartSearch";
 import { HomeHero } from "@/components/home/HomeHero";
 import {
@@ -9,12 +9,14 @@ import {
   CategoryTiles,
   SignatureBlock,
 } from "@/components/home/sections";
-import { BrandStory, DeliveryBlock, ReorderBlock, RestaurantInfo } from "@/components/home/blocks";
+import { BrandStory, DeliveryBlock, ReorderBlock, RestaurantInfo, WelcomeBlock } from "@/components/home/blocks";
 import { useLiveMenu } from "@/lib/use-live-menu";
 import { popularNow, completeYourMeal } from "@/lib/recommend";
+import { currentDaypart, daypartPicks } from "@/lib/daypart";
 import { useCart } from "@/lib/cart-store";
 import { Button } from "@/components/ui/button";
 import { MENU } from "@/lib/menu";
+
 
 const SIGNATURE_IDS = ["couscous-royal", "mix-grill", "rechta", "tacos-gratine", "kalb-el-louz"];
 
@@ -73,7 +75,13 @@ function Home() {
   const { live, settings } = useLiveMenu();
   const cart = useCart();
 
+  // Client-side only so the time-of-day block never mismatches during hydration.
+  const [daypart, setDaypart] = useState<ReturnType<typeof currentDaypart> | null>(null);
+  useEffect(() => setDaypart(currentDaypart()), []);
+  const nowPicks = useMemo(() => (daypart ? daypartPicks(live, daypart, 8) : []), [live, daypart]);
+
   const popular = useMemo(() => popularNow(live, 8), [live]);
+
   const signature = useMemo(
     () =>
       SIGNATURE_IDS.map((id) => live.find((i) => i.id === id && i.available)).filter(
@@ -126,11 +134,19 @@ function Home() {
         <SmartSearch compact />
       </section>
 
+      <WelcomeBlock />
       <ReorderBlock />
+
+      {daypart && nowPicks.length > 0 && (
+        <HomeSection eyebrow={daypart.eyebrow} title={daypart.title} action="Tout le menu" actionTo="/menu">
+          <ProductRail items={nowPicks} />
+        </HomeSection>
+      )}
 
       <HomeSection eyebrow="Commandé par nos clients" title="Populaire en ce moment" action="Tout le menu" actionTo="/menu">
         <ProductRail items={popular} />
       </HomeSection>
+
 
       <HomeSection eyebrow="Le menu" title="Explorer par catégorie">
         <CategoryTiles cats={cats} />

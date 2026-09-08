@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Plus, Minus } from "lucide-react";
 import type { MenuItem } from "@/lib/menu";
 import { COMBO_DELTA } from "@/lib/menu";
-import { cartStore, fmt } from "@/lib/cart-store";
+import { fmt } from "@/lib/cart-store";
+import { addToCart } from "@/lib/add-to-cart";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,7 +20,7 @@ import { toast } from "sonner";
 import { DishImage } from "@/components/DishImage";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useT } from "@/lib/i18n";
-import { cartSheet } from "@/lib/ui-store";
+
 
 export type MenuItemOverride = {
   available?: boolean;
@@ -71,21 +73,20 @@ export function MenuItemCard({
             <Customizer item={effective} />
           ) : (
             <Button
-              className="min-h-11 w-full"
+              className="min-h-11 w-full active:scale-[0.97] transition-transform"
               onClick={() => {
-                cartStore.add({
+                addToCart({
                   itemId: item.id,
                   name: item.name,
                   unitPrice: price,
                   quantity: 1,
                   image,
                 });
-                toast.success(`${item.name} — ${t("common.add")}`);
-                cartSheet.open();
               }}
             >
               <Plus className="mr-1 h-4 w-4" /> {t("common.add")}
             </Button>
+
           )}
         </div>
       </div>
@@ -133,7 +134,7 @@ function Customizer({ item }: { item: MenuItem }) {
       .map((g) => ({ groupLabel: g.label, values: selections[g.id] ?? [] }))
       .filter((o) => o.values.length > 0);
     if (combo) opts.push({ groupLabel: "Formule", values: [`Trio (+${fmt(COMBO_DELTA)})`] });
-    cartStore.add({
+    addToCart({
       itemId: item.id,
       name: item.name,
       unitPrice,
@@ -143,14 +144,13 @@ function Customizer({ item }: { item: MenuItem }) {
       combo,
       notes: notes.trim() || undefined,
     });
-    toast.success(`${item.name} — ${t("common.add")}`);
     setOpen(false);
     setQty(1);
     setCombo(false);
     setNotes("");
     setSelections({});
-    cartSheet.open();
   };
+
 
   const body = (
     <div className="space-y-5">

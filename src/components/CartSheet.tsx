@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Minus, Plus, Trash2, ShoppingBag, X } from "lucide-react";
 import {
@@ -9,11 +9,15 @@ import {
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { useCart, cartStore, fmt, GST_RATE, QST_RATE } from "@/lib/cart-store";
+import { useCart, cartStore, fmt, GST_RATE, QST_RATE, type CartItem } from "@/lib/cart-store";
 import { useCartSheetOpen, cartSheet } from "@/lib/ui-store";
 import { useT } from "@/lib/i18n";
 import { api, type PublicSettings } from "@/lib/api";
 import { DishImage } from "@/components/DishImage";
+import { useLiveMenu } from "@/lib/use-live-menu";
+import { completeYourMeal } from "@/lib/recommend";
+import { addToCart } from "@/lib/add-to-cart";
+
 
 /**
  * Mobile-first cart bottom sheet (vaul drawer: draggable, Escape-close,
@@ -136,7 +140,10 @@ export function CartSheet() {
               ))}
             </ul>
 
+            <CartSuggestions cart={cart} />
+
             <div className="border-t border-border px-4 pt-3">
+
               {threshold > 0 && (
                 <div className="mb-3">
                   <p className="mb-1 text-xs text-muted-foreground">
@@ -190,6 +197,50 @@ function Row({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+/**
+ * Discreet upsell: at most 3 real, available complements based on the cart.
+ * No popup, no urgency — a single quiet row inside the sheet.
+ */
+function CartSuggestions({ cart }: { cart: CartItem[] }) {
+  const { live } = useLiveMenu();
+  const picks = useMemo(() => completeYourMeal(live, cart, 3), [live, cart]);
+  if (!picks.length) return null;
+  const sweet = cart.some((l) => /rechta|couscous|tajine|dolma|chakchoukha|mtewem|zfiti/.test(l.itemId));
+  return (
+    <div className="border-t border-border px-4 pt-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
+        {sweet ? "Ajoutez une douceur" : "Complétez votre repas"}
+      </p>
+      <ul className="no-scrollbar -mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1">
+        {picks.map((it) => (
+          <li key={it.id} className="w-[13.5rem] shrink-0">
+            <button
+              type="button"
+              onClick={() =>
+                addToCart(
+                  { itemId: it.id, name: it.name, unitPrice: it.price, quantity: 1, image: it.image },
+                  { openSheet: false },
+                )
+              }
+              className="flex w-full items-center gap-2 rounded-xl border border-border bg-card p-2 text-left transition active:scale-[0.98] hover:border-primary/60"
+            >
+              <div className="w-12 shrink-0 overflow-hidden rounded-lg">
+                <DishImage src={it.image} name={it.name} ratio="aspect-square" />
+              </div>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium">{it.name}</span>
+                <span className="block text-xs text-primary">{fmt(it.price)}</span>
+              </span>
+              <Plus className="h-4 w-4 shrink-0 text-primary" />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 
 /** Persistent mobile cart CTA — opens the sheet, hidden on cart/checkout routes. */
 export function CartStickyCta({ hidden = false }: { hidden?: boolean }) {
