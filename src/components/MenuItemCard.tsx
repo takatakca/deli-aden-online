@@ -71,21 +71,20 @@ export function MenuItemCard({
             <Customizer item={effective} />
           ) : (
             <Button
-              className="min-h-11 w-full"
+              className="min-h-11 w-full active:scale-[0.97] transition-transform"
               onClick={() => {
-                cartStore.add({
+                addToCart({
                   itemId: item.id,
                   name: item.name,
                   unitPrice: price,
                   quantity: 1,
                   image,
                 });
-                toast.success(`${item.name} — ${t("common.add")}`);
-                cartSheet.open();
               }}
             >
               <Plus className="mr-1 h-4 w-4" /> {t("common.add")}
             </Button>
+
           )}
         </div>
       </div>
