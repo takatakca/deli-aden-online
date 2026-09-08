@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { SmartSearch } from "@/components/SmartSearch";
 import { HomeHero } from "@/components/home/HomeHero";
 import {
@@ -75,7 +75,13 @@ function Home() {
   const { live, settings } = useLiveMenu();
   const cart = useCart();
 
+  // Client-side only so the time-of-day block never mismatches during hydration.
+  const [daypart, setDaypart] = useState<ReturnType<typeof currentDaypart> | null>(null);
+  useEffect(() => setDaypart(currentDaypart()), []);
+  const nowPicks = useMemo(() => (daypart ? daypartPicks(live, daypart, 8) : []), [live, daypart]);
+
   const popular = useMemo(() => popularNow(live, 8), [live]);
+
   const signature = useMemo(
     () =>
       SIGNATURE_IDS.map((id) => live.find((i) => i.id === id && i.available)).filter(
