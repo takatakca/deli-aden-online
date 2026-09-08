@@ -134,11 +134,19 @@ function Home() {
         <SmartSearch compact />
       </section>
 
+      <WelcomeBlock />
       <ReorderBlock />
+
+      {daypart && nowPicks.length > 0 && (
+        <HomeSection eyebrow={daypart.eyebrow} title={daypart.title} action="Tout le menu" actionTo="/menu">
+          <ProductRail items={nowPicks} />
+        </HomeSection>
+      )}
 
       <HomeSection eyebrow="Commandé par nos clients" title="Populaire en ce moment" action="Tout le menu" actionTo="/menu">
         <ProductRail items={popular} />
       </HomeSection>
+
 
       <HomeSection eyebrow="Le menu" title="Explorer par catégorie">
         <CategoryTiles cats={cats} />
