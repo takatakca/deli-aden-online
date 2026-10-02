@@ -3,6 +3,7 @@ import {
   Outlet,
   Link,
   createRootRouteWithContext,
+  type ErrorComponentProps,
   useRouter,
   useRouterState,
 
@@ -38,14 +39,15 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
+  const message = error instanceof Error ? error.message : "Réessayez ou revenez plus tard.";
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="font-display text-xl font-semibold">Une erreur est survenue</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{error.message || "Réessayez ou revenez plus tard."}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{message}</p>
         <div className="mt-6 flex justify-center gap-2">
           <button
             onClick={() => { router.invalidate(); reset(); }}
