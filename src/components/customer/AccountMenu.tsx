@@ -103,21 +103,21 @@ export function AccountMenu({ compact = false }: AccountMenuProps) {
 
             {mode === "login" && (
               <div>
-                <button type="button" onClick={() => setMode("choices")} className="mb-4 text-xs text-muted-foreground hover:text-primary">
+                <Button type="button" variant="link" size="sm" onClick={() => setMode("choices")} className="mb-3 h-auto min-h-0 px-0 text-xs text-muted-foreground">
                   ← Retour
-                </button>
+                </Button>
                 <LoginForm onDone={close} />
-                <button type="button" onClick={() => setMode("forgot")} className="mt-4 w-full text-center text-xs text-primary hover:underline">
+                <Button type="button" variant="link" size="sm" onClick={() => setMode("forgot")} className="mt-3 w-full text-center text-xs">
                   Mot de passe oublié?
-                </button>
+                </Button>
               </div>
             )}
 
             {mode === "forgot" && (
               <div>
-                <button type="button" onClick={() => setMode("login")} className="mb-4 text-xs text-muted-foreground hover:text-primary">
+                <Button type="button" variant="link" size="sm" onClick={() => setMode("login")} className="mb-3 h-auto min-h-0 px-0 text-xs text-muted-foreground">
                   ← Retour à la connexion
-                </button>
+                </Button>
                 <ForgotForm onDone={() => setMode("login")} />
               </div>
             )}
