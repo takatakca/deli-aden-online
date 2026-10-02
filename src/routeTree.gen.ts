@@ -9,94 +9,49 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AboutRouteImport } from './routes/about'
-import { Route as AccountRouteImport } from './routes/account'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as CartRouteImport } from './routes/cart'
-import { Route as CheckoutRouteImport } from './routes/checkout'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as DeliveryRouteImport } from './routes/delivery'
-import { Route as DriverRouteImport } from './routes/driver'
-import { Route as McpRouteImport } from './routes/mcp'
-import { Route as MenuRouteImport } from './routes/menu'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
-import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
-import { Route as AdminIndexRouteImport } from './routes/admin.index'
-import { Route as AdminBoardRouteImport } from './routes/admin.board'
-import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
-import { Route as AdminDispatchRouteImport } from './routes/admin.dispatch'
-import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
-import { Route as AdminKitchenRouteImport } from './routes/admin.kitchen'
-import { Route as AdminMenuRouteImport } from './routes/admin.menu'
-import { Route as AdminMetricsRouteImport } from './routes/admin.metrics'
-import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
-import { Route as AdminSmsRouteImport } from './routes/admin.sms'
-import { Route as ConfirmationOrderNumberRouteImport } from './routes/confirmation.$orderNumber'
-import { Route as CustomerAccountRouteImport } from './routes/customer.account'
-import { Route as CustomerAddressesRouteImport } from './routes/customer.addresses'
-import { Route as CustomerLoginRouteImport } from './routes/customer.login'
-import { Route as CustomerOrdersRouteImport } from './routes/customer.orders'
-import { Route as CustomerRegisterRouteImport } from './routes/customer.register'
+import { Route as MenuRouteImport } from './routes/menu'
+import { Route as McpRouteImport } from './routes/mcp'
+import { Route as DriverRouteImport } from './routes/driver'
+import { Route as DeliveryRouteImport } from './routes/delivery'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as CartRouteImport } from './routes/cart'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AccountRouteImport } from './routes/account'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as TrackIndexRouteImport } from './routes/track.index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as TrackOrderNumberRouteImport } from './routes/track.$orderNumber'
-import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
+import { Route as CustomerRegisterRouteImport } from './routes/customer.register'
+import { Route as CustomerOrdersRouteImport } from './routes/customer.orders'
+import { Route as CustomerLoginRouteImport } from './routes/customer.login'
+import { Route as CustomerAddressesRouteImport } from './routes/customer.addresses'
+import { Route as CustomerAccountRouteImport } from './routes/customer.account'
+import { Route as ConfirmationOrderNumberRouteImport } from './routes/confirmation.$orderNumber'
+import { Route as AdminSmsRouteImport } from './routes/admin.sms'
+import { Route as AdminSettingsRouteImport } from './routes/admin.settings'
+import { Route as AdminMetricsRouteImport } from './routes/admin.metrics'
+import { Route as AdminMenuRouteImport } from './routes/admin.menu'
+import { Route as AdminKitchenRouteImport } from './routes/admin.kitchen'
+import { Route as AdminInventoryRouteImport } from './routes/admin.inventory'
+import { Route as AdminDispatchRouteImport } from './routes/admin.dispatch'
+import { Route as AdminCouponsRouteImport } from './routes/admin.coupons'
+import { Route as AdminBoardRouteImport } from './routes/admin.board'
+import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as AdminInventoryIndexRouteImport } from './routes/admin.inventory.index'
-import { Route as AdminInventoryIngredientsRouteImport } from './routes/admin.inventory.ingredients'
-import { Route as AdminInventoryPurchasesRouteImport } from './routes/admin.inventory.purchases'
-import { Route as AdminInventoryRecipesRouteImport } from './routes/admin.inventory.recipes'
-import { Route as AdminInventorySuppliersRouteImport } from './routes/admin.inventory.suppliers'
 import { Route as AdminInventoryWasteRouteImport } from './routes/admin.inventory.waste'
+import { Route as AdminInventorySuppliersRouteImport } from './routes/admin.inventory.suppliers'
+import { Route as AdminInventoryRecipesRouteImport } from './routes/admin.inventory.recipes'
+import { Route as AdminInventoryPurchasesRouteImport } from './routes/admin.inventory.purchases'
+import { Route as AdminInventoryIngredientsRouteImport } from './routes/admin.inventory.ingredients'
+import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AccountRoute = AccountRouteImport.update({
-  id: '/account',
-  path: '/account',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CartRoute = CartRouteImport.update({
-  id: '/cart',
-  path: '/cart',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CheckoutRoute = CheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DeliveryRoute = DeliveryRouteImport.update({
-  id: '/delivery',
-  path: '/delivery',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DriverRoute = DriverRouteImport.update({
-  id: '/driver',
-  path: '/driver',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const McpRoute = McpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MenuRoute = MenuRouteImport.update({
@@ -104,101 +59,54 @@ const MenuRoute = MenuRouteImport.update({
   path: '/menu',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
+const McpRoute = McpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Char91DotmcpChar93ListToolsRoute =
-  Char91DotmcpChar93ListToolsRouteImport.update({
-    id: '/.mcp/list-tools',
-    path: '/.mcp/list-tools',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const Char91DotwellKnownChar93OauthProtectedResourceRoute =
-  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
-    id: '/.well-known/oauth-protected-resource',
-    path: '/.well-known/oauth-protected-resource',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const AdminIndexRoute = AdminIndexRouteImport.update({
+const DriverRoute = DriverRouteImport.update({
+  id: '/driver',
+  path: '/driver',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DeliveryRoute = DeliveryRouteImport.update({
+  id: '/delivery',
+  path: '/delivery',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CartRoute = CartRouteImport.update({
+  id: '/cart',
+  path: '/cart',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminBoardRoute = AdminBoardRouteImport.update({
-  id: '/board',
-  path: '/board',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminCouponsRoute = AdminCouponsRouteImport.update({
-  id: '/coupons',
-  path: '/coupons',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminDispatchRoute = AdminDispatchRouteImport.update({
-  id: '/dispatch',
-  path: '/dispatch',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminInventoryRoute = AdminInventoryRouteImport.update({
-  id: '/inventory',
-  path: '/inventory',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminKitchenRoute = AdminKitchenRouteImport.update({
-  id: '/kitchen',
-  path: '/kitchen',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminMenuRoute = AdminMenuRouteImport.update({
-  id: '/menu',
-  path: '/menu',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminMetricsRoute = AdminMetricsRouteImport.update({
-  id: '/metrics',
-  path: '/metrics',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminSettingsRoute = AdminSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminSmsRoute = AdminSmsRouteImport.update({
-  id: '/sms',
-  path: '/sms',
-  getParentRoute: () => AdminRoute,
-} as any)
-const ConfirmationOrderNumberRoute = ConfirmationOrderNumberRouteImport.update({
-  id: '/confirmation/$orderNumber',
-  path: '/confirmation/$orderNumber',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CustomerAccountRoute = CustomerAccountRouteImport.update({
-  id: '/customer/account',
-  path: '/customer/account',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CustomerAddressesRoute = CustomerAddressesRouteImport.update({
-  id: '/customer/addresses',
-  path: '/customer/addresses',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CustomerLoginRoute = CustomerLoginRouteImport.update({
-  id: '/customer/login',
-  path: '/customer/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CustomerOrdersRoute = CustomerOrdersRouteImport.update({
-  id: '/customer/orders',
-  path: '/customer/orders',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CustomerRegisterRoute = CustomerRegisterRouteImport.update({
-  id: '/customer/register',
-  path: '/customer/register',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TrackIndexRoute = TrackIndexRouteImport.update({
@@ -206,20 +114,126 @@ const TrackIndexRoute = TrackIndexRouteImport.update({
   path: '/track/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const TrackOrderNumberRoute = TrackOrderNumberRouteImport.update({
   id: '/track/$orderNumber',
   path: '/track/$orderNumber',
   getParentRoute: () => rootRouteImport,
 } as any)
-const Char91DotmcpChar93InvokeToolToolRoute =
-  Char91DotmcpChar93InvokeToolToolRouteImport.update({
-    id: '/.mcp/invoke-tool/$tool',
-    path: '/.mcp/invoke-tool/$tool',
+const CustomerRegisterRoute = CustomerRegisterRouteImport.update({
+  id: '/customer/register',
+  path: '/customer/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomerOrdersRoute = CustomerOrdersRouteImport.update({
+  id: '/customer/orders',
+  path: '/customer/orders',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomerLoginRoute = CustomerLoginRouteImport.update({
+  id: '/customer/login',
+  path: '/customer/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomerAddressesRoute = CustomerAddressesRouteImport.update({
+  id: '/customer/addresses',
+  path: '/customer/addresses',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CustomerAccountRoute = CustomerAccountRouteImport.update({
+  id: '/customer/account',
+  path: '/customer/account',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfirmationOrderNumberRoute = ConfirmationOrderNumberRouteImport.update({
+  id: '/confirmation/$orderNumber',
+  path: '/confirmation/$orderNumber',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminSmsRoute = AdminSmsRouteImport.update({
+  id: '/sms',
+  path: '/sms',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMetricsRoute = AdminMetricsRouteImport.update({
+  id: '/metrics',
+  path: '/metrics',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminMenuRoute = AdminMenuRouteImport.update({
+  id: '/menu',
+  path: '/menu',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminKitchenRoute = AdminKitchenRouteImport.update({
+  id: '/kitchen',
+  path: '/kitchen',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminInventoryRoute = AdminInventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminDispatchRoute = AdminDispatchRouteImport.update({
+  id: '/dispatch',
+  path: '/dispatch',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCouponsRoute = AdminCouponsRouteImport.update({
+  id: '/coupons',
+  path: '/coupons',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBoardRoute = AdminBoardRouteImport.update({
+  id: '/board',
+  path: '/board',
+  getParentRoute: () => AdminRoute,
+} as any)
+const Char91DotwellKnownChar93OauthProtectedResourceRoute =
+  Char91DotwellKnownChar93OauthProtectedResourceRouteImport.update({
+    id: '/.well-known/oauth-protected-resource',
+    path: '/.well-known/oauth-protected-resource',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char91DotmcpChar93ListToolsRoute =
+  Char91DotmcpChar93ListToolsRouteImport.update({
+    id: '/.mcp/list-tools',
+    path: '/.mcp/list-tools',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AdminInventoryIndexRoute = AdminInventoryIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdminInventoryRoute,
+} as any)
+const AdminInventoryWasteRoute = AdminInventoryWasteRouteImport.update({
+  id: '/waste',
+  path: '/waste',
+  getParentRoute: () => AdminInventoryRoute,
+} as any)
+const AdminInventorySuppliersRoute = AdminInventorySuppliersRouteImport.update({
+  id: '/suppliers',
+  path: '/suppliers',
+  getParentRoute: () => AdminInventoryRoute,
+} as any)
+const AdminInventoryRecipesRoute = AdminInventoryRecipesRouteImport.update({
+  id: '/recipes',
+  path: '/recipes',
+  getParentRoute: () => AdminInventoryRoute,
+} as any)
+const AdminInventoryPurchasesRoute = AdminInventoryPurchasesRouteImport.update({
+  id: '/purchases',
+  path: '/purchases',
   getParentRoute: () => AdminInventoryRoute,
 } as any)
 const AdminInventoryIngredientsRoute =
@@ -228,26 +242,12 @@ const AdminInventoryIngredientsRoute =
     path: '/ingredients',
     getParentRoute: () => AdminInventoryRoute,
   } as any)
-const AdminInventoryPurchasesRoute = AdminInventoryPurchasesRouteImport.update({
-  id: '/purchases',
-  path: '/purchases',
-  getParentRoute: () => AdminInventoryRoute,
-} as any)
-const AdminInventoryRecipesRoute = AdminInventoryRecipesRouteImport.update({
-  id: '/recipes',
-  path: '/recipes',
-  getParentRoute: () => AdminInventoryRoute,
-} as any)
-const AdminInventorySuppliersRoute = AdminInventorySuppliersRouteImport.update({
-  id: '/suppliers',
-  path: '/suppliers',
-  getParentRoute: () => AdminInventoryRoute,
-} as any)
-const AdminInventoryWasteRoute = AdminInventoryWasteRouteImport.update({
-  id: '/waste',
-  path: '/waste',
-  getParentRoute: () => AdminInventoryRoute,
-} as any)
+const Char91DotmcpChar93InvokeToolToolRoute =
+  Char91DotmcpChar93InvokeToolToolRouteImport.update({
+    id: '/.mcp/invoke-tool/$tool',
+    path: '/.mcp/invoke-tool/$tool',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -523,74 +523,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/account': {
-      id: '/account'
-      path: '/account'
-      fullPath: '/account'
-      preLoaderRoute: typeof AccountRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cart': {
-      id: '/cart'
-      path: '/cart'
-      fullPath: '/cart'
-      preLoaderRoute: typeof CartRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/checkout': {
-      id: '/checkout'
-      path: '/checkout'
-      fullPath: '/checkout'
-      preLoaderRoute: typeof CheckoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/delivery': {
-      id: '/delivery'
-      path: '/delivery'
-      fullPath: '/delivery'
-      preLoaderRoute: typeof DeliveryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/driver': {
-      id: '/driver'
-      path: '/driver'
-      fullPath: '/driver'
-      preLoaderRoute: typeof DriverRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/mcp': {
-      id: '/mcp'
-      path: '/mcp'
-      fullPath: '/mcp'
-      preLoaderRoute: typeof McpRouteImport
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/menu': {
@@ -600,137 +537,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MenuRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
+    '/mcp': {
+      id: '/mcp'
+      path: '/mcp'
+      fullPath: '/mcp'
+      preLoaderRoute: typeof McpRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/.mcp/list-tools': {
-      id: '/.mcp/list-tools'
-      path: '/.mcp/list-tools'
-      fullPath: '/.mcp/list-tools'
-      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
+    '/driver': {
+      id: '/driver'
+      path: '/driver'
+      fullPath: '/driver'
+      preLoaderRoute: typeof DriverRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/.well-known/oauth-protected-resource': {
-      id: '/.well-known/oauth-protected-resource'
-      path: '/.well-known/oauth-protected-resource'
-      fullPath: '/.well-known/oauth-protected-resource'
-      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+    '/delivery': {
+      id: '/delivery'
+      path: '/delivery'
+      fullPath: '/delivery'
+      preLoaderRoute: typeof DeliveryRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin/': {
-      id: '/admin/'
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cart': {
+      id: '/cart'
+      path: '/cart'
+      fullPath: '/cart'
+      preLoaderRoute: typeof CartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
       path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/board': {
-      id: '/admin/board'
-      path: '/board'
-      fullPath: '/admin/board'
-      preLoaderRoute: typeof AdminBoardRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/coupons': {
-      id: '/admin/coupons'
-      path: '/coupons'
-      fullPath: '/admin/coupons'
-      preLoaderRoute: typeof AdminCouponsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/dispatch': {
-      id: '/admin/dispatch'
-      path: '/dispatch'
-      fullPath: '/admin/dispatch'
-      preLoaderRoute: typeof AdminDispatchRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/inventory': {
-      id: '/admin/inventory'
-      path: '/inventory'
-      fullPath: '/admin/inventory'
-      preLoaderRoute: typeof AdminInventoryRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/kitchen': {
-      id: '/admin/kitchen'
-      path: '/kitchen'
-      fullPath: '/admin/kitchen'
-      preLoaderRoute: typeof AdminKitchenRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/menu': {
-      id: '/admin/menu'
-      path: '/menu'
-      fullPath: '/admin/menu'
-      preLoaderRoute: typeof AdminMenuRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/metrics': {
-      id: '/admin/metrics'
-      path: '/metrics'
-      fullPath: '/admin/metrics'
-      preLoaderRoute: typeof AdminMetricsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/settings': {
-      id: '/admin/settings'
-      path: '/settings'
-      fullPath: '/admin/settings'
-      preLoaderRoute: typeof AdminSettingsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/sms': {
-      id: '/admin/sms'
-      path: '/sms'
-      fullPath: '/admin/sms'
-      preLoaderRoute: typeof AdminSmsRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/confirmation/$orderNumber': {
-      id: '/confirmation/$orderNumber'
-      path: '/confirmation/$orderNumber'
-      fullPath: '/confirmation/$orderNumber'
-      preLoaderRoute: typeof ConfirmationOrderNumberRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/customer/account': {
-      id: '/customer/account'
-      path: '/customer/account'
-      fullPath: '/customer/account'
-      preLoaderRoute: typeof CustomerAccountRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/customer/addresses': {
-      id: '/customer/addresses'
-      path: '/customer/addresses'
-      fullPath: '/customer/addresses'
-      preLoaderRoute: typeof CustomerAddressesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/customer/login': {
-      id: '/customer/login'
-      path: '/customer/login'
-      fullPath: '/customer/login'
-      preLoaderRoute: typeof CustomerLoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/customer/orders': {
-      id: '/customer/orders'
-      path: '/customer/orders'
-      fullPath: '/customer/orders'
-      preLoaderRoute: typeof CustomerOrdersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/customer/register': {
-      id: '/customer/register'
-      path: '/customer/register'
-      fullPath: '/customer/register'
-      preLoaderRoute: typeof CustomerRegisterRouteImport
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/track/': {
@@ -740,6 +614,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TrackIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/track/$orderNumber': {
       id: '/track/$orderNumber'
       path: '/track/$orderNumber'
@@ -747,11 +628,123 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TrackOrderNumberRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/.mcp/invoke-tool/$tool': {
-      id: '/.mcp/invoke-tool/$tool'
-      path: '/.mcp/invoke-tool/$tool'
-      fullPath: '/.mcp/invoke-tool/$tool'
-      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
+    '/customer/register': {
+      id: '/customer/register'
+      path: '/customer/register'
+      fullPath: '/customer/register'
+      preLoaderRoute: typeof CustomerRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customer/orders': {
+      id: '/customer/orders'
+      path: '/customer/orders'
+      fullPath: '/customer/orders'
+      preLoaderRoute: typeof CustomerOrdersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customer/login': {
+      id: '/customer/login'
+      path: '/customer/login'
+      fullPath: '/customer/login'
+      preLoaderRoute: typeof CustomerLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customer/addresses': {
+      id: '/customer/addresses'
+      path: '/customer/addresses'
+      fullPath: '/customer/addresses'
+      preLoaderRoute: typeof CustomerAddressesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/customer/account': {
+      id: '/customer/account'
+      path: '/customer/account'
+      fullPath: '/customer/account'
+      preLoaderRoute: typeof CustomerAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/confirmation/$orderNumber': {
+      id: '/confirmation/$orderNumber'
+      path: '/confirmation/$orderNumber'
+      fullPath: '/confirmation/$orderNumber'
+      preLoaderRoute: typeof ConfirmationOrderNumberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/sms': {
+      id: '/admin/sms'
+      path: '/sms'
+      fullPath: '/admin/sms'
+      preLoaderRoute: typeof AdminSmsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/metrics': {
+      id: '/admin/metrics'
+      path: '/metrics'
+      fullPath: '/admin/metrics'
+      preLoaderRoute: typeof AdminMetricsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/menu': {
+      id: '/admin/menu'
+      path: '/menu'
+      fullPath: '/admin/menu'
+      preLoaderRoute: typeof AdminMenuRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/kitchen': {
+      id: '/admin/kitchen'
+      path: '/kitchen'
+      fullPath: '/admin/kitchen'
+      preLoaderRoute: typeof AdminKitchenRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/inventory': {
+      id: '/admin/inventory'
+      path: '/inventory'
+      fullPath: '/admin/inventory'
+      preLoaderRoute: typeof AdminInventoryRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/dispatch': {
+      id: '/admin/dispatch'
+      path: '/dispatch'
+      fullPath: '/admin/dispatch'
+      preLoaderRoute: typeof AdminDispatchRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/coupons': {
+      id: '/admin/coupons'
+      path: '/coupons'
+      fullPath: '/admin/coupons'
+      preLoaderRoute: typeof AdminCouponsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/board': {
+      id: '/admin/board'
+      path: '/board'
+      fullPath: '/admin/board'
+      preLoaderRoute: typeof AdminBoardRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/.well-known/oauth-protected-resource': {
+      id: '/.well-known/oauth-protected-resource'
+      path: '/.well-known/oauth-protected-resource'
+      fullPath: '/.well-known/oauth-protected-resource'
+      preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.mcp/list-tools': {
+      id: '/.mcp/list-tools'
+      path: '/.mcp/list-tools'
+      fullPath: '/.mcp/list-tools'
+      preLoaderRoute: typeof Char91DotmcpChar93ListToolsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/inventory/': {
@@ -761,25 +754,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInventoryIndexRouteImport
       parentRoute: typeof AdminInventoryRoute
     }
-    '/admin/inventory/ingredients': {
-      id: '/admin/inventory/ingredients'
-      path: '/ingredients'
-      fullPath: '/admin/inventory/ingredients'
-      preLoaderRoute: typeof AdminInventoryIngredientsRouteImport
-      parentRoute: typeof AdminInventoryRoute
-    }
-    '/admin/inventory/purchases': {
-      id: '/admin/inventory/purchases'
-      path: '/purchases'
-      fullPath: '/admin/inventory/purchases'
-      preLoaderRoute: typeof AdminInventoryPurchasesRouteImport
-      parentRoute: typeof AdminInventoryRoute
-    }
-    '/admin/inventory/recipes': {
-      id: '/admin/inventory/recipes'
-      path: '/recipes'
-      fullPath: '/admin/inventory/recipes'
-      preLoaderRoute: typeof AdminInventoryRecipesRouteImport
+    '/admin/inventory/waste': {
+      id: '/admin/inventory/waste'
+      path: '/waste'
+      fullPath: '/admin/inventory/waste'
+      preLoaderRoute: typeof AdminInventoryWasteRouteImport
       parentRoute: typeof AdminInventoryRoute
     }
     '/admin/inventory/suppliers': {
@@ -789,12 +768,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminInventorySuppliersRouteImport
       parentRoute: typeof AdminInventoryRoute
     }
-    '/admin/inventory/waste': {
-      id: '/admin/inventory/waste'
-      path: '/waste'
-      fullPath: '/admin/inventory/waste'
-      preLoaderRoute: typeof AdminInventoryWasteRouteImport
+    '/admin/inventory/recipes': {
+      id: '/admin/inventory/recipes'
+      path: '/recipes'
+      fullPath: '/admin/inventory/recipes'
+      preLoaderRoute: typeof AdminInventoryRecipesRouteImport
       parentRoute: typeof AdminInventoryRoute
+    }
+    '/admin/inventory/purchases': {
+      id: '/admin/inventory/purchases'
+      path: '/purchases'
+      fullPath: '/admin/inventory/purchases'
+      preLoaderRoute: typeof AdminInventoryPurchasesRouteImport
+      parentRoute: typeof AdminInventoryRoute
+    }
+    '/admin/inventory/ingredients': {
+      id: '/admin/inventory/ingredients'
+      path: '/ingredients'
+      fullPath: '/admin/inventory/ingredients'
+      preLoaderRoute: typeof AdminInventoryIngredientsRouteImport
+      parentRoute: typeof AdminInventoryRoute
+    }
+    '/.mcp/invoke-tool/$tool': {
+      id: '/.mcp/invoke-tool/$tool'
+      path: '/.mcp/invoke-tool/$tool'
+      fullPath: '/.mcp/invoke-tool/$tool'
+      preLoaderRoute: typeof Char91DotmcpChar93InvokeToolToolRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
