@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { ShoppingBag, Menu as MenuIcon, X, User, Search } from "lucide-react";
+import { ShoppingBag, Menu as MenuIcon, X, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart-store";
-import { useCustomer } from "@/lib/customer-auth";
 import { Button } from "@/components/ui/button";
+import { AccountMenu } from "@/components/customer/AccountMenu";
 import { LANGS, i18n, useT } from "@/lib/i18n";
 import { cartSheet } from "@/lib/ui-store";
 import { useLiveMenu, isOpenNow } from "@/lib/use-live-menu";
@@ -19,7 +19,6 @@ const NAV = [
 export function SiteHeader() {
   const { t, lang } = useT();
   const cart = useCart();
-  const { customer } = useCustomer();
   const { settings } = useLiveMenu();
   const open = isOpenNow(settings);
   const count = cart.reduce((s, i) => s + i.quantity, 0);
@@ -110,12 +109,7 @@ export function SiteHeader() {
             </Button>
           </Link>
 
-          <Link to="/account">
-            <Button variant="ghost" size="sm" className="min-h-11 gap-2">
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">{customer ? customer.name.split(" ")[0] : t("nav.account")}</span>
-            </Button>
-          </Link>
+          <AccountMenu />
 
           <Button
             variant="default"
