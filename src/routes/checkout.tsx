@@ -35,18 +35,17 @@ import {
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { seoHead } from "@/seo/head";
 
 export const Route = createFileRoute("/checkout")({
-  head: () => ({
-    meta: [
-      { title: "Finaliser la commande — Les Délices d'Aden" },
-      { name: "description", content: "Renseignez vos coordonnées et confirmez votre commande pour ramassage ou livraison chez Les Délices d'Aden." },
-      { property: "og:title", content: "Finaliser la commande — Les Délices d'Aden" },
-      { property: "og:description", content: "Confirmez votre commande pour ramassage ou livraison." },
-      { property: "og:url", content: "/checkout" },
-    ],
-    links: [{ rel: "canonical", href: "/checkout" }],
-  }),
+  // Private page: noindex (also Disallow in public/robots.txt).
+  head: () =>
+    seoHead({
+      title: "Finaliser la commande — Les Délices d'Aden",
+      description:
+        "Renseignez vos coordonnées et confirmez votre commande pour ramassage ou livraison chez Les Délices d'Aden.",
+      noindex: true,
+    }),
   component: CheckoutPage,
 });
 
@@ -99,7 +98,8 @@ function CheckoutPage() {
   const [scheduledTime, setScheduledTime] = useState("");
   const [payment, setPayment] = useState<"pay_at_restaurant" | "cash" | "card_on_arrival" | "online">("pay_at_restaurant");
   const [notes, setNotes] = useState("");
-  const [smsOptIn, setSmsOptIn] = useState(true);
+  // CASL: SMS box unticked by default; the customer opts in.
+  const [smsOptIn, setSmsOptIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -412,6 +412,9 @@ function CheckoutPage() {
                 <span>
                   <span className="font-medium">J'accepte de recevoir des SMS concernant ma commande.</span>
                   <span className="mt-0.5 block text-xs text-muted-foreground">Vous recevrez seulement les mises à jour de cette commande.</span>
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Répondez STOP pour ne plus recevoir de textos.
+                  </span>
                 </span>
               </label>
             </Section>

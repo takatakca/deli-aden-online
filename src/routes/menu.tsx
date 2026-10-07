@@ -6,18 +6,28 @@ import { useCart, fmt, computeTotals } from "@/lib/cart-store";
 import { ShoppingBag } from "lucide-react";
 import { SmartSearch } from "@/components/SmartSearch";
 import { api, type MenuOverride, type PublicSettings } from "@/lib/api";
+import { seoHead } from "@/seo/head";
 
 export const Route = createFileRoute("/menu")({
-  head: () => ({
-    meta: [
-      { title: "Menu — Les Délices d'Aden" },
-      { name: "description", content: "Découvrez notre menu : plats algériens, grillades, poissons, fast food et desserts faits maison. Commandez en ligne." },
-      { property: "og:title", content: "Menu — Les Délices d'Aden" },
-      { property: "og:description", content: "Plats algériens, grillades, poissons, fast food et desserts. Commandez en ligne." },
-      { property: "og:url", content: "/menu" },
-    ],
-    links: [{ rel: "canonical", href: "/menu" }],
-  }),
+  head: () => {
+    const seo = seoHead({
+      title: "Menu — Les Délices d'Aden",
+      description:
+        "Découvrez notre menu : plats algériens, grillades, poissons, fast food et desserts faits maison. Commandez en ligne.",
+      path: "/menu",
+    });
+    return {
+      meta: [
+        ...seo.meta,
+        {
+          property: "og:description",
+          content:
+            "Plats algériens, grillades, poissons, fast food et desserts. Commandez en ligne.",
+        },
+      ],
+      links: seo.links,
+    };
+  },
   component: MenuPage,
 });
 

@@ -1,5 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Phone, Mail, MapPin, Clock } from "lucide-react";
+import { SITE } from "@/site.config";
+import { ManageCookiesLink } from "@/consent/ManageCookiesLink";
 
 export function SiteFooter() {
   return (
@@ -31,14 +33,26 @@ export function SiteFooter() {
         <div>
           <div className="mb-3 font-display font-semibold text-accent">Contact</div>
           <ul className="space-y-2 text-sm opacity-90">
-            <li className="flex items-center gap-2"><Phone className="h-3.5 w-3.5" /><span>(000) 000-0000</span></li>
+            {/* Phone and address were placeholders: shown only once set in src/site.config.ts. */}
+            {SITE.phone ? (
+              <li className="flex items-center gap-2">
+                <Phone className="h-3.5 w-3.5" />
+                <span>{SITE.phone}</span>
+              </li>
+            ) : null}
             <li className="flex items-center gap-2"><Mail className="h-3.5 w-3.5" /><span>orders@deliaden.ca</span></li>
-            <li className="flex items-start gap-2"><MapPin className="mt-0.5 h-3.5 w-3.5" /><span>Adresse du restaurant, Québec</span></li>
+            {SITE.address ? (
+              <li className="flex items-start gap-2">
+                <MapPin className="mt-0.5 h-3.5 w-3.5" />
+                <span>{`${SITE.address.streetAddress}, ${SITE.address.addressLocality}`}</span>
+              </li>
+            ) : null}
           </ul>
         </div>
       </div>
       <div className="border-t border-primary-foreground/10 py-4 text-center text-xs opacity-70">
-        © {new Date().getFullYear()} Les Délices d'Aden Restaurant — Tous droits réservés
+        © {new Date().getFullYear()} Les Délices d'Aden Restaurant — Tous droits réservés{" "}
+        <ManageCookiesLink className="ml-2 underline-offset-2 hover:underline" />
       </div>
     </footer>
   );

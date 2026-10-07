@@ -16,9 +16,28 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { CartSheet, CartStickyCta } from "@/components/CartSheet";
 import { MobileTabBar } from "@/components/MobileTabBar";
 import { OfflineBanner } from "@/components/OfflineBanner";
-
+import { CookieBanner } from "@/consent/CookieBanner";
+import { SITE } from "@/site.config";
+import { seoHead } from "@/seo/head";
+import { jsonLdScript, siteJsonLd, websiteJsonLd } from "@/seo/jsonld";
 
 import appCss from "../styles.css?url";
+
+// Site-wide defaults (no canonical here: each public route sets its own).
+const defaultSeo = seoHead();
+
+// Restaurant node (moved from the home page). Address, phone and hours are left out until the
+// owner confirms them (the site only had placeholders): see TODO(owner) in src/site.config.ts.
+const restaurantJsonLd = siteJsonLd({
+  servesCuisine: ["Algerian", "Maghrebi", "Mediterranean"],
+  priceRange: "$$",
+  acceptsReservations: false,
+  hasMenu: `${SITE.url}/menu`,
+  potentialAction: {
+    "@type": "OrderAction",
+    target: `${SITE.url}/menu`,
+  },
+});
 
 function NotFoundComponent() {
   return (
@@ -74,22 +93,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-title", content: "Deli Aden" },
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
 
-      { title: "Les Délices d'Aden — Restaurant algérien, commander en ligne" },
-      {
-        name: "description",
-        content:
-          "Cuisine algérienne authentique, grillades, poissons, fast food et desserts faits maison. Commandez en ligne pour ramassage ou livraison.",
-      },
-      { property: "og:title", content: "Les Délices d'Aden — Restaurant algérien, commander en ligne" },
-      { property: "og:description", content: "Les Délices d'Aden — Restaurant algérien, commander en ligne" },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Les Délices d'Aden — Restaurant algérien, commander en ligne" },
-      { name: "description", content: "Les Délices d'Aden — Restaurant algérien, commander en ligne" },
-      { name: "twitter:description", content: "Les Délices d'Aden — Restaurant algérien, commander en ligne" },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/60984ac2-fd40-4a8a-81e4-59488bb0d452/id-preview-7e12d942--f17bf5a0-b328-4c69-849b-9ff879a59797.lovable.app-1780815513858.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/60984ac2-fd40-4a8a-81e4-59488bb0d452/id-preview-7e12d942--f17bf5a0-b328-4c69-849b-9ff879a59797.lovable.app-1780815513858.png" },
+      // Title, one description, Open Graph, Twitter and share image (/icons/icon-512.png)
+      // from src/site.config.ts.
+      ...defaultSeo.meta,
     ],
+    scripts: [jsonLdScript([restaurantJsonLd, websiteJsonLd()])],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
@@ -112,10 +120,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr">
+    <html lang="fr-CA">
       <head><HeadContent /></head>
       <body>
         {children}
+        <CookieBanner />
         <Scripts />
       </body>
     </html>

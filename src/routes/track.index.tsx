@@ -4,22 +4,27 @@ import { MapPin, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { seoHead } from "@/seo/head";
 
 export const Route = createFileRoute("/track/")({
-  head: () => ({
-    meta: [
-      { title: "Suivre ma commande — Les Délices d'Aden" },
-      {
-        name: "description",
-        content:
-          "Entrez votre numéro de commande pour suivre en direct la préparation et la livraison de votre repas chez Les Délices d'Aden.",
-      },
-      { property: "og:title", content: "Suivre ma commande — Les Délices d'Aden" },
-      { property: "og:description", content: "Suivi en direct de votre commande, minute par minute." },
-      { property: "og:url", content: "/track" },
-    ],
-    links: [{ rel: "canonical", href: "/track" }],
-  }),
+  head: () => {
+    const seo = seoHead({
+      title: "Suivre ma commande — Les Délices d'Aden",
+      description:
+        "Entrez votre numéro de commande pour suivre en direct la préparation et la livraison de votre repas chez Les Délices d'Aden.",
+      path: "/track",
+    });
+    return {
+      meta: [
+        ...seo.meta,
+        {
+          property: "og:description",
+          content: "Suivi en direct de votre commande, minute par minute.",
+        },
+      ],
+      links: seo.links,
+    };
+  },
   component: TrackIndexPage,
 });
 

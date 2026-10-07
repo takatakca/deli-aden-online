@@ -341,7 +341,8 @@ export const i18n = {
   set(lang: Lang) {
     current = lang;
     if (typeof window !== "undefined") window.localStorage.setItem(KEY, lang);
-    if (typeof document !== "undefined") document.documentElement.lang = lang;
+    if (typeof document !== "undefined")
+      document.documentElement.lang = lang === "fr" ? "fr-CA" : lang;
     listeners.forEach((l) => l());
   },
   /** Applies the persisted language after hydration. Safe to call repeatedly. */

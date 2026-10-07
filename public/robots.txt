@@ -2,3 +2,12 @@ User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /confirmation/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /account
+Disallow: /customer/
+Disallow: /driver
+Disallow: /track/
+Disallow: /api/
+
+Sitemap: https://deliaden.ca/sitemap.xml

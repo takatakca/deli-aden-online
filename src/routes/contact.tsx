@@ -7,18 +7,29 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Phone, Mail, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import { SITE } from "@/site.config";
+import { seoHead } from "@/seo/head";
 
 export const Route = createFileRoute("/contact")({
-  head: () => ({
-    meta: [
-      { title: "Contact — Les Délices d'Aden" },
-      { name: "description", content: "Contactez Les Délices d'Aden pour vos questions, réservations et commandes spéciales. Téléphone, email et adresse au Québec." },
-      { property: "og:title", content: "Contactez Les Délices d'Aden" },
-      { property: "og:description", content: "Téléphone, email et adresse de notre restaurant algérien au Québec." },
-      { property: "og:url", content: "/contact" },
-    ],
-    links: [{ rel: "canonical", href: "/contact" }],
-  }),
+  head: () => {
+    const seo = seoHead({
+      title: "Contact — Les Délices d'Aden",
+      description:
+        "Contactez Les Délices d'Aden pour vos questions, réservations et commandes spéciales. Téléphone, email et adresse au Québec.",
+      path: "/contact",
+    });
+    return {
+      meta: [
+        ...seo.meta,
+        { property: "og:title", content: "Contactez Les Délices d'Aden" },
+        {
+          property: "og:description",
+          content: "Téléphone, email et adresse de notre restaurant algérien au Québec.",
+        },
+      ],
+      links: seo.links,
+    };
+  },
   component: Contact,
 });
 
@@ -75,9 +86,19 @@ function Contact() {
           <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
             <h2 className="font-display text-lg font-semibold">Coordonnées</h2>
             <ul className="mt-4 space-y-3 text-sm">
-              <li className="flex items-center gap-3"><Phone className="h-4 w-4 text-primary" /> (000) 000-0000</li>
+              {/* Phone and address were placeholders: shown only once set in src/site.config.ts. */}
+              {SITE.phone ? (
+                <li className="flex items-center gap-3">
+                  <Phone className="h-4 w-4 text-primary" /> {SITE.phone}
+                </li>
+              ) : null}
               <li className="flex items-center gap-3"><Mail className="h-4 w-4 text-primary" /> orders@deliaden.ca</li>
-              <li className="flex items-start gap-3"><MapPin className="mt-0.5 h-4 w-4 text-primary" /> Adresse du restaurant, Québec</li>
+              {SITE.address ? (
+                <li className="flex items-start gap-3">
+                  <MapPin className="mt-0.5 h-4 w-4 text-primary" />{" "}
+                  {`${SITE.address.streetAddress}, ${SITE.address.addressLocality}`}
+                </li>
+              ) : null}
             </ul>
           </div>
           <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">

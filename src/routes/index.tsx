@@ -16,7 +16,7 @@ import { currentDaypart, daypartPicks } from "@/lib/daypart";
 import { useCart } from "@/lib/cart-store";
 import { Button } from "@/components/ui/button";
 import { MENU } from "@/lib/menu";
-
+import { seoHead } from "@/seo/head";
 
 const SIGNATURE_IDS = ["couscous-royal", "mix-grill", "rechta", "tacos-gratine", "kalb-el-louz"];
 
@@ -32,42 +32,26 @@ const CHIPS: { label: string; hash: string }[] = [
 ];
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Les Délices d'Aden | Restaurant algérien — Commande en ligne" },
-      {
-        name: "description",
-        content:
-          "Cuisine algérienne, grillades, fast food, desserts. Commandez en ligne pour ramassage ou livraison à Québec.",
-      },
-      { property: "og:title", content: "Les Délices d'Aden | Restaurant algérien" },
-      {
-        property: "og:description",
-        content: "Grillades, couscous, tacos et pâtisseries maison. Ramassage ou livraison.",
-      },
-      { property: "og:url", content: "/" },
-      { property: "og:type", content: "website" },
-    ],
-    links: [{ rel: "canonical", href: "/" }],
-    scripts: [
-      {
-        type: "application/ld+json",
-        children: JSON.stringify({
-          "@context": "https://schema.org",
-          "@type": "Restaurant",
-          name: "Les Délices d'Aden",
-          servesCuisine: ["Algerian", "Maghrebi", "Mediterranean"],
-          priceRange: "$$",
-          acceptsReservations: false,
-          hasMenu: "https://deli-aden-orders.lovable.app/menu",
-          potentialAction: {
-            "@type": "OrderAction",
-            target: "https://deli-aden-orders.lovable.app/menu",
-          },
-        }),
-      },
-    ],
-  }),
+  // Restaurant JSON-LD is emitted once by the root route (src/routes/__root.tsx).
+  head: () => {
+    const seo = seoHead({
+      title: "Les Délices d'Aden | Restaurant algérien — Commande en ligne",
+      description:
+        "Cuisine algérienne, grillades, fast food, desserts. Commandez en ligne pour ramassage ou livraison à Québec.",
+      path: "/",
+    });
+    return {
+      meta: [
+        ...seo.meta,
+        { property: "og:title", content: "Les Délices d'Aden | Restaurant algérien" },
+        {
+          property: "og:description",
+          content: "Grillades, couscous, tacos et pâtisseries maison. Ramassage ou livraison.",
+        },
+      ],
+      links: seo.links,
+    };
+  },
   component: Home,
 });
 

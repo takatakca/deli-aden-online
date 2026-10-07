@@ -1,16 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { seoHead } from "@/seo/head";
 
 export const Route = createFileRoute("/about")({
-  head: () => ({
-    meta: [
-      { title: "À propos — Les Délices d'Aden" },
-      { name: "description", content: "Découvrez l'histoire des Délices d'Aden : cuisine algérienne authentique, recettes familiales et saveurs du Maghreb au Québec." },
-      { property: "og:title", content: "À propos — Les Délices d'Aden" },
-      { property: "og:description", content: "Notre histoire et notre passion pour la cuisine algérienne authentique au Québec." },
-      { property: "og:url", content: "/about" },
-    ],
-    links: [{ rel: "canonical", href: "/about" }],
-  }),
+  head: () => {
+    const seo = seoHead({
+      title: "À propos — Les Délices d'Aden",
+      description:
+        "Découvrez l'histoire des Délices d'Aden : cuisine algérienne authentique, recettes familiales et saveurs du Maghreb au Québec.",
+      path: "/about",
+    });
+    return {
+      meta: [
+        ...seo.meta,
+        {
+          property: "og:description",
+          content:
+            "Notre histoire et notre passion pour la cuisine algérienne authentique au Québec.",
+        },
+      ],
+      links: seo.links,
+    };
+  },
   component: About,
 });
 

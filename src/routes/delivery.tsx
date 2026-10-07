@@ -4,18 +4,27 @@ import { api, type PublicSettings } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Phone, MapPin, Clock, Truck, CheckCircle2, XCircle } from "lucide-react";
 import { fmt } from "@/lib/cart-store";
+import { seoHead } from "@/seo/head";
 
 export const Route = createFileRoute("/delivery")({
-  head: () => ({
-    meta: [
-      { title: "Livraison — Les Délices d'Aden" },
-      { name: "description", content: "Service de livraison à domicile. Minimum de commande, frais, zones desservies et temps de livraison estimés." },
-      { property: "og:title", content: "Livraison — Les Délices d'Aden" },
-      { property: "og:description", content: "Faites-vous livrer vos plats algériens préférés à domicile." },
-      { property: "og:url", content: "/delivery" },
-    ],
-    links: [{ rel: "canonical", href: "/delivery" }],
-  }),
+  head: () => {
+    const seo = seoHead({
+      title: "Livraison — Les Délices d'Aden",
+      description:
+        "Service de livraison à domicile. Minimum de commande, frais, zones desservies et temps de livraison estimés.",
+      path: "/delivery",
+    });
+    return {
+      meta: [
+        ...seo.meta,
+        {
+          property: "og:description",
+          content: "Faites-vous livrer vos plats algériens préférés à domicile.",
+        },
+      ],
+      links: seo.links,
+    };
+  },
   component: DeliveryPage,
 });
 

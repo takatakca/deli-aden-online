@@ -1,11 +1,12 @@
 import { defineTool } from "@lovable.dev/mcp-js";
+import { SITE } from "@/site.config";
 
 const INFO = {
   name: "Les Délices d'Aden",
   cuisine: "Algerian",
   description:
     "Cuisine algérienne authentique, grillades, poissons, fast food et desserts faits maison. Ramassage et livraison.",
-  website: "https://deli-aden-orders.lovable.app",
+  website: SITE.url,
   email: "orders@deliaden.ca",
   city: "Québec, QC, Canada",
   currency: "CAD",
@@ -16,7 +17,7 @@ const INFO = {
     friday_saturday: "11:00–23:00",
     sunday: "12:00–22:00",
   },
-  orderOnline: "https://deli-aden-orders.lovable.app/menu",
+  orderOnline: `${SITE.url}/menu`,
 };
 
 export default defineTool({

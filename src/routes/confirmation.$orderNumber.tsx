@@ -12,10 +12,8 @@ export const Route = createFileRoute("/confirmation/$orderNumber")({
       { name: "description", content: `Confirmation de la commande ${params.orderNumber} chez Les Délices d'Aden. Merci de votre confiance !` },
       { property: "og:title", content: `Commande ${params.orderNumber} confirmée` },
       { property: "og:description", content: "Votre commande est bien enregistrée chez Les Délices d'Aden." },
-      { property: "og:url", content: `/confirmation/${params.orderNumber}` },
       { name: "robots", content: "noindex" },
     ],
-    links: [{ rel: "canonical", href: `/confirmation/${params.orderNumber}` }],
   }),
   component: ConfirmationPage,
 });

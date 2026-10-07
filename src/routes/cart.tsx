@@ -2,18 +2,17 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { useCart, cartStore, computeTotals, fmt } from "@/lib/cart-store";
 import { Button } from "@/components/ui/button";
+import { seoHead } from "@/seo/head";
 
 export const Route = createFileRoute("/cart")({
-  head: () => ({
-    meta: [
-      { title: "Panier — Les Délices d'Aden" },
-      { name: "description", content: "Vérifiez vos plats sélectionnés et passez à la caisse pour finaliser votre commande chez Les Délices d'Aden." },
-      { property: "og:title", content: "Votre panier — Les Délices d'Aden" },
-      { property: "og:description", content: "Récapitulatif de votre commande chez Les Délices d'Aden." },
-      { property: "og:url", content: "/cart" },
-    ],
-    links: [{ rel: "canonical", href: "/cart" }],
-  }),
+  // Private page: noindex (also Disallow in public/robots.txt).
+  head: () =>
+    seoHead({
+      title: "Panier — Les Délices d'Aden",
+      description:
+        "Vérifiez vos plats sélectionnés et passez à la caisse pour finaliser votre commande chez Les Délices d'Aden.",
+      noindex: true,
+    }),
   component: CartPage,
 });
 
