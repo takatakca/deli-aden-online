@@ -1,7 +1,7 @@
 /* eslint-disable */
 // MochaHost Node.js entry point — Deli Aden ordering system.
 // Run with: node server.cjs
-// Requires: npm install && npm run build (produces ./dist)
+// Requires: npm install && npm run build (produces the static client output)
 //
 // Database priority:
 //   1. MySQL/MariaDB if DB_HOST is set (recommended for production)
@@ -19,7 +19,12 @@ const { mountPayments, webhookHandler: stripeWebhookHandler } = require("./serve
 const { createRealtime } = require("./server-realtime.cjs");
 
 const PORT = parseInt(process.env.PORT || "3000", 10);
-const DIST_DIR = path.join(__dirname, "dist");
+const DIST_CANDIDATES = [
+  path.join(__dirname, "dist", "client"),
+  path.join(__dirname, "dist"),
+  path.join(__dirname, ".output", "public"),
+];
+const DIST_DIR = DIST_CANDIDATES.find((p) => fs.existsSync(p)) || DIST_CANDIDATES[0];
 const NODE_ENV = process.env.NODE_ENV || "development";
 const IS_PROD = NODE_ENV === "production";
 
@@ -1456,6 +1461,38 @@ app.post("/api/contact", contactLimiter, async (req, res) => {
     sendContactEmail({ name, phone, email, message }).catch((e) => console.error("[mail] async", e.message));
     res.json({ ok: true });
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
+});
+
+// ---------- Public SEO endpoints ----------
+app.get("/sitemap.xml", (req, res) => {
+  const baseUrl = (process.env.PUBLIC_BASE_URL || "https://deliaden.ca").replace(/\/$/, "");
+  const paths = [
+    ["/", "weekly", "1.0"],
+    ["/menu", "weekly", "0.9"],
+    ["/about", "monthly", "0.6"],
+    ["/contact", "monthly", "0.6"],
+  ];
+  const xml = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...paths.map(([p, changefreq, priority]) => [
+      "  <url>",
+      `    <loc>${baseUrl}${p}</loc>`,
+      `    <changefreq>${changefreq}</changefreq>`,
+      `    <priority>${priority}</priority>`,
+      "  </url>",
+    ].join("\n")),
+    "</urlset>",
+  ].join("\n");
+  res.type("application/xml").set("Cache-Control", "public, max-age=3600").send(xml);
+});
+
+app.get("/robots.txt", (req, res) => {
+  const baseUrl = (process.env.PUBLIC_BASE_URL || "https://deliaden.ca").replace(/\/$/, "");
+  res.type("text/plain").send(`User-agent: *
+Allow: /
+Sitemap: ${baseUrl}/sitemap.xml
+`);
 });
 
 // ---------- Static frontend ----------
