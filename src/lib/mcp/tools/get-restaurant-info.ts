@@ -1,4 +1,4 @@
-const INFO = {
+export const RESTAURANT_INFO = {
   name: "Les Délices d'Aden",
   cuisine: "Algerian",
   description:
@@ -15,8 +15,8 @@ const INFO = {
     sunday: "12:00–22:00",
   },
   orderOnline: "https://deliaden.ca/menu",
-};
+} as const;
 
 export default function getRestaurantInfo() {
-  return INFO;
+  return RESTAURANT_INFO;
 }
