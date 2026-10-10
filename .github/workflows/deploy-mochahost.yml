@@ -1,0 +1,177 @@
+name: Deploy Deli Aden to MochaHost
+
+on:
+  workflow_run:
+    workflows:
+      - Deli Aden CI
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deli-aden-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+      PRODUCTION_URL: https://deliaden.ca
+      MOCHAHOST_HOST: ${{ secrets.MOCHAHOST_HOST }}
+      MOCHAHOST_USER: ${{ secrets.MOCHAHOST_USER }}
+      MOCHAHOST_PORT: ${{ secrets.MOCHAHOST_PORT || '22' }}
+      MOCHAHOST_APP_PATH: ${{ secrets.MOCHAHOST_APP_PATH }}
+    steps:
+      - name: Checkout validated revision
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.DEPLOY_SHA }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Validate deployment configuration
+        run: |
+          set -euo pipefail
+          test -n "$MOCHAHOST_HOST" || { echo "::error::Missing MOCHAHOST_HOST"; exit 1; }
+          test -n "$MOCHAHOST_USER" || { echo "::error::Missing MOCHAHOST_USER"; exit 1; }
+          test -n "$MOCHAHOST_APP_PATH" || { echo "::error::Missing MOCHAHOST_APP_PATH"; exit 1; }
+
+      - name: Validate browser configuration
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ vars.VITE_SUPABASE_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          test -n "$VITE_SUPABASE_URL" || { echo "::error::Missing VITE_SUPABASE_URL"; exit 1; }
+          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY" || { echo "::error::Missing VITE_SUPABASE_PUBLISHABLE_KEY"; exit 1; }
+          test -n "$VITE_SUPABASE_PROJECT_ID" || { echo "::error::Missing VITE_SUPABASE_PROJECT_ID"; exit 1; }
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+
+      - name: Build production
+        env:
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ vars.VITE_SUPABASE_PROJECT_ID }}
+          VITE_APP_URL: https://deliaden.ca
+        run: npm run build
+
+      - name: Normalize release
+        run: |
+          set -euo pipefail
+          rm -rf .release
+          mkdir -p .release/dist
+          if [ -f dist/index.html ]; then
+            cp -a dist/. .release/dist/
+          elif [ -f dist/client/index.html ]; then
+            cp -a dist/client/. .release/dist/
+          elif [ -f .output/public/index.html ]; then
+            cp -a .output/public/. .release/dist/
+          else
+            echo "::error::No production frontend output found"
+            exit 1
+          fi
+          printf '%s\n' "$DEPLOY_SHA" > .release/dist/revision.txt
+          cp server.cjs .release/server.cjs
+          for f in server-customers.cjs server-payments.cjs server-realtime.cjs; do
+            if [ -f "$f" ]; then cp "$f" ".release/$f"; fi
+          done
+          test -f .release/dist/index.html
+          tar -C .release -czf "deli-aden-$DEPLOY_SHA.tar.gz" .
+
+      - name: Configure SSH
+        env:
+          MOCHAHOST_SSH_KEY: ${{ secrets.MOCHAHOST_SSH_KEY }}
+          MOCHAHOST_KNOWN_HOSTS: ${{ secrets.MOCHAHOST_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          test -n "$MOCHAHOST_SSH_KEY" || { echo "::error::Missing MOCHAHOST_SSH_KEY"; exit 1; }
+          test -n "$MOCHAHOST_KNOWN_HOSTS" || { echo "::error::Missing MOCHAHOST_KNOWN_HOSTS"; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$MOCHAHOST_SSH_KEY" | tr -d '\r' > ~/.ssh/deli_aden_key
+          printf '%s\n' "$MOCHAHOST_KNOWN_HOSTS" | tr -d '\r' > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deli_aden_key ~/.ssh/known_hosts
+          ssh-keygen -y -f ~/.ssh/deli_aden_key >/dev/null
+
+      - name: Verify SSH
+        run: |
+          ssh -T -i ~/.ssh/deli_aden_key -p "$MOCHAHOST_PORT" -o BatchMode=yes -o ConnectTimeout=15 "$MOCHAHOST_USER@$MOCHAHOST_HOST" "printf '%s\\n' DELI_ADEN_REMOTE_EXEC_OK"
+
+      - name: Upload release
+        run: |
+          set -euo pipefail
+          archive="deli-aden-$DEPLOY_SHA.tar.gz"
+          remote_dir="$MOCHAHOST_APP_PATH/incoming"
+          remote="$remote_dir/$archive"
+          ssh -T -i ~/.ssh/deli_aden_key -p "$MOCHAHOST_PORT" -o BatchMode=yes "$MOCHAHOST_USER@$MOCHAHOST_HOST" "mkdir -p $(printf '%q' "$remote_dir") && cat > $(printf '%q' "$remote")" < "$archive"
+
+      - name: Activate release
+        run: |
+          set -euo pipefail
+          {
+            printf 'set -euo pipefail\n'
+            printf 'APP_PATH=%q\n' "$MOCHAHOST_APP_PATH"
+            printf 'SHA=%q\n' "$DEPLOY_SHA"
+            printf 'URL=%q\n' "$PRODUCTION_URL"
+            cat <<'REMOTE'
+          cd "$APP_PATH"
+          ARCHIVE="incoming/deli-aden-$SHA.tar.gz"
+          STAGE=".release-stage-$SHA"
+          BACKUPS=".release-backups"
+          mkdir -p "$STAGE" "$BACKUPS"
+          tar -xzf "$ARCHIVE" -C "$STAGE"
+          test -f "$STAGE/dist/index.html"
+          test "$(tr -d '\r\n' < "$STAGE/dist/revision.txt")" = "$SHA"
+          stamp="$(date +%Y%m%d%H%M%S)"
+          if [ -d dist ]; then mv dist "$BACKUPS/dist-$stamp"; fi
+          if [ -f server.cjs ]; then cp server.cjs "$BACKUPS/server-$stamp.cjs"; fi
+          mv "$STAGE/dist" dist
+          mv "$STAGE/server.cjs" server.cjs
+          for f in server-customers.cjs server-payments.cjs server-realtime.cjs; do
+            if [ -f "$STAGE/$f" ]; then cp "$STAGE/$f" "$f"; fi
+          done
+          mkdir -p tmp
+          touch tmp/restart.txt
+          sleep 3
+          for attempt in $(seq 1 18); do
+            code="$(curl -sS -o /tmp/deli-health -w '%{http_code}' --max-time 15 "$URL/healthz" || true)"
+            body="$(tr -d '\r\n' < /tmp/deli-health 2>/dev/null || true)"
+            revision="$(curl -sS --max-time 15 "$URL/revision.txt" 2>/dev/null | tr -d '\r\n' || true)"
+            if [ "$code" = "200" ] && [ "$body" = "ok" ] && [ "$revision" = "$SHA" ]; then
+              rm -f "$ARCHIVE"
+              rm -rf "$STAGE"
+              echo "DELI_ADEN_DEPLOYMENT_VERIFIED $SHA"
+              exit 0
+            fi
+            echo "attempt=$attempt health=$code body=$body revision=$revision"
+            sleep 5
+          done
+          echo "Deployment failed; restoring previous release."
+          failed="dist-failed-$SHA"
+          mv dist "$failed"
+          previous="$(ls -1dt "$BACKUPS"/dist-* 2>/dev/null | head -n 1 || true)"
+          if [ -n "$previous" ]; then mv "$previous" dist; else exit 1; fi
+          touch tmp/restart.txt
+          exit 1
+          REMOTE
+          } | ssh -T -i ~/.ssh/deli_aden_key -p "$MOCHAHOST_PORT" -o BatchMode=yes -o ConnectTimeout=15 "$MOCHAHOST_USER@$MOCHAHOST_HOST" "bash -se"
+
+      - name: Final public verification
+        run: |
+          set -euo pipefail
+          test "$(curl -sS --fail --max-time 20 "$PRODUCTION_URL/healthz" | tr -d '\r\n')" = "ok"
+          live="$(curl -sS --fail --max-time 20 "$PRODUCTION_URL/revision.txt" | tr -d '\r\n')"
+          test "$live" = "$DEPLOY_SHA"
+          curl -sS --fail --max-time 20 "$PRODUCTION_URL/" >/dev/null
+          echo "deliaden.ca is live at $live"
