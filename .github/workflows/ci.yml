@@ -29,7 +29,6 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
-          cache: npm
       - name: Validate browser configuration
         shell: bash
         run: |
