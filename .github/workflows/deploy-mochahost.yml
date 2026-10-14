@@ -137,6 +137,7 @@ jobs:
           stamp="$(date +%Y%m%d%H%M%S)"
           if [ -d dist ]; then mv dist "$BACKUPS/dist-$stamp"; fi
           mkdir -p "$BACKUPS/server-$stamp"
+          if [ -f package.json ]; then cp package.json "$BACKUPS/server-$stamp/package.json"; fi
           for f in server.cjs server-*.cjs; do
             if [ -f "$f" ]; then cp "$f" "$BACKUPS/server-$stamp/$f"; fi
           done
@@ -167,6 +168,7 @@ jobs:
           previous="$(ls -1dt "$BACKUPS"/dist-* 2>/dev/null | head -n 1 || true)"
           if [ -n "$previous" ]; then mv "$previous" dist; else exit 1; fi
           if [ -d "$BACKUPS/server-$stamp" ]; then
+            if [ -f "$BACKUPS/server-$stamp/package.json" ]; then cp "$BACKUPS/server-$stamp/package.json" package.json; fi
             for f in "$BACKUPS/server-$stamp"/*.cjs; do
               if [ -f "$f" ]; then cp "$f" .; fi
             done
