@@ -1599,7 +1599,7 @@ let server;
   });
   app.use((err, _req, res, _next) => {
     console.error("[server] unhandled", err);
-    if (res.headersSent) return;
+    if (res.headersSent) return _next(err);
     res.status(500).json({ error: "Erreur serveur" });
   });
   server = app.listen(PORT, () => {
