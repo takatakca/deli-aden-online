@@ -1,5 +1,7 @@
 # Work log
 
+- 2026-10-14 | ChatGPT | codex/direct-github-takatak-migration → PR #1 | code pushed; CI/deploy blocked | Server-priced checkout with verified options, strict Stripe webhook signatures, catalogue included in releases, privacy-limited public tracking and private order tokens for online/offline checkout | Next: supply Supabase variables and MochaHost secrets, validate Node 22 build, staging payments/ordering, then merge and verify live revision
+
 - 2026-10-14 | ChatGPT | codex/direct-github-takatak-migration → PR #1 | code complete; validation pending | Hardened corrupted cart recovery and delegated Express errors after headers sent; strengthened GitHub artifact SHA-256 and app-root protection | Next: confirm CI variables, runtime dependencies, mobile cart, build, rollback and production gates with Codex
 
 - 2026-10-14 | ChatGPT | codex/direct-github-takatak-migration → PR #1 | code complete, untested | Added DB-backed /healthz, static SPA shell normalization, checksum verification, dedicated path/runtime guards, trusted-proxy rate limiting, menu/cart fixes, and removal of Lovable MCP manifest | Codex: configure variables, generate lockfile, verify build and checkout in staging, then review release gates
