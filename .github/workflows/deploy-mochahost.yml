@@ -65,29 +65,26 @@ jobs:
           VITE_APP_URL: https://deliaden.ca
         run: npm run build
 
-      - name: Normalize release
+      - name: Assemble and stamp release
+        shell: bash
         run: |
           set -euo pipefail
-          rm -rf .release
-          mkdir -p .release/dist
-          if [ -f dist/index.html ]; then
-            cp -a dist/. .release/dist/
-          elif [ -f dist/client/index.html ]; then
-            cp -a dist/client/. .release/dist/
-          elif [ -f .output/public/index.html ]; then
-            cp -a .output/public/. .release/dist/
-          else
-            echo "::error::No production frontend output found"
-            exit 1
-          fi
-          printf '%s\n' "$DEPLOY_SHA" > .release/dist/revision.txt
-          cp server.cjs .release/server.cjs
-          cp package.json .release/package.json
-          for f in server-*.cjs; do
-            if [ -f "$f" ]; then cp "$f" ".release/$f"; fi
+          node scripts/prepare-release.mjs
+          for f in .release/server.cjs .release/server-*.cjs; do
+            if [ -f "$f" ]; then node --check "$f"; fi
           done
-          test -f .release/dist/index.html
           tar -C .release -czf "deli-aden-$DEPLOY_SHA.tar.gz" .
+          sha256sum "deli-aden-$DEPLOY_SHA.tar.gz" > "deli-aden-$DEPLOY_SHA.sha256"
+
+      - name: Preserve release artifact in GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: deli-aden-release-${{ env.DEPLOY_SHA }}
+          path: |
+            deli-aden-${{ env.DEPLOY_SHA }}.tar.gz
+            deli-aden-${{ env.DEPLOY_SHA }}.sha256
+          retention-days: 14
+          if-no-files-found: error
 
       - name: Configure SSH
         env:
