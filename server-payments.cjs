@@ -197,15 +197,12 @@ function webhookHandler() {
     const whSec = process.env.STRIPE_WEBHOOK_SECRET;
     let event;
     try {
-      if (whSec && sig) {
-        event = stripe.webhooks.constructEvent(req.body, sig, whSec);
-      } else {
-        // Dev fallback when no webhook secret is configured
-        event = typeof req.body === "object" && !Buffer.isBuffer(req.body)
-          ? req.body
-          : JSON.parse(Buffer.isBuffer(req.body) ? req.body.toString("utf8") : String(req.body));
-        console.warn("[stripe-webhook] no STRIPE_WEBHOOK_SECRET — signature NOT verified (dev only)");
+      if (!whSec) {
+        console.error("[stripe-webhook] STRIPE_WEBHOOK_SECRET not configured; refusing unverified event");
+        return res.status(503).send("Webhook signing not configured");
       }
+      if (!sig) return res.status(400).send("Missing webhook signature");
+      event = stripe.webhooks.constructEvent(req.body, sig, whSec);
     } catch (err) {
       console.error("[stripe-webhook] signature verification failed", err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
