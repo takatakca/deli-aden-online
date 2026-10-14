@@ -82,6 +82,7 @@ jobs:
           fi
           printf '%s\n' "$DEPLOY_SHA" > .release/dist/revision.txt
           cp server.cjs .release/server.cjs
+          cp package.json .release/package.json
           for f in server-*.cjs; do
             if [ -f "$f" ]; then cp "$f" ".release/$f"; fi
           done
@@ -130,6 +131,8 @@ jobs:
           mkdir -p "$STAGE" "$BACKUPS"
           tar -xzf "$ARCHIVE" -C "$STAGE"
           test -f "$STAGE/dist/index.html"
+          test -f "$STAGE/package.json"
+          test -d node_modules || { echo "Missing production node_modules on host; refusing unsafe activation"; exit 1; }
           test "$(tr -d '\r\n' < "$STAGE/dist/revision.txt")" = "$SHA"
           stamp="$(date +%Y%m%d%H%M%S)"
           if [ -d dist ]; then mv dist "$BACKUPS/dist-$stamp"; fi
@@ -138,6 +141,7 @@ jobs:
             if [ -f "$f" ]; then cp "$f" "$BACKUPS/server-$stamp/$f"; fi
           done
           mv "$STAGE/dist" dist
+          cp "$STAGE/package.json" package.json
           for f in "$STAGE"/server.cjs "$STAGE"/server-*.cjs; do
             if [ -f "$f" ]; then cp "$f" .; fi
           done
