@@ -567,7 +567,6 @@ function CheckoutPage() {
               </Section>
 
               {payment === "online" ? (
-              {/* Coupon */}
               <Section title="Code promo" icon={<Tag className="h-5 w-5 text-primary" />}>
                 {couponApplied ? (
                   <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
