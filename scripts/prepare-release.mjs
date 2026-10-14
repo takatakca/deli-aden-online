@@ -33,7 +33,7 @@ if (!sourceDir) {
 const releaseRoot = resolve(".release");
 const releaseDist = join(releaseRoot, "dist");
 rmSync(releaseRoot, { recursive: true, force: true });
-mkdirSync(releaseDist, { recursive: true });
+mkdirSync(releaseRoot, { recursive: true });
 cpSync(sourceDir, releaseDist, { recursive: true, force: true });
 
 const htmlEntry = join(releaseDist, "index.html");
