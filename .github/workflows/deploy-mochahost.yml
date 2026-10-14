@@ -115,6 +115,12 @@ jobs:
           remote_dir="$MOCHAHOST_APP_PATH/incoming"
           remote="$remote_dir/$archive"
           ssh -T -i ~/.ssh/deli_aden_key -p "$MOCHAHOST_PORT" -o BatchMode=yes "$MOCHAHOST_USER@$MOCHAHOST_HOST" "mkdir -p $(printf '%q' "$remote_dir") && cat > $(printf '%q' "$remote")" < "$archive"
+          local_hash="$(cut -d ' ' -f 1 < "deli-aden-$DEPLOY_SHA.sha256")"
+          remote_hash="$(ssh -T -i ~/.ssh/deli_aden_key -p "$MOCHAHOST_PORT" -o BatchMode=yes "$MOCHAHOST_USER@$MOCHAHOST_HOST" "sha256sum $(printf '%q' "$remote")" | cut -d ' ' -f 1)"
+          if [ -z "$local_hash" ] || [ "$local_hash" != "$remote_hash" ]; then
+            echo "::error::Uploaded release checksum mismatch; activation blocked."
+            exit 1
+          fi
 
       - name: Activate release
         run: |
