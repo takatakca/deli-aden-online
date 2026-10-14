@@ -41,7 +41,7 @@ GitHub Actions workflows, and retains the existing business code.
 | Twilio messaging | UNVERIFIED | Existing code; test with authorized credentials and consent |
 | Restaurant ordering | UNVERIFIED | Existing code; end-to-end tests pending |
 | TAKATAK V1 identity | PLANNED | Contract and entitlement review required |
-| TAKATAK event adapter | PLANNED | Versioned authorized API contract required |
+| TAKATAK outbound event adapter | CODE COMPLETE / DISABLED | `server-takatak.cjs` exists; no confirmed master ingestion contract; stay disabled |
 | QMAPS/ON2GO discovery | PLANNED | Approved scopes and business use case required |
 
 ## Customer journey priorities
@@ -112,7 +112,32 @@ on an external builder or approved server procedure, and verify the Node.js
 runtime and native SQLite dependency compatibility. Do not declare the release
 production-ready based on the preflight alone.
 
-The existing deployment rollback restores static files and `.cjs` modules but
-must also be extended to restore `package.json` before production activation
-is approved. Verify that application state and persistent storage are excluded
-from artifact replacement.
+The deployment rollback now includes static assets, `.cjs` modules and
+`package.json`, but a production release remains blocked until the runtime
+module installation is reconciled and the rollback is verified with Codex.
+Persistent application state must remain outside replaceable artifacts.
+
+## Additional progress — 2026-10-14
+
+- Added a public `GET /healthz` endpoint with database-aware readiness and
+  no sensitive diagnostic payload. This matches the deployment workflow.
+- Static frontend fallback is now mounted after customer/payment API routes,
+  limited to GET/HEAD, and excludes API routes, metadata and missing assets.
+- Recognized TanStack SPA `_shell.html` output. The GitHub release packager
+  maps the generated shell to Express `dist/index.html`, checks the entry,
+  includes every `server-*.cjs` module, and writes a revision stamp.
+- MochaHost deployment checks a dedicated Deli Aden path and required runtime
+  modules before activation, and checks the uploaded archive SHA-256 digest.
+- Cart/menu UX: single global sticky cart CTA, stabilized category navigation,
+  quantity decrement to zero removes the line, storage-write failures do not
+  interrupt UI, and pre-checkout totals no longer display delivery fees not
+  included in the total.
+- Tightened request rate limiting to use the IP interpreted by Express's trusted
+  proxy configuration, not a raw client-supplied forwarding header.
+- Removed the old Lovable public MCP manifest and disabled the old OAuth
+  discovery response pending a properly authenticated contract.
+- Read the available TAKATAK master repository documentation and searched for
+  a `merchant/events` ingestion endpoint. No confirmed matching contract was
+  found in the inspected paths/results; do not enable outbound integration.
+- CI build, checkout, live dependency compatibility and production rollout
+  remain unverified. The current branch must not be auto-merged.
