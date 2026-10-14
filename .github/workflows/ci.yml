@@ -46,4 +46,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f dist/index.html || test -f dist/client/index.html || test -f .output/public/index.html
+          test -f dist/client/_shell.html || test -f dist/client/index.html || test -f dist/index.html || test -f dist/_shell.html || test -f .output/public/index.html || test -f .output/public/_shell.html
