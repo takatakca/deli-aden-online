@@ -1050,6 +1050,20 @@ async function emitOrderStatus(orderId, extraEvent) {
   } catch (e) { console.error("[realtime] emitOrderStatus", e.message); }
 }
 
+// Minimal public deployment health probe. Never includes database or customer details.
+// Requires a live DB connection so GitHub cannot mark a broken checkout as healthy.
+app.get("/healthz", async (_req, res) => {
+  try {
+    const ready = await dbApi.ping();
+    res.set("Cache-Control", "no-store");
+    res.status(ready ? 200 : 503).type("text/plain").send(ready ? "ok" : "unavailable");
+  } catch (error) {
+    console.error("[healthz] unavailable", error && error.message);
+    res.set("Cache-Control", "no-store");
+    res.status(503).type("text/plain").send("unavailable");
+  }
+});
+
 // ---- Health ----
 app.get("/api/health", async (_req, res) => {
   const dbOk = await dbApi.ping();
@@ -1506,11 +1520,6 @@ if (fs.existsSync(DIST_DIR)) {
   console.warn(`[server] dist/ not found at ${DIST_DIR}. Run "npm run build" first.`);
 }
 
-app.use((err, _req, res, _next) => {
-  console.error("[server] unhandled", err);
-  res.status(500).json({ error: "Erreur serveur" });
-});
-
 // =====================================================================
 // Bootstrap + graceful shutdown
 // =====================================================================
@@ -1577,11 +1586,20 @@ let server;
   }
   // SPA fallback must be registered AFTER all API/customer/payment routes.
   // Express 5 does not support the legacy app.get("*") path pattern.
-  app.use( (req, res, next) => {
-    if (req.path.startsWith("/api/")) return next();
+  app.use((req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") return next();
+    if (/^\/(api|mcp|\.mcp|\.well-known)(?:\/|$)/.test(req.path)) return next();
+    // Missing assets or files must respond with 404, never the SPA HTML.
+    if (path.extname(req.path)) return next();
     const indexHtml = path.join(DIST_DIR, "index.html");
-    if (fs.existsSync(indexHtml)) { res.setHeader("Cache-Control", "no-cache"); return res.sendFile(indexHtml); }
-    next();
+    if (!fs.existsSync(indexHtml)) return next();
+    res.setHeader("Cache-Control", "no-cache");
+    return res.sendFile(indexHtml);
+  });
+  app.use((err, _req, res, _next) => {
+    console.error("[server] unhandled", err);
+    if (res.headersSent) return;
+    res.status(500).json({ error: "Erreur serveur" });
   });
   server = app.listen(PORT, () => {
     const smtpConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
