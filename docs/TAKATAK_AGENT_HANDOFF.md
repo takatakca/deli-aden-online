@@ -101,3 +101,18 @@ functions may be reused without exposing a public tool execution API.
 Do not claim TESTED, STAGING VERIFIED or PRODUCTION VERIFIED without actual
 evidence. Continue safe changes on isolated branches and do not merge another
 agent's unreviewed work.
+
+## Deployment dependency warning (2026-10-14)
+
+The MochaHost deployment workflow now includes `package.json` and checks for
+an existing `node_modules` directory before activation. **This is only a
+preflight**, not a guarantee that dependencies match the new manifest. Codex
+must establish a reproducible lockfile, install production dependencies safely
+on an external builder or approved server procedure, and verify the Node.js
+runtime and native SQLite dependency compatibility. Do not declare the release
+production-ready based on the preflight alone.
+
+The existing deployment rollback restores static files and `.cjs` modules but
+must also be extended to restore `package.json` before production activation
+is approved. Verify that application state and persistent storage are excluded
+from artifact replacement.
