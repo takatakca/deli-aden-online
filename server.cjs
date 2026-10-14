@@ -703,6 +703,7 @@ function rowToOrder(row) {
     customer_id: row.customer_id != null ? Number(row.customer_id) : null,
 
     customer_name: row.customer_name, customer_phone: row.customer_phone, customer_email: row.customer_email,
+    sms_opt_in: row.sms_opt_in === true || row.sms_opt_in === 1 || row.sms_opt_in === "1",
     order_type: row.order_type, delivery_address: row.delivery_address,
     delivery_unit: row.delivery_unit || null,
     delivery_door_code: row.delivery_door_code || null,
@@ -1236,14 +1237,17 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
         }
       }
     } catch (_) {}
-    // Phase 5 — persist SMS opt-in (defaults to true; only update if explicitly false)
+    // SMS requires affirmative consent; absent opt-in is always false.
+    const smsConsent = req.body?.smsOptIn === true;
     try {
-      const optIn = req.body?.smsOptIn;
-      if (optIn === false || optIn === 0 || optIn === "false") {
-        if (dbApi.kind === "mysql" && dbApi._pool) await dbApi._pool.query("UPDATE orders SET sms_opt_in=0 WHERE id=?", [id]);
-        else if (dbApi.kind === "sqlite" && dbApi._db) dbApi._db.prepare("UPDATE orders SET sms_opt_in=0 WHERE id=?").run(id);
+      if (dbApi.kind === "mysql" && dbApi._pool) {
+        await dbApi._pool.query("UPDATE orders SET sms_opt_in=? WHERE id=?", [smsConsent ? 1 : 0, id]);
+      } else if (dbApi.kind === "sqlite" && dbApi._db) {
+        dbApi._db.prepare("UPDATE orders SET sms_opt_in=? WHERE id=?").run(smsConsent ? 1 : 0, id);
       }
-    } catch (_) {}
+    } catch (e) {
+      console.error("[orders] unable to persist SMS preference", e.message);
+    }
     const order = rowToOrder(await dbApi.getOrderById(id));
     sendOrderEmail(order).catch((e) => console.error("[mail] async", e.message));
     // Phase 5 — SMS: customer confirmation + admin alert (non-blocking)
@@ -1293,6 +1297,7 @@ app.get("/api/orders/:orderNumber", async (req, res) => {
     if (order) {
       delete order.admin_notes;
       delete order.delivery_door_code;
+      delete order.sms_opt_in;
       order.details_available = true;
       // Attach driver info for delivery tracking (public-safe fields only)
       if (order.order_type === "delivery") {
