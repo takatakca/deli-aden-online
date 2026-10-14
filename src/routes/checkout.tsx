@@ -265,6 +265,7 @@ function CheckoutPage() {
   });
 
   const applyCoupon = async () => {
+    if (payment !== "online") return;
     const code = couponInput.trim().toUpperCase();
     if (!code) { setCouponApplied(null); setCouponDiscount(0); setCouponFreeDelivery(false); return; }
     if (!validateStep1() || !validateStep2()) { toast.error("Complétez d'abord vos coordonnées."); return; }
@@ -537,7 +538,15 @@ function CheckoutPage() {
           {step === 3 && (
             <>
               <Section title="Mode de paiement" icon={<ShieldCheck className="h-5 w-5 text-primary" />}>
-                <RadioGroup value={payment} onValueChange={(v) => setPayment(v as typeof payment)} className="grid gap-3 sm:grid-cols-2">
+                <RadioGroup value={payment} onValueChange={(v) => {
+                  setPayment(v as typeof payment);
+                  if (v !== "online") {
+                    setCouponApplied(null);
+                    setCouponDiscount(0);
+                    setCouponFreeDelivery(false);
+                    setCouponInput("");
+                  }
+                }} className="grid gap-3 sm:grid-cols-2">
                   {paymentsEnabled && (
                     <RadioCard value="online" current={payment} label="Payer en ligne" desc="Carte • Apple Pay • Google Pay" />
                   )}
@@ -557,6 +566,7 @@ function CheckoutPage() {
                 )}
               </Section>
 
+              {payment === "online" ? (
               {/* Coupon */}
               <Section title="Code promo" icon={<Tag className="h-5 w-5 text-primary" />}>
                 {couponApplied ? (
@@ -586,6 +596,11 @@ function CheckoutPage() {
                   </div>
                 )}
               </Section>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Les codes promotionnels sont actuellement offerts uniquement pour les paiements en ligne.
+                </p>
+              )}
 
               <Section title="Instructions spéciales">
                 <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} placeholder="Allergies, préférences..." />
