@@ -359,6 +359,7 @@ async function mountPayments(app, deps) {
         orderNumber,
         orderId: id,
         total: q.total,
+        orderToken: deps.makeOrderViewToken(orderNumber),
       });
     } catch (e) {
       const code = e.statusCode || 500;
