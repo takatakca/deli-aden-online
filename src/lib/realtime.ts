@@ -149,7 +149,7 @@ const ORDER_EVENTS = [
   "payment_status_changed",
 ];
 
-// Try Option B (short-lived token) first, fall back to Option A (raw password).
+// Always request a short-lived token; never expose the admin password in a URL.
 async function fetchAdminToken(password: string): Promise<string> {
   try {
     const r = await fetch("/api/admin/realtime-token", {
@@ -162,7 +162,7 @@ async function fetchAdminToken(password: string): Promise<string> {
       if (j?.token) return j.token;
     }
   } catch (_) { /* ignore */ }
-  return password; // fallback
+  return ""; // 401 on SSE, then existing polling fallback; no secret in URL
 }
 
 export function connectAdminEvents(
