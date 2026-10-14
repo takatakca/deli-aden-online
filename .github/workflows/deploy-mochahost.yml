@@ -6,7 +6,6 @@ on:
       - Deli Aden CI
     types: [completed]
     branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -17,11 +16,11 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
       PRODUCTION_URL: https://deliaden.ca
       MOCHAHOST_HOST: ${{ secrets.MOCHAHOST_HOST }}
       MOCHAHOST_USER: ${{ secrets.MOCHAHOST_USER }}
@@ -83,7 +82,7 @@ jobs:
           fi
           printf '%s\n' "$DEPLOY_SHA" > .release/dist/revision.txt
           cp server.cjs .release/server.cjs
-          for f in server-customers.cjs server-payments.cjs server-realtime.cjs; do
+          for f in server-*.cjs; do
             if [ -f "$f" ]; then cp "$f" ".release/$f"; fi
           done
           test -f .release/dist/index.html
@@ -134,11 +133,13 @@ jobs:
           test "$(tr -d '\r\n' < "$STAGE/dist/revision.txt")" = "$SHA"
           stamp="$(date +%Y%m%d%H%M%S)"
           if [ -d dist ]; then mv dist "$BACKUPS/dist-$stamp"; fi
-          if [ -f server.cjs ]; then cp server.cjs "$BACKUPS/server-$stamp.cjs"; fi
+          mkdir -p "$BACKUPS/server-$stamp"
+          for f in server.cjs server-*.cjs; do
+            if [ -f "$f" ]; then cp "$f" "$BACKUPS/server-$stamp/$f"; fi
+          done
           mv "$STAGE/dist" dist
-          mv "$STAGE/server.cjs" server.cjs
-          for f in server-customers.cjs server-payments.cjs server-realtime.cjs; do
-            if [ -f "$STAGE/$f" ]; then cp "$STAGE/$f" "$f"; fi
+          for f in "$STAGE"/server.cjs "$STAGE"/server-*.cjs; do
+            if [ -f "$f" ]; then cp "$f" .; fi
           done
           mkdir -p tmp
           touch tmp/restart.txt
@@ -161,6 +162,11 @@ jobs:
           mv dist "$failed"
           previous="$(ls -1dt "$BACKUPS"/dist-* 2>/dev/null | head -n 1 || true)"
           if [ -n "$previous" ]; then mv "$previous" dist; else exit 1; fi
+          if [ -d "$BACKUPS/server-$stamp" ]; then
+            for f in "$BACKUPS/server-$stamp"/*.cjs; do
+              if [ -f "$f" ]; then cp "$f" .; fi
+            done
+          fi
           touch tmp/restart.txt
           exit 1
           REMOTE
