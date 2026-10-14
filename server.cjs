@@ -10,6 +10,7 @@
 require("dotenv").config();
 const path = require("path");
 const fs = require("fs");
+const crypto = require("node:crypto");
 const express = require("express");
 const compression = require("compression");
 const helmet = require("helmet");
@@ -36,6 +37,25 @@ if (IS_PROD && (!ADMIN_PASSWORD || ADMIN_PASSWORD.length < 8)) {
   process.exit(1);
 }
 const EFFECTIVE_ADMIN_PASSWORD = ADMIN_PASSWORD || "deli-aden-admin";
+
+// Public tracking is status-only. Full order details require a private token
+// returned once at checkout and stored on the ordering device. Token validity
+// is bound to the server secret and order number; no token is logged or exposed
+// in a shareable URL.
+function makeOrderViewToken(orderNumber) {
+  return crypto.createHmac("sha256", EFFECTIVE_ADMIN_PASSWORD)
+    .update("deli-aden-order-view:v1:" + String(orderNumber))
+    .digest("hex");
+}
+function canViewOrder(req, orderNumber) {
+  const provided = req.header("x-order-token") || "";
+  if (!/^[a-f0-9]{64}$/.test(provided)) return false;
+  return crypto.timingSafeEqual(
+    Buffer.from(provided, "hex"),
+    Buffer.from(makeOrderViewToken(orderNumber), "hex"),
+  );
+}
+
 
 const RESTAURANT_EMAIL = process.env.RESTAURANT_EMAIL || "orders@deliaden.ca";
 const FROM_EMAIL = process.env.FROM_EMAIL || "notify@deliaden.ca";
@@ -1236,7 +1256,8 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
     // TAKATAK merchant relay (queued; inert when the integration is disabled)
     try { takatak.enqueue("merchant.order.created", { order }, order.order_number); } catch (_) {}
 
-    res.json({ orderNumber, id });
+    res.set("Cache-Control", "no-store");
+    res.json({ orderNumber, id, orderToken: makeOrderViewToken(orderNumber) });
   } catch (err) {
     const code = err && err.statusCode ? err.statusCode : 500;
     if (code !== 500) return res.status(code).json({ error: err.message });
@@ -1249,8 +1270,24 @@ app.get("/api/orders/:orderNumber", async (req, res) => {
   try {
     const row = await dbApi.getOrderByNumber(req.params.orderNumber);
     const order = rowToOrder(row);
+    res.set("Cache-Control", "no-store");
+    if (order && !canViewOrder(req, order.order_number)) {
+      // Order numbers are sequential. Never expose addresses, names, phone
+      // numbers, payment data, items, or driver contacts to anonymous lookup.
+      return res.json({ order: {
+        order_number: order.order_number,
+        status: order.status,
+        order_type: order.order_type,
+        created_at: order.created_at,
+        estimated_ready_time: order.estimated_ready_time || null,
+        estimated_delivery_time: order.estimated_delivery_time || null,
+        details_available: false,
+      } });
+    }
     if (order) {
       delete order.admin_notes;
+      delete order.delivery_door_code;
+      order.details_available = true;
       // Attach driver info for delivery tracking (public-safe fields only)
       if (order.order_type === "delivery") {
         try {
@@ -1528,6 +1565,7 @@ let server;
     await mountPayments(app, {
       kind: dbApi.kind, mysqlPool, sqliteDb, rateLimit, dbApi, requireAdmin,
       buildOrderPayload,
+      makeOrderViewToken,
       getSettings: () => SETTINGS,
       logOrderEvent,
       attachCustomerByToken: async (token, orderId) => {
