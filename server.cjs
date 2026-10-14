@@ -100,8 +100,9 @@ function rateLimit({ windowMs, max, keyPrefix }) {
     for (const [k, v] of hits) if (now - v.start > windowMs) hits.delete(k);
   }, windowMs).unref();
   return (req, res, next) => {
-    const ip = (req.headers["x-forwarded-for"] || req.ip || req.socket.remoteAddress || "?")
-      .toString().split(",")[0].trim();
+    // req.ip applies Express's configured trusted-proxy chain. Never trust a
+    // client-supplied X-Forwarded-For value directly for rate-limit identity.
+    const ip = String(req.ip || req.socket.remoteAddress || "?");
     const key = `${keyPrefix}:${ip}`;
     const now = Date.now();
     const cur = hits.get(key);
