@@ -24,7 +24,25 @@ function load() {
   if (typeof window === "undefined") return;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) cart = JSON.parse(raw);
+    if (!raw) return;
+    const saved: unknown = JSON.parse(raw);
+    // Old or corrupt browser storage must never crash the menu or checkout.
+    if (!Array.isArray(saved)) return;
+    cart = saved
+      .filter((line): line is CartItem =>
+        line !== null &&
+        typeof line === "object" &&
+        typeof line.uid === "string" &&
+        typeof line.itemId === "string" &&
+        typeof line.name === "string" &&
+        typeof line.unitPrice === "number" &&
+        Number.isFinite(line.unitPrice) &&
+        line.unitPrice >= 0 &&
+        typeof line.quantity === "number" &&
+        Number.isFinite(line.quantity) &&
+        line.quantity > 0,
+      )
+      .map((line) => ({ ...line, quantity: Math.min(99, Math.max(1, Math.trunc(line.quantity))) }));
   } catch {}
 }
 function persist() {
