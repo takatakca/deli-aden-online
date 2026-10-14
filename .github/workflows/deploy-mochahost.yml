@@ -139,6 +139,7 @@ jobs:
           tar -xzf "$ARCHIVE" -C "$STAGE"
           test -f "$STAGE/dist/index.html"
           test -f "$STAGE/package.json"
+          test -f "$STAGE/menu-catalog.json"
           test -d node_modules || { echo "Missing production node_modules on host; refusing unsafe activation"; exit 1; }
           for module in express dotenv compression helmet mysql2 nodemailer; do
             test -f "node_modules/$module/package.json" || {
@@ -146,7 +147,7 @@ jobs:
               exit 1
             }
           done
-          for module in server.cjs server-customers.cjs server-payments.cjs server-realtime.cjs server-sms.cjs server-drivers.cjs server-inventory.cjs server-takatak.cjs; do
+          for module in server.cjs server-pricing.cjs server-customers.cjs server-payments.cjs server-realtime.cjs server-sms.cjs server-drivers.cjs server-inventory.cjs server-takatak.cjs; do
             test -f "$STAGE/$module" || {
               echo "Missing application module $module in release archive"
               exit 1
@@ -157,11 +158,13 @@ jobs:
           if [ -d dist ]; then mv dist "$BACKUPS/dist-$stamp"; fi
           mkdir -p "$BACKUPS/server-$stamp"
           if [ -f package.json ]; then cp package.json "$BACKUPS/server-$stamp/package.json"; fi
+          if [ -f menu-catalog.json ]; then cp menu-catalog.json "$BACKUPS/server-$stamp/menu-catalog.json"; fi
           for f in server.cjs server-*.cjs; do
             if [ -f "$f" ]; then cp "$f" "$BACKUPS/server-$stamp/$f"; fi
           done
           mv "$STAGE/dist" dist
           cp "$STAGE/package.json" package.json
+          cp "$STAGE/menu-catalog.json" menu-catalog.json
           for f in "$STAGE"/server.cjs "$STAGE"/server-*.cjs; do
             if [ -f "$f" ]; then cp "$f" .; fi
           done
@@ -188,6 +191,7 @@ jobs:
           if [ -n "$previous" ]; then mv "$previous" dist; else exit 1; fi
           if [ -d "$BACKUPS/server-$stamp" ]; then
             if [ -f "$BACKUPS/server-$stamp/package.json" ]; then cp "$BACKUPS/server-$stamp/package.json" package.json; fi
+            if [ -f "$BACKUPS/server-$stamp/menu-catalog.json" ]; then cp "$BACKUPS/server-$stamp/menu-catalog.json" menu-catalog.json; fi
             for f in "$BACKUPS/server-$stamp"/*.cjs; do
               if [ -f "$f" ]; then cp "$f" .; fi
             done
