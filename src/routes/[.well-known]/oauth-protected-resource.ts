@@ -1,16 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+// The legacy MCP endpoint is disabled until a real, authenticated public
+// integration is approved. Do not advertise an unauthenticated OAuth resource.
 export const Route = createFileRoute("/.well-known/oauth-protected-resource")({
   server: {
     handlers: {
-      GET: async ({ request }) =>
-        new Response(
-          JSON.stringify({
-            resource: new URL("/mcp", request.url).toString(),
-            authorization_servers: [],
-          }),
-          { headers: { "content-type": "application/json; charset=utf-8" } },
-        ),
+      GET: async () => new Response(null, {
+        status: 404,
+        headers: { "cache-control": "no-store" },
+      }),
     },
   },
 });
