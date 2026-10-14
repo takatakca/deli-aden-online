@@ -326,6 +326,13 @@ async function mountPayments(app, deps) {
         estimated_ready_time: prepared.estimated_ready_time,
         estimated_delivery_time: prepared.estimated_delivery_time,
       });
+      // Transactional SMS only after the customer explicitly opts in.
+      // Fail closed if the column is not available during an upgrade.
+      try {
+        await dbRun("UPDATE orders SET sms_opt_in=? WHERE id=?", [b.smsOptIn === true ? 1 : 0, id]);
+      } catch (error) {
+        console.error("[pay] unable to persist SMS consent", error.message);
+      }
       // Attach coupon/discount + initial pending state + attach customer if token
       const updates = ["payment_status = 'pending'"];
       const params = [];
