@@ -29,7 +29,11 @@ function load() {
 }
 function persist() {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
+  } catch {
+    // Full/private browser storage must not prevent adding or editing an order.
+  }
 }
 function emit() {
   persist();
@@ -60,8 +64,10 @@ export const cartStore = {
   },
   updateQty(uid: string, qty: number) {
     ensureLoaded();
+    if (!Number.isFinite(qty)) return;
+    const next = Math.min(99, Math.trunc(qty));
     cart = cart
-      .map((c) => (c.uid === uid ? { ...c, quantity: Math.max(1, qty) } : c))
+      .map((c) => (c.uid === uid ? { ...c, quantity: next } : c))
       .filter((c) => c.quantity > 0);
     emit();
   },
