@@ -38,6 +38,9 @@ jobs:
           test -n "$VITE_SUPABASE_PROJECT_ID" || { echo "::error::Missing VITE_SUPABASE_PROJECT_ID"; exit 1; }
       - name: Install dependencies
         run: npm install --legacy-peer-deps --no-audit --no-fund
+      - name: Refresh authoritative menu catalogue
+        run: node --experimental-strip-types scripts/export-menu.mjs
+
       - name: Lint
         run: npm run lint
       - name: Build
