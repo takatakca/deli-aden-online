@@ -1501,12 +1501,7 @@ if (fs.existsSync(DIST_DIR)) {
     maxAge: "1y", etag: true,
     setHeaders: (res, p) => { if (p.endsWith("index.html")) res.setHeader("Cache-Control", "no-cache"); },
   }));
-  app.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api/")) return next();
-    const indexHtml = path.join(DIST_DIR, "index.html");
-    if (fs.existsSync(indexHtml)) { res.setHeader("Cache-Control", "no-cache"); return res.sendFile(indexHtml); }
-    next();
-  });
+
 } else {
   console.warn(`[server] dist/ not found at ${DIST_DIR}. Run "npm run build" first.`);
 }
@@ -1580,6 +1575,14 @@ let server;
   } catch (e) {
     console.error("[payments] mount failed", e);
   }
+  // SPA fallback must be registered AFTER all API/customer/payment routes.
+  // Express 5 does not support the legacy app.get("*") path pattern.
+  app.use( (req, res, next) => {
+    if (req.path.startsWith("/api/")) return next();
+    const indexHtml = path.join(DIST_DIR, "index.html");
+    if (fs.existsSync(indexHtml)) { res.setHeader("Cache-Control", "no-cache"); return res.sendFile(indexHtml); }
+    next();
+  });
   server = app.listen(PORT, () => {
     const smtpConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
     console.log(`[Deli Aden] Server running on port ${PORT} (${NODE_ENV})`);
