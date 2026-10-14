@@ -55,6 +55,8 @@ for (const file of serverFiles) {
   copyFileSync(file, join(releaseRoot, file));
 }
 copyFileSync("package.json", join(releaseRoot, "package.json"));
+// The checkout validator reads this catalogue at runtime for authoritative pricing.
+copyFileSync("menu-catalog.json", join(releaseRoot, "menu-catalog.json"));
 writeFileSync(join(releaseDist, "revision.txt"), `${revision}\n`, "utf8");
 
 console.log(
