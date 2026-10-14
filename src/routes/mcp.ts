@@ -1,37 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { MCP_TOOLS, invokeMcpTool } from "../lib/mcp";
 
-function json(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { "content-type": "application/json; charset=utf-8" },
-  });
-}
-
+// The former public Lovable MCP endpoint is deliberately disabled.
+// The menu and restaurant tools remain available as internal functions.
+// Do not re-enable unauthenticated tool invocation without an approved,
+// authenticated API contract and rate limits.
 export const Route = createFileRoute("/mcp")({
   server: {
     handlers: {
       GET: async () =>
-        json({
-          name: "deli-aden-mcp",
-          version: "1.0.0",
-          protocol: "local-json",
-          tools: MCP_TOOLS,
+        new Response(JSON.stringify({ error: "Endpoint disabled" }), {
+          status: 404,
+          headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
         }),
-      POST: async ({ request }) => {
-        try {
-          const body = (await request.json()) as {
-            name?: string;
-            arguments?: Record<string, unknown>;
-          };
-          return json({
-            name: body.name,
-            result: invokeMcpTool(body.name ?? "", body.arguments ?? {}),
-          });
-        } catch (error) {
-          return json({ error: error instanceof Error ? error.message : "Invalid request" }, 400);
-        }
-      },
+      POST: async () =>
+        new Response(JSON.stringify({ error: "Endpoint disabled" }), {
+          status: 404,
+          headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
+        }),
     },
   },
 });
