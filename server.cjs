@@ -16,6 +16,7 @@ const helmet = require("helmet");
 const nodemailer = require("nodemailer");
 const { verifyToken: verifyCustomerToken } = require("./server-customers.cjs");
 const { mountPayments, webhookHandler: stripeWebhookHandler } = require("./server-payments.cjs");
+const { normalizeOrderItems } = require("./server-pricing.cjs");
 const { createRealtime } = require("./server-realtime.cjs");
 
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -1148,22 +1149,7 @@ async function buildOrderPayload(b) {
   if (b.items.length > 100) { const e = new Error("Trop d'articles"); e.statusCode = 400; throw e; }
 
   const overrides = await dbApi.getMenuOverrides();
-  const ovMap = new Map(overrides.map((o) => [o.item_id, o]));
-  const items = b.items.map((it) => {
-    const itemId = clean(it.itemId, 64);
-    const ov = ovMap.get(itemId);
-    if (ov && ov.available === false) { const e = new Error(`Article indisponible : ${clean(it.name, 80)}`); e.statusCode = 409; throw e; }
-    return {
-      itemId, name: clean(it.name, 160),
-      unitPrice: Number(it.unitPrice) || 0,
-      quantity: Math.max(1, Math.min(99, parseInt(it.quantity, 10) || 1)),
-      options: Array.isArray(it.options) ? it.options.slice(0, 20).map((o) => ({
-        groupLabel: clean(o.groupLabel, 80),
-        values: Array.isArray(o.values) ? o.values.slice(0, 20).map((v) => clean(v, 80)) : [],
-      })) : [],
-      combo: Boolean(it.combo), notes: clean(it.notes, 300),
-    };
-  });
+  const items = normalizeOrderItems(b.items, overrides);
 
   const subtotal = +items.reduce((s, i) => s + i.unitPrice * i.quantity, 0).toFixed(2);
   if (subtotal < (Number(SETTINGS.min_order) || 0)) {
