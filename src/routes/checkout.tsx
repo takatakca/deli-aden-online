@@ -184,17 +184,17 @@ function CheckoutPage() {
     return settings.delivery_fee || 0;
   }, [settings, orderType, baseTotals.subtotal]);
 
-  const deliveryFee = couponFreeDelivery ? 0 : baseDeliveryFee;
+  const deliveryFee = payment === "online" && couponFreeDelivery ? 0 : baseDeliveryFee;
 
   const totals = useMemo(() => {
-    const taxable = Math.max(0, baseTotals.subtotal - couponDiscount);
+    const taxable = Math.max(0, baseTotals.subtotal - (payment === "online" ? couponDiscount : 0));
     const gstRate = settings?.gst_rate ?? 0.05;
     const qstRate = settings?.qst_rate ?? 0.09975;
     const gst = +(taxable * gstRate).toFixed(2);
     const qst = +(taxable * qstRate).toFixed(2);
     const total = +(taxable + gst + qst + deliveryFee).toFixed(2);
     return { subtotal: baseTotals.subtotal, gst, qst, total };
-  }, [baseTotals.subtotal, couponDiscount, deliveryFee, settings?.gst_rate, settings?.qst_rate]);
+  }, [baseTotals.subtotal, couponDiscount, deliveryFee, payment, settings?.gst_rate, settings?.qst_rate]);
 
   const minOrder = settings?.min_order || 0;
   const belowMin = minOrder > 0 && baseTotals.subtotal < minOrder;
@@ -261,7 +261,7 @@ function CheckoutPage() {
       quantity: c.quantity, options: c.options, combo: c.combo, notes: c.notes,
     })),
     subtotal: totals.subtotal, gst: totals.gst, qst: totals.qst, total: totals.total,
-    couponCode: couponApplied ? couponApplied.code : undefined,
+    couponCode: payment === "online" && couponApplied ? couponApplied.code : undefined,
   });
 
   const applyCoupon = async () => {
