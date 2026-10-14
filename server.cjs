@@ -1204,6 +1204,12 @@ async function buildOrderPayload(b) {
 // ---- Create order ----
 app.post("/api/orders", orderLimiter, async (req, res) => {
   try {
+    const paymentMethod = clean((req.body || {}).paymentMethod, 40) || "pay_at_restaurant";
+    // Online payment must go through a verified Stripe PaymentIntent. Direct
+    // order creation cannot mark an unpaid order as payable online.
+    if (!["pay_at_restaurant", "cash", "card_on_arrival"].includes(paymentMethod)) {
+      return res.status(400).json({ error: "Mode de paiement invalide : utilisez le paiement sécurisé en ligne." });
+    }
     const p = await buildOrderPayload(req.body);
     const orderNumber = await dbApi.nextOrderNumber();
     const id = await dbApi.insertOrder({
@@ -1213,7 +1219,7 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
       delivery_unit: p.delivery_unit, delivery_door_code: p.delivery_door_code,
       delivery_instructions: p.delivery_instructions,
       preferred_time: p.preferred_time,
-      payment_method: clean((req.body || {}).paymentMethod, 40) || "pay_at_restaurant",
+      payment_method: paymentMethod,
       items_json: JSON.stringify(p.items),
       subtotal: p.subtotal, gst: p.gst, qst: p.qst, total: p.total, delivery_fee: p.delivery_fee,
       special_notes: p.special_notes,
