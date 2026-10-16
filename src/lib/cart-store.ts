@@ -43,7 +43,7 @@ function load() {
         line.quantity > 0,
       )
       .map((line) => ({ ...line, quantity: Math.min(99, Math.max(1, Math.trunc(line.quantity))) }));
-  } catch {}
+  } catch { /* Invalid saved cart: use an empty cart. */ }
 }
 function persist() {
   if (typeof window === "undefined") return;
