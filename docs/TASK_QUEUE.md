@@ -2,7 +2,7 @@
 
 Priority and evidence-driven queue, 2026-10-15.
 
-1. P0 — Inspect latest CI run for PR #1 after commit 9cfe952. Fix remaining substantive ESLint errors and server syntax issues; commit each correction. Do not conceal runtime warnings.
+1. DONE — Substantive ESLint errors and server syntax checks now pass in CI runs 38843754353 / 38843748257; preserve this gate.
 2. P0 — Establish lockfile reproducibility; replace npm install in CI with npm ci only after committed package-lock consistency is verified.
 3. P0 — Configure existing non-billable Supabase project GitHub Actions variables VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_SUPABASE_PROJECT_ID; do not create a new billable project or commit keys.
 4. P0 — Run production-like build and confirm packaged static shell, all server modules and database persistence exclusions.
