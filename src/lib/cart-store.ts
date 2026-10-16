@@ -24,12 +24,34 @@ function load() {
   if (typeof window === "undefined") return;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) cart = JSON.parse(raw);
-  } catch {}
+    if (!raw) return;
+    const saved: unknown = JSON.parse(raw);
+    // Old or corrupt browser storage must never crash the menu or checkout.
+    if (!Array.isArray(saved)) return;
+    cart = saved
+      .filter((line): line is CartItem =>
+        line !== null &&
+        typeof line === "object" &&
+        typeof line.uid === "string" &&
+        typeof line.itemId === "string" &&
+        typeof line.name === "string" &&
+        typeof line.unitPrice === "number" &&
+        Number.isFinite(line.unitPrice) &&
+        line.unitPrice >= 0 &&
+        typeof line.quantity === "number" &&
+        Number.isFinite(line.quantity) &&
+        line.quantity > 0,
+      )
+      .map((line) => ({ ...line, quantity: Math.min(99, Math.max(1, Math.trunc(line.quantity))) }));
+  } catch { /* Invalid saved cart: use an empty cart. */ }
 }
 function persist() {
   if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
+  } catch {
+    // Full/private browser storage must not prevent adding or editing an order.
+  }
 }
 function emit() {
   persist();
@@ -60,8 +82,10 @@ export const cartStore = {
   },
   updateQty(uid: string, qty: number) {
     ensureLoaded();
+    if (!Number.isFinite(qty)) return;
+    const next = Math.min(99, Math.trunc(qty));
     cart = cart
-      .map((c) => (c.uid === uid ? { ...c, quantity: Math.max(1, qty) } : c))
+      .map((c) => (c.uid === uid ? { ...c, quantity: next } : c))
       .filter((c) => c.quantity > 0);
     emit();
   },

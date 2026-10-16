@@ -1,9 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { MENU } from "@/lib/menu";
 import { MenuItemCard, type MenuItemOverride } from "@/components/MenuItemCard";
-import { useCart, fmt, computeTotals } from "@/lib/cart-store";
-import { ShoppingBag } from "lucide-react";
 import { SmartSearch } from "@/components/SmartSearch";
 import { api, type MenuOverride, type PublicSettings } from "@/lib/api";
 
@@ -23,9 +21,6 @@ export const Route = createFileRoute("/menu")({
 
 function MenuPage() {
   const [active, setActive] = useState(MENU[0].id);
-  const cart = useCart();
-  const totals = computeTotals(cart);
-  const count = cart.reduce((s, i) => s + i.quantity, 0);
   const [overrides, setOverrides] = useState<MenuOverride[]>([]);
   const [settings, setSettings] = useState<PublicSettings | null>(null);
 
@@ -46,7 +41,7 @@ function MenuPage() {
   const hiddenCats = useMemo(() => new Set(
     (settings?.hidden_categories || "").split(",").map((s) => s.trim()).filter(Boolean)
   ), [settings]);
-  const visibleMenu = MENU.filter((c) => !hiddenCats.has(c.id));
+  const visibleMenu = useMemo(() => MENU.filter((c) => !hiddenCats.has(c.id)), [hiddenCats]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -56,6 +51,26 @@ function MenuPage() {
       const el = document.getElementById(hash);
       el?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+  }, [visibleMenu]);
+
+  // Follow the section nearest the sticky category bar while the visitor scrolls.
+  useEffect(() => {
+    if (typeof window === "undefined" || !("IntersectionObserver" in window)) return;
+    const nodes = visibleMenu
+      .map((category) => document.getElementById(category.id))
+      .filter((node): node is HTMLElement => node !== null);
+    if (!nodes.length) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const nearest = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+        if (nearest) setActive(nearest.target.id);
+      },
+      { rootMargin: "-128px 0px -65% 0px", threshold: 0 },
+    );
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
   }, [visibleMenu]);
 
   return (
@@ -98,18 +113,7 @@ function MenuPage() {
         </section>
       ))}
 
-      {/* Sticky mobile cart */}
-      {count > 0 && (
-        <Link
-          to="/cart"
-          className="fixed inset-x-4 bottom-4 z-40 mx-auto flex max-w-md items-center justify-between rounded-full bg-primary px-5 py-3 text-primary-foreground shadow-2xl transition hover:opacity-90 md:hidden"
-        >
-          <span className="flex items-center gap-2 text-sm font-semibold">
-            <ShoppingBag className="h-4 w-4" /> {count} article{count > 1 ? "s" : ""}
-          </span>
-          <span className="text-sm font-bold">{fmt(totals.total)} → Voir le panier</span>
-        </Link>
-      )}
+
     </div>
   );
 }

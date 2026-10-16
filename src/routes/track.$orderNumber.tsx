@@ -86,7 +86,7 @@ function TrackPage() {
       <div className="rounded-2xl border border-border bg-card p-6 text-center shadow-sm">
         <div className="text-xs uppercase tracking-wide text-muted-foreground">Commande</div>
         <div className="font-display text-3xl font-bold text-primary">{order.order_number}</div>
-        <div className="mt-2 text-sm text-muted-foreground">{order.customer_name} • {order.order_type === "pickup" ? "Ramassage" : "Livraison"}</div>
+        <div className="mt-2 text-sm text-muted-foreground">{order.details_available !== false && order.customer_name ? `${order.customer_name} • ` : ""}{order.order_type === "pickup" ? "Ramassage" : "Livraison"}</div>
         {order.status === "cancelled" ? (
           <div className="mt-4 rounded-lg bg-destructive/10 p-3 text-destructive">
             <strong>Commande annulée</strong>
@@ -167,6 +167,15 @@ function TrackPage() {
         </p>
       )}
 
+      {order.details_available === false ? (
+        <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <p className="text-sm text-muted-foreground">
+            Le suivi est public, mais les coordonnées, le contenu du panier et les
+            montants de la commande sont accessibles uniquement depuis le
+            navigateur qui a passé la commande.
+          </p>
+        </div>
+      ) : (
       <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
         <h2 className="mb-3 font-display text-lg font-semibold">Récapitulatif</h2>
         <ul className="divide-y divide-border text-sm">
@@ -181,6 +190,7 @@ function TrackPage() {
           <span>Total</span><span className="text-primary">{fmt(order.total)}</span>
         </div>
       </div>
+      )}
 
       <div className="mt-6 text-center">
         <Link to="/"><Button variant="ghost">Retour à l'accueil</Button></Link>

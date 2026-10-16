@@ -39,10 +39,6 @@ export function CartSheet() {
   const gst = +(subtotal * (settings?.gst_rate ?? GST_RATE)).toFixed(2);
   const qst = +(subtotal * (settings?.qst_rate ?? QST_RATE)).toFixed(2);
   const threshold = settings?.free_delivery_threshold ?? 0;
-  const fee =
-    settings && settings.delivery_fee > 0 && (threshold <= 0 || subtotal < threshold)
-      ? settings.delivery_fee
-      : 0;
   const total = +(subtotal + gst + qst).toFixed(2);
   const remaining = Math.max(0, threshold - subtotal);
   const progress = threshold > 0 ? Math.min(100, (subtotal / threshold) * 100) : 0;
@@ -158,7 +154,6 @@ export function CartSheet() {
                 <Row label={t("cart.subtotal")} value={fmt(subtotal)} />
                 <Row label={t("cart.gst")} value={fmt(gst)} />
                 <Row label={t("cart.qst")} value={fmt(qst)} />
-                {fee > 0 && <Row label={t("cart.deliveryFee")} value={fmt(fee)} />}
                 <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
                   <dt>{t("cart.total")}</dt>
                   <dd className="text-primary">{fmt(total)}</dd>

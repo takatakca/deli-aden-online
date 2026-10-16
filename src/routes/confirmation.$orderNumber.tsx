@@ -57,7 +57,7 @@ function ConfirmationPage() {
       <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
         <CheckCircle2 className="mx-auto h-16 w-16 text-primary" />
         <h1 className="mt-4 font-display text-3xl font-bold">Commande reçue !</h1>
-        <p className="mt-2 text-muted-foreground">Merci {order.customer_name}, nous préparons votre commande.</p>
+        <p className="mt-2 text-muted-foreground">Merci {order.details_available !== false ? order.customer_name : "de votre confiance"}, nous préparons votre commande.</p>
         <div className="mt-4 inline-block rounded-full bg-primary px-5 py-2 font-display text-lg font-bold text-primary-foreground">
           N° {order.order_number}
         </div>
@@ -69,6 +69,15 @@ function ConfirmationPage() {
         ) : null}
       </div>
 
+      {order.details_available === false ? (
+        <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+          <h2 className="font-display text-xl font-semibold">Suivi de commande</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Les coordonnées et les détails du paiement sont privés. Ouvrez cette page
+            depuis le navigateur utilisé pour commander afin de les consulter.
+          </p>
+        </div>
+      ) : (
       <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
         <h2 className="font-display text-xl font-semibold">Détails</h2>
         <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
@@ -112,6 +121,7 @@ function ConfirmationPage() {
           </div>
         </dl>
       </div>
+      )}
 
       <div className="mt-6 flex flex-wrap justify-center gap-2">
         <Link to="/track/$orderNumber" params={{ orderNumber: order.order_number }}>

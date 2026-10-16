@@ -197,15 +197,12 @@ function webhookHandler() {
     const whSec = process.env.STRIPE_WEBHOOK_SECRET;
     let event;
     try {
-      if (whSec && sig) {
-        event = stripe.webhooks.constructEvent(req.body, sig, whSec);
-      } else {
-        // Dev fallback when no webhook secret is configured
-        event = typeof req.body === "object" && !Buffer.isBuffer(req.body)
-          ? req.body
-          : JSON.parse(Buffer.isBuffer(req.body) ? req.body.toString("utf8") : String(req.body));
-        console.warn("[stripe-webhook] no STRIPE_WEBHOOK_SECRET — signature NOT verified (dev only)");
+      if (!whSec) {
+        console.error("[stripe-webhook] STRIPE_WEBHOOK_SECRET not configured; refusing unverified event");
+        return res.status(503).send("Webhook signing not configured");
       }
+      if (!sig) return res.status(400).send("Missing webhook signature");
+      event = stripe.webhooks.constructEvent(req.body, sig, whSec);
     } catch (err) {
       console.error("[stripe-webhook] signature verification failed", err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -329,6 +326,13 @@ async function mountPayments(app, deps) {
         estimated_ready_time: prepared.estimated_ready_time,
         estimated_delivery_time: prepared.estimated_delivery_time,
       });
+      // Transactional SMS only after the customer explicitly opts in.
+      // Fail closed if the column is not available during an upgrade.
+      try {
+        await dbRun("UPDATE orders SET sms_opt_in=? WHERE id=?", [b.smsOptIn === true ? 1 : 0, id]);
+      } catch (error) {
+        console.error("[pay] unable to persist SMS consent", error.message);
+      }
       // Attach coupon/discount + initial pending state + attach customer if token
       const updates = ["payment_status = 'pending'"];
       const params = [];
@@ -362,6 +366,7 @@ async function mountPayments(app, deps) {
         orderNumber,
         orderId: id,
         total: q.total,
+        orderToken: deps.makeOrderViewToken(orderNumber),
       });
     } catch (e) {
       const code = e.statusCode || 500;

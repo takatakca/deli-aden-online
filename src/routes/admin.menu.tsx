@@ -56,7 +56,10 @@ function MenuAdminPage() {
 
   const counts = useMemo(() => {
     let on = 0, off = 0;
-    for (const k in draft) (draft[k].available ? on++ : off++);
+    for (const k in draft) {
+      if (draft[k].available) on++;
+      else off++;
+    }
     return { on, off };
   }, [draft]);
 

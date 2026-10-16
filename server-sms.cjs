@@ -63,7 +63,7 @@ function createSms(dbApi) {
           INDEX idx_sms_status (status),
           INDEX idx_sms_created (created_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
-        try { await pool.query("ALTER TABLE orders ADD COLUMN sms_opt_in TINYINT(1) NOT NULL DEFAULT 1"); } catch (_) {}
+        try { await pool.query("ALTER TABLE orders ADD COLUMN sms_opt_in TINYINT(1) NOT NULL DEFAULT 0"); } catch (_) {}
       }
     } else if (dbApi.kind === "sqlite" && dbApi._db) {
       const db = dbApi._db;
@@ -80,7 +80,7 @@ function createSms(dbApi) {
       )`);
       db.exec("CREATE INDEX IF NOT EXISTS idx_sms_order ON sms_logs(order_id)");
       db.exec("CREATE INDEX IF NOT EXISTS idx_sms_status ON sms_logs(status)");
-      try { db.exec("ALTER TABLE orders ADD COLUMN sms_opt_in INTEGER NOT NULL DEFAULT 1"); } catch (_) {}
+      try { db.exec("ALTER TABLE orders ADD COLUMN sms_opt_in INTEGER NOT NULL DEFAULT 0"); } catch (_) {}
     }
   }
 
@@ -162,7 +162,7 @@ function createSms(dbApi) {
   // Fire customer SMS if opted in. Non-blocking helper.
   function notifyCustomer(order, type) {
     if (!order) return;
-    const optIn = order.sms_opt_in === undefined ? true : Boolean(order.sms_opt_in);
+    const optIn = order.sms_opt_in === true || order.sms_opt_in === 1 || order.sms_opt_in === "1";
     if (!optIn) return;
     if (!order.customer_phone) return;
     const body = templateFor(type, order);

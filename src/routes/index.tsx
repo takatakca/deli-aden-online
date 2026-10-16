@@ -59,10 +59,10 @@ export const Route = createFileRoute("/")({
           servesCuisine: ["Algerian", "Maghrebi", "Mediterranean"],
           priceRange: "$$",
           acceptsReservations: false,
-          hasMenu: "https://deli-aden-orders.lovable.app/menu",
+          hasMenu: "https://deliaden.ca/menu",
           potentialAction: {
             "@type": "OrderAction",
-            target: "https://deli-aden-orders.lovable.app/menu",
+            target: "https://deliaden.ca/menu",
           },
         }),
       },

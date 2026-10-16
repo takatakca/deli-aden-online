@@ -1,7 +1,7 @@
 /* eslint-disable */
 // MochaHost Node.js entry point — Deli Aden ordering system.
 // Run with: node server.cjs
-// Requires: npm install && npm run build (produces ./dist)
+// Requires: npm install && npm run build (produces the static client output)
 //
 // Database priority:
 //   1. MySQL/MariaDB if DB_HOST is set (recommended for production)
@@ -10,16 +10,23 @@
 require("dotenv").config();
 const path = require("path");
 const fs = require("fs");
+const crypto = require("node:crypto");
 const express = require("express");
 const compression = require("compression");
 const helmet = require("helmet");
 const nodemailer = require("nodemailer");
 const { verifyToken: verifyCustomerToken } = require("./server-customers.cjs");
 const { mountPayments, webhookHandler: stripeWebhookHandler } = require("./server-payments.cjs");
+const { normalizeOrderItems } = require("./server-pricing.cjs");
 const { createRealtime } = require("./server-realtime.cjs");
 
 const PORT = parseInt(process.env.PORT || "3000", 10);
-const DIST_DIR = path.join(__dirname, "dist");
+const DIST_CANDIDATES = [
+  path.join(__dirname, "dist", "client"),
+  path.join(__dirname, "dist"),
+  path.join(__dirname, ".output", "public"),
+];
+const DIST_DIR = DIST_CANDIDATES.find((p) => fs.existsSync(p)) || DIST_CANDIDATES[0];
 const NODE_ENV = process.env.NODE_ENV || "development";
 const IS_PROD = NODE_ENV === "production";
 
@@ -30,6 +37,25 @@ if (IS_PROD && (!ADMIN_PASSWORD || ADMIN_PASSWORD.length < 8)) {
   process.exit(1);
 }
 const EFFECTIVE_ADMIN_PASSWORD = ADMIN_PASSWORD || "deli-aden-admin";
+
+// Public tracking is status-only. Full order details require a private token
+// returned once at checkout and stored on the ordering device. Token validity
+// is bound to the server secret and order number; no token is logged or exposed
+// in a shareable URL.
+function makeOrderViewToken(orderNumber) {
+  return crypto.createHmac("sha256", EFFECTIVE_ADMIN_PASSWORD)
+    .update("deli-aden-order-view:v1:" + String(orderNumber))
+    .digest("hex");
+}
+function canViewOrder(req, orderNumber) {
+  const provided = req.header("x-order-token") || "";
+  if (!/^[a-f0-9]{64}$/.test(provided)) return false;
+  return crypto.timingSafeEqual(
+    Buffer.from(provided, "hex"),
+    Buffer.from(makeOrderViewToken(orderNumber), "hex"),
+  );
+}
+
 
 const RESTAURANT_EMAIL = process.env.RESTAURANT_EMAIL || "orders@deliaden.ca";
 const FROM_EMAIL = process.env.FROM_EMAIL || "notify@deliaden.ca";
@@ -95,8 +121,9 @@ function rateLimit({ windowMs, max, keyPrefix }) {
     for (const [k, v] of hits) if (now - v.start > windowMs) hits.delete(k);
   }, windowMs).unref();
   return (req, res, next) => {
-    const ip = (req.headers["x-forwarded-for"] || req.ip || req.socket.remoteAddress || "?")
-      .toString().split(",")[0].trim();
+    // req.ip applies Express's configured trusted-proxy chain. Never trust a
+    // client-supplied X-Forwarded-For value directly for rate-limit identity.
+    const ip = String(req.ip || req.socket.remoteAddress || "?");
     const key = `${keyPrefix}:${ip}`;
     const now = Date.now();
     const cur = hits.get(key);
@@ -676,6 +703,7 @@ function rowToOrder(row) {
     customer_id: row.customer_id != null ? Number(row.customer_id) : null,
 
     customer_name: row.customer_name, customer_phone: row.customer_phone, customer_email: row.customer_email,
+    sms_opt_in: row.sms_opt_in === true || row.sms_opt_in === 1 || row.sms_opt_in === "1",
     order_type: row.order_type, delivery_address: row.delivery_address,
     delivery_unit: row.delivery_unit || null,
     delivery_door_code: row.delivery_door_code || null,
@@ -1045,6 +1073,20 @@ async function emitOrderStatus(orderId, extraEvent) {
   } catch (e) { console.error("[realtime] emitOrderStatus", e.message); }
 }
 
+// Minimal public deployment health probe. Never includes database or customer details.
+// Requires a live DB connection so GitHub cannot mark a broken checkout as healthy.
+app.get("/healthz", async (_req, res) => {
+  try {
+    const ready = await dbApi.ping();
+    res.set("Cache-Control", "no-store");
+    res.status(ready ? 200 : 503).type("text/plain").send(ready ? "ok" : "unavailable");
+  } catch (error) {
+    console.error("[healthz] unavailable", error && error.message);
+    res.set("Cache-Control", "no-store");
+    res.status(503).type("text/plain").send("unavailable");
+  }
+});
+
 // ---- Health ----
 app.get("/api/health", async (_req, res) => {
   const dbOk = await dbApi.ping();
@@ -1128,22 +1170,7 @@ async function buildOrderPayload(b) {
   if (b.items.length > 100) { const e = new Error("Trop d'articles"); e.statusCode = 400; throw e; }
 
   const overrides = await dbApi.getMenuOverrides();
-  const ovMap = new Map(overrides.map((o) => [o.item_id, o]));
-  const items = b.items.map((it) => {
-    const itemId = clean(it.itemId, 64);
-    const ov = ovMap.get(itemId);
-    if (ov && ov.available === false) { const e = new Error(`Article indisponible : ${clean(it.name, 80)}`); e.statusCode = 409; throw e; }
-    return {
-      itemId, name: clean(it.name, 160),
-      unitPrice: Number(it.unitPrice) || 0,
-      quantity: Math.max(1, Math.min(99, parseInt(it.quantity, 10) || 1)),
-      options: Array.isArray(it.options) ? it.options.slice(0, 20).map((o) => ({
-        groupLabel: clean(o.groupLabel, 80),
-        values: Array.isArray(o.values) ? o.values.slice(0, 20).map((v) => clean(v, 80)) : [],
-      })) : [],
-      combo: Boolean(it.combo), notes: clean(it.notes, 300),
-    };
-  });
+  const items = normalizeOrderItems(b.items, overrides);
 
   const subtotal = +items.reduce((s, i) => s + i.unitPrice * i.quantity, 0).toFixed(2);
   if (subtotal < (Number(SETTINGS.min_order) || 0)) {
@@ -1178,6 +1205,12 @@ async function buildOrderPayload(b) {
 // ---- Create order ----
 app.post("/api/orders", orderLimiter, async (req, res) => {
   try {
+    const paymentMethod = clean((req.body || {}).paymentMethod, 40) || "pay_at_restaurant";
+    // Online payment must go through a verified Stripe PaymentIntent. Direct
+    // order creation cannot mark an unpaid order as payable online.
+    if (!["pay_at_restaurant", "cash", "card_on_arrival"].includes(paymentMethod)) {
+      return res.status(400).json({ error: "Mode de paiement invalide : utilisez le paiement sécurisé en ligne." });
+    }
     const p = await buildOrderPayload(req.body);
     const orderNumber = await dbApi.nextOrderNumber();
     const id = await dbApi.insertOrder({
@@ -1187,7 +1220,7 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
       delivery_unit: p.delivery_unit, delivery_door_code: p.delivery_door_code,
       delivery_instructions: p.delivery_instructions,
       preferred_time: p.preferred_time,
-      payment_method: clean((req.body || {}).paymentMethod, 40) || "pay_at_restaurant",
+      payment_method: paymentMethod,
       items_json: JSON.stringify(p.items),
       subtotal: p.subtotal, gst: p.gst, qst: p.qst, total: p.total, delivery_fee: p.delivery_fee,
       special_notes: p.special_notes,
@@ -1204,14 +1237,17 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
         }
       }
     } catch (_) {}
-    // Phase 5 — persist SMS opt-in (defaults to true; only update if explicitly false)
+    // SMS requires affirmative consent; absent opt-in is always false.
+    const smsConsent = req.body?.smsOptIn === true;
     try {
-      const optIn = req.body?.smsOptIn;
-      if (optIn === false || optIn === 0 || optIn === "false") {
-        if (dbApi.kind === "mysql" && dbApi._pool) await dbApi._pool.query("UPDATE orders SET sms_opt_in=0 WHERE id=?", [id]);
-        else if (dbApi.kind === "sqlite" && dbApi._db) dbApi._db.prepare("UPDATE orders SET sms_opt_in=0 WHERE id=?").run(id);
+      if (dbApi.kind === "mysql" && dbApi._pool) {
+        await dbApi._pool.query("UPDATE orders SET sms_opt_in=? WHERE id=?", [smsConsent ? 1 : 0, id]);
+      } else if (dbApi.kind === "sqlite" && dbApi._db) {
+        dbApi._db.prepare("UPDATE orders SET sms_opt_in=? WHERE id=?").run(smsConsent ? 1 : 0, id);
       }
-    } catch (_) {}
+    } catch (e) {
+      console.error("[orders] unable to persist SMS preference", e.message);
+    }
     const order = rowToOrder(await dbApi.getOrderById(id));
     sendOrderEmail(order).catch((e) => console.error("[mail] async", e.message));
     // Phase 5 — SMS: customer confirmation + admin alert (non-blocking)
@@ -1230,7 +1266,8 @@ app.post("/api/orders", orderLimiter, async (req, res) => {
     // TAKATAK merchant relay (queued; inert when the integration is disabled)
     try { takatak.enqueue("merchant.order.created", { order }, order.order_number); } catch (_) {}
 
-    res.json({ orderNumber, id });
+    res.set("Cache-Control", "no-store");
+    res.json({ orderNumber, id, orderToken: makeOrderViewToken(orderNumber) });
   } catch (err) {
     const code = err && err.statusCode ? err.statusCode : 500;
     if (code !== 500) return res.status(code).json({ error: err.message });
@@ -1243,8 +1280,25 @@ app.get("/api/orders/:orderNumber", async (req, res) => {
   try {
     const row = await dbApi.getOrderByNumber(req.params.orderNumber);
     const order = rowToOrder(row);
+    res.set("Cache-Control", "no-store");
+    if (order && !canViewOrder(req, order.order_number)) {
+      // Order numbers are sequential. Never expose addresses, names, phone
+      // numbers, payment data, items, or driver contacts to anonymous lookup.
+      return res.json({ order: {
+        order_number: order.order_number,
+        status: order.status,
+        order_type: order.order_type,
+        created_at: order.created_at,
+        estimated_ready_time: order.estimated_ready_time || null,
+        estimated_delivery_time: order.estimated_delivery_time || null,
+        details_available: false,
+      } });
+    }
     if (order) {
       delete order.admin_notes;
+      delete order.delivery_door_code;
+      delete order.sms_opt_in;
+      order.details_available = true;
       // Attach driver info for delivery tracking (public-safe fields only)
       if (order.order_type === "delivery") {
         try {
@@ -1458,26 +1512,48 @@ app.post("/api/contact", contactLimiter, async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: "Erreur" }); }
 });
 
+// ---------- Public SEO endpoints ----------
+app.get("/sitemap.xml", (req, res) => {
+  const baseUrl = (process.env.PUBLIC_BASE_URL || "https://deliaden.ca").replace(/\/$/, "");
+  const paths = [
+    ["/", "weekly", "1.0"],
+    ["/menu", "weekly", "0.9"],
+    ["/about", "monthly", "0.6"],
+    ["/contact", "monthly", "0.6"],
+  ];
+  const xml = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...paths.map(([p, changefreq, priority]) => [
+      "  <url>",
+      `    <loc>${baseUrl}${p}</loc>`,
+      `    <changefreq>${changefreq}</changefreq>`,
+      `    <priority>${priority}</priority>`,
+      "  </url>",
+    ].join("\n")),
+    "</urlset>",
+  ].join("\n");
+  res.type("application/xml").set("Cache-Control", "public, max-age=3600").send(xml);
+});
+
+app.get("/robots.txt", (req, res) => {
+  const baseUrl = (process.env.PUBLIC_BASE_URL || "https://deliaden.ca").replace(/\/$/, "");
+  res.type("text/plain").send(`User-agent: *
+Allow: /
+Sitemap: ${baseUrl}/sitemap.xml
+`);
+});
+
 // ---------- Static frontend ----------
 if (fs.existsSync(DIST_DIR)) {
   app.use(express.static(DIST_DIR, {
     maxAge: "1y", etag: true,
     setHeaders: (res, p) => { if (p.endsWith("index.html")) res.setHeader("Cache-Control", "no-cache"); },
   }));
-  app.get("*", (req, res, next) => {
-    if (req.path.startsWith("/api/")) return next();
-    const indexHtml = path.join(DIST_DIR, "index.html");
-    if (fs.existsSync(indexHtml)) { res.setHeader("Cache-Control", "no-cache"); return res.sendFile(indexHtml); }
-    next();
-  });
+
 } else {
   console.warn(`[server] dist/ not found at ${DIST_DIR}. Run "npm run build" first.`);
 }
-
-app.use((err, _req, res, _next) => {
-  console.error("[server] unhandled", err);
-  res.status(500).json({ error: "Erreur serveur" });
-});
 
 // =====================================================================
 // Bootstrap + graceful shutdown
@@ -1500,6 +1576,7 @@ let server;
     await mountPayments(app, {
       kind: dbApi.kind, mysqlPool, sqliteDb, rateLimit, dbApi, requireAdmin,
       buildOrderPayload,
+      makeOrderViewToken,
       getSettings: () => SETTINGS,
       logOrderEvent,
       attachCustomerByToken: async (token, orderId) => {
@@ -1543,6 +1620,23 @@ let server;
   } catch (e) {
     console.error("[payments] mount failed", e);
   }
+  // SPA fallback must be registered AFTER all API/customer/payment routes.
+  // Express 5 does not support the legacy app.get("*") path pattern.
+  app.use((req, res, next) => {
+    if (req.method !== "GET" && req.method !== "HEAD") return next();
+    if (/^\/(api|mcp|\.mcp|\.well-known)(?:\/|$)/.test(req.path)) return next();
+    // Missing assets or files must respond with 404, never the SPA HTML.
+    if (path.extname(req.path)) return next();
+    const indexHtml = path.join(DIST_DIR, "index.html");
+    if (!fs.existsSync(indexHtml)) return next();
+    res.setHeader("Cache-Control", "no-cache");
+    return res.sendFile(indexHtml);
+  });
+  app.use((err, _req, res, _next) => {
+    console.error("[server] unhandled", err);
+    if (res.headersSent) return _next(err);
+    res.status(500).json({ error: "Erreur serveur" });
+  });
   server = app.listen(PORT, () => {
     const smtpConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
     console.log(`[Deli Aden] Server running on port ${PORT} (${NODE_ENV})`);

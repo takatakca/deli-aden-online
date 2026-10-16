@@ -1,11 +1,9 @@
-import { defineTool } from "@lovable.dev/mcp-js";
-
-const INFO = {
+export const RESTAURANT_INFO = {
   name: "Les Délices d'Aden",
   cuisine: "Algerian",
   description:
     "Cuisine algérienne authentique, grillades, poissons, fast food et desserts faits maison. Ramassage et livraison.",
-  website: "https://deli-aden-orders.lovable.app",
+  website: "https://deliaden.ca",
   email: "orders@deliaden.ca",
   city: "Québec, QC, Canada",
   currency: "CAD",
@@ -16,18 +14,9 @@ const INFO = {
     friday_saturday: "11:00–23:00",
     sunday: "12:00–22:00",
   },
-  orderOnline: "https://deli-aden-orders.lovable.app/menu",
-};
+  orderOnline: "https://deliaden.ca/menu",
+} as const;
 
-export default defineTool({
-  name: "get_restaurant_info",
-  title: "Get restaurant info",
-  description:
-    "Return public information about Les Délices d'Aden restaurant: name, cuisine, contact, opening hours, and ordering links.",
-  inputSchema: {},
-  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  handler: () => ({
-    content: [{ type: "text", text: JSON.stringify(INFO, null, 2) }],
-    structuredContent: INFO,
-  }),
-});
+export default function getRestaurantInfo() {
+  return RESTAURANT_INFO;
+}

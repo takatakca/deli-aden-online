@@ -99,7 +99,7 @@ function CheckoutPage() {
   const [scheduledTime, setScheduledTime] = useState("");
   const [payment, setPayment] = useState<"pay_at_restaurant" | "cash" | "card_on_arrival" | "online">("pay_at_restaurant");
   const [notes, setNotes] = useState("");
-  const [smsOptIn, setSmsOptIn] = useState(true);
+  const [smsOptIn, setSmsOptIn] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [summaryOpen, setSummaryOpen] = useState(false);
@@ -184,17 +184,17 @@ function CheckoutPage() {
     return settings.delivery_fee || 0;
   }, [settings, orderType, baseTotals.subtotal]);
 
-  const deliveryFee = couponFreeDelivery ? 0 : baseDeliveryFee;
+  const deliveryFee = payment === "online" && couponFreeDelivery ? 0 : baseDeliveryFee;
 
   const totals = useMemo(() => {
-    const taxable = Math.max(0, baseTotals.subtotal - couponDiscount);
+    const taxable = Math.max(0, baseTotals.subtotal - (payment === "online" ? couponDiscount : 0));
     const gstRate = settings?.gst_rate ?? 0.05;
     const qstRate = settings?.qst_rate ?? 0.09975;
     const gst = +(taxable * gstRate).toFixed(2);
     const qst = +(taxable * qstRate).toFixed(2);
     const total = +(taxable + gst + qst + deliveryFee).toFixed(2);
     return { subtotal: baseTotals.subtotal, gst, qst, total };
-  }, [baseTotals.subtotal, couponDiscount, deliveryFee, settings?.gst_rate, settings?.qst_rate]);
+  }, [baseTotals.subtotal, couponDiscount, deliveryFee, payment, settings?.gst_rate, settings?.qst_rate]);
 
   const minOrder = settings?.min_order || 0;
   const belowMin = minOrder > 0 && baseTotals.subtotal < minOrder;
@@ -261,10 +261,11 @@ function CheckoutPage() {
       quantity: c.quantity, options: c.options, combo: c.combo, notes: c.notes,
     })),
     subtotal: totals.subtotal, gst: totals.gst, qst: totals.qst, total: totals.total,
-    couponCode: couponApplied ? couponApplied.code : undefined,
+    couponCode: payment === "online" && couponApplied ? couponApplied.code : undefined,
   });
 
   const applyCoupon = async () => {
+    if (payment !== "online") return;
     const code = couponInput.trim().toUpperCase();
     if (!code) { setCouponApplied(null); setCouponDiscount(0); setCouponFreeDelivery(false); return; }
     if (!validateStep1() || !validateStep2()) { toast.error("Complétez d'abord vos coordonnées."); return; }
@@ -537,7 +538,15 @@ function CheckoutPage() {
           {step === 3 && (
             <>
               <Section title="Mode de paiement" icon={<ShieldCheck className="h-5 w-5 text-primary" />}>
-                <RadioGroup value={payment} onValueChange={(v) => setPayment(v as typeof payment)} className="grid gap-3 sm:grid-cols-2">
+                <RadioGroup value={payment} onValueChange={(v) => {
+                  setPayment(v as typeof payment);
+                  if (v !== "online") {
+                    setCouponApplied(null);
+                    setCouponDiscount(0);
+                    setCouponFreeDelivery(false);
+                    setCouponInput("");
+                  }
+                }} className="grid gap-3 sm:grid-cols-2">
                   {paymentsEnabled && (
                     <RadioCard value="online" current={payment} label="Payer en ligne" desc="Carte • Apple Pay • Google Pay" />
                   )}
@@ -557,7 +566,7 @@ function CheckoutPage() {
                 )}
               </Section>
 
-              {/* Coupon */}
+              {payment === "online" ? (
               <Section title="Code promo" icon={<Tag className="h-5 w-5 text-primary" />}>
                 {couponApplied ? (
                   <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 p-3">
@@ -586,6 +595,11 @@ function CheckoutPage() {
                   </div>
                 )}
               </Section>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Les codes promotionnels sont actuellement offerts uniquement pour les paiements en ligne.
+                </p>
+              )}
 
               <Section title="Instructions spéciales">
                 <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={1000} placeholder="Allergies, préférences..." />
