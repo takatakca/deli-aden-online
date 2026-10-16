@@ -76,7 +76,7 @@ function connectSSE(
     es.onerror = (e) => {
       log("SSE error", e);
       opts.onError?.(e);
-      try { es?.close(); } catch (_) {}
+      try { es?.close(); } catch { /* Connection may already be closed or event payload may be plain text. */ }
       es = null;
       if (closed) return;
       // start polling immediately as safety net
@@ -89,13 +89,13 @@ function connectSSE(
     // Generic message (no event: header)
     es.onmessage = (ev) => {
       let data: unknown = ev.data;
-      try { data = JSON.parse(ev.data); } catch (_) {}
+      try { data = JSON.parse(ev.data); } catch { /* Connection may already be closed or event payload may be plain text. */ }
       onEvent("message", data);
     };
     for (const name of knownEvents) {
       es.addEventListener(name, (ev: MessageEvent) => {
         let data: unknown = ev.data;
-        try { data = JSON.parse(ev.data); } catch (_) {}
+        try { data = JSON.parse(ev.data); } catch { /* Connection may already be closed or event payload may be plain text. */ }
         log(name, data);
         onEvent(name, data);
       });
@@ -110,7 +110,7 @@ function connectSSE(
       mode = "closed";
       if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
       stopPolling();
-      try { es?.close(); } catch (_) {}
+      try { es?.close(); } catch { /* Connection may already be closed or event payload may be plain text. */ }
       es = null;
     },
     isOpen: () => es?.readyState === 1,
