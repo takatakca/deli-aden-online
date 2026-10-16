@@ -29,13 +29,6 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
-      - name: Validate browser configuration
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "$VITE_SUPABASE_URL" || { echo "::error::Missing VITE_SUPABASE_URL"; exit 1; }
-          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY" || { echo "::error::Missing VITE_SUPABASE_PUBLISHABLE_KEY"; exit 1; }
-          test -n "$VITE_SUPABASE_PROJECT_ID" || { echo "::error::Missing VITE_SUPABASE_PROJECT_ID"; exit 1; }
       - name: Install dependencies
         run: npm install --legacy-peer-deps --no-audit --no-fund
       - name: Refresh authoritative menu catalogue
@@ -43,6 +36,21 @@ jobs:
 
       - name: Lint
         run: npm run lint
+      - name: Check server JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check server.cjs
+          for module in server-*.cjs; do
+            node --check "$module"
+          done
+      - name: Validate browser configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$VITE_SUPABASE_URL" || { echo "::error::Missing VITE_SUPABASE_URL"; exit 1; }
+          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY" || { echo "::error::Missing VITE_SUPABASE_PUBLISHABLE_KEY"; exit 1; }
+          test -n "$VITE_SUPABASE_PROJECT_ID" || { echo "::error::Missing VITE_SUPABASE_PROJECT_ID"; exit 1; }
       - name: Build
         run: npm run build
       - name: Verify build output
