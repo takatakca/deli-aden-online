@@ -1,5 +1,7 @@
 # Work log
 
+- 2026-10-28 | ChatGPT | codex/direct-github-takatak-migration → PR #1 | code pushed; CI pending | Added security regression tests for server-owned prices/options and moved CI compile/typecheck before the real Supabase release gate using CI-only placeholders | Next: review Actions for this SHA; add genuine approved Supabase variables, create verified lockfile, stage checkout and MochaHost deployment before merge
+
 - 2026-10-15 | ChatGPT | codex/direct-github-takatak-migration → PR #1 | CI improvement pushed; deployment blocked | Confirmed run 38609926578 failed at browser env validation (all three Supabase variables absent); reordered CI to execute lint and server syntax checks before required browser configuration gate | Next: review new CI results, configure existing Supabase project variables and MochaHost secrets, validate build and payments in staging before merge
 
 - 2026-10-14 | ChatGPT | codex/direct-github-takatak-migration → PR #1 | code pushed; CI/deploy blocked | Server-priced checkout with verified options, strict Stripe webhook signatures, catalogue included in releases, privacy-limited public tracking and private order tokens for online/offline checkout | Next: supply Supabase variables and MochaHost secrets, validate Node 22 build, staging payments/ordering, then merge and verify live revision

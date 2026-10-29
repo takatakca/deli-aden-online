@@ -2,6 +2,12 @@
 
 Updated: 2026-10-16 America/Toronto
 
+## Update 2026-10-28 — diagnostic compilation and pricing tests
+- Added `node --test tests/server-pricing.test.cjs` to CI: genuine catalogue prices, forged prices, required choices, combo premiums, unavailable products, stale overrides and limits.
+- CI now attempts the actual `npm run build` (Vite + TypeScript) with explicitly fake compile-only Supabase values **only if** repository variables are absent. Its build artifacts are not production artifacts.
+- The real GitHub variable check is still mandatory, now **after** compilation. Missing any of the three real variables MUST fail the overall job; the production `workflow_run` remains gated on success. The independent deploy workflow rebuilds with the approved real variables.
+- Lockfile, MochaHost credentials, staging checkout, real payment and live deployment remain unverified. Do not merge or deploy just because the diagnostic build passes.
+
 ## Last completed task
 Confirmed CI runs 38843754353 and 38843748257 PASS dependency install, catalogue export, lint and server syntax; both FAIL only at Validate browser configuration (Supabase vars missing). No build executed. Confirmed package-lock.json is absent on PR branch. Production deploy workflow remains conditional on success of main CI.
 
