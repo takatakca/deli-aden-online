@@ -49,6 +49,20 @@ async function request<T>(url: string, init?: RequestInit): Promise<T> {
 
 const adminHeaders = (password: string) => ({ "X-Admin-Password": password });
 
+const privateOrderTokenKey = (orderNumber: string) => `deli-aden-order-access:${orderNumber}`;
+function rememberOrderToken(orderNumber: string, token?: string) {
+  if (!token || typeof window === "undefined") return;
+  try { window.localStorage.setItem(privateOrderTokenKey(orderNumber), token); }
+  catch { /* Private browsing may block storage; public status remains available. */ }
+}
+function privateOrderHeaders(orderNumber: string): Record<string, string> {
+  if (typeof window === "undefined") return {};
+  try {
+    const token = window.localStorage.getItem(privateOrderTokenKey(orderNumber));
+    return token ? { "X-Order-Token": token } : {};
+  } catch { return {}; }
+}
+
 export const api = {
   health: () => request<{ ok: boolean; message: string }>("/api/health"),
 
@@ -89,13 +103,17 @@ export const api = {
 
   createOrder: async (payload: CreateOrderPayload) => {
     const { getAuthHeader } = await import("@/lib/customer-auth");
-    return request<{ orderNumber: string; id: number }>("/api/orders", {
+    const result = await request<{ orderNumber: string; id: number; orderToken?: string }>("/api/orders", {
       method: "POST", body: JSON.stringify(payload), headers: getAuthHeader(),
     });
+    rememberOrderToken(result.orderNumber, result.orderToken);
+    return result;
   },
 
   getOrder: (orderNumber: string) =>
-    request<{ order: AdminOrder | null }>(`/api/orders/${encodeURIComponent(orderNumber)}`),
+    request<{ order: AdminOrder | null }>(`/api/orders/${encodeURIComponent(orderNumber)}`, {
+      headers: privateOrderHeaders(orderNumber),
+    }),
 
   adminVerify: (password: string) =>
     request<{ ok: boolean }>("/api/admin/verify", {
@@ -181,10 +199,12 @@ export const api = {
 
   createPaymentIntent: async (payload: CreateOrderPayload & { couponCode?: string }) => {
     const { getAuthHeader } = await import("@/lib/customer-auth");
-    return request<{ clientSecret: string; orderNumber: string; orderId: number; total: number }>(
+    const result = await request<{ clientSecret: string; orderNumber: string; orderId: number; total: number; orderToken?: string }>(
       "/api/payments/create-intent",
       { method: "POST", body: JSON.stringify(payload), headers: getAuthHeader() }
     );
+    rememberOrderToken(result.orderNumber, result.orderToken);
+    return result;
   },
 
   adminRefundOrder: (password: string, orderId: number, opts: { amount?: number; reason?: string } = {}) =>
@@ -618,6 +638,8 @@ export type AdminOrder = {
   id: number;
   order_number: string;
   status: string;
+  /** False for anonymous status-only tracking. */
+  details_available?: boolean;
   customer_id?: number | null;
   customer_name: string;
 

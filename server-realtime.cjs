@@ -56,8 +56,7 @@ function createRealtime({ requireAdmin, adminPassword }) {
   }
   function verifyAdminToken(token) {
     if (!token) return false;
-    // Also accept the admin password directly as fallback (Option A).
-    if (token === adminPassword()) return true;
+    // Raw admin credentials must never authenticate a URL-based SSE session.
     const exp = tokens.get(token);
     if (!exp) return false;
     if (exp < Date.now()) { tokens.delete(token); return false; }
