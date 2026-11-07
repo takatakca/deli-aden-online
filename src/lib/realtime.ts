@@ -76,7 +76,7 @@ function connectSSE(
     es.onerror = (e) => {
       log("SSE error", e);
       opts.onError?.(e);
-      try { es?.close(); } catch (_) {}
+      try { es?.close(); } catch { /* Connection may already be closed or event payload may be plain text. */ }
       es = null;
       if (closed) return;
       // start polling immediately as safety net
@@ -89,13 +89,13 @@ function connectSSE(
     // Generic message (no event: header)
     es.onmessage = (ev) => {
       let data: unknown = ev.data;
-      try { data = JSON.parse(ev.data); } catch (_) {}
+      try { data = JSON.parse(ev.data); } catch { /* Connection may already be closed or event payload may be plain text. */ }
       onEvent("message", data);
     };
     for (const name of knownEvents) {
       es.addEventListener(name, (ev: MessageEvent) => {
         let data: unknown = ev.data;
-        try { data = JSON.parse(ev.data); } catch (_) {}
+        try { data = JSON.parse(ev.data); } catch { /* Connection may already be closed or event payload may be plain text. */ }
         log(name, data);
         onEvent(name, data);
       });
@@ -110,7 +110,7 @@ function connectSSE(
       mode = "closed";
       if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
       stopPolling();
-      try { es?.close(); } catch (_) {}
+      try { es?.close(); } catch { /* Connection may already be closed or event payload may be plain text. */ }
       es = null;
     },
     isOpen: () => es?.readyState === 1,
@@ -149,7 +149,7 @@ const ORDER_EVENTS = [
   "payment_status_changed",
 ];
 
-// Try Option B (short-lived token) first, fall back to Option A (raw password).
+// Always request a short-lived token; never expose the admin password in a URL.
 async function fetchAdminToken(password: string): Promise<string> {
   try {
     const r = await fetch("/api/admin/realtime-token", {
@@ -162,7 +162,7 @@ async function fetchAdminToken(password: string): Promise<string> {
       if (j?.token) return j.token;
     }
   } catch (_) { /* ignore */ }
-  return password; // fallback
+  return ""; // 401 on SSE, then existing polling fallback; no secret in URL
 }
 
 export function connectAdminEvents(

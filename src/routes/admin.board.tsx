@@ -31,7 +31,7 @@ function BoardPage() {
   useEffect(() => {
     fetchOrders();
     if (!password) return;
-    let rt: RealtimeConnection | null = connectAdminEvents(password, (ev) => {
+    const rt: RealtimeConnection | null = connectAdminEvents(password, (ev) => {
       if (ev === "order_created" || ev === "order_status_changed" || ev === "order_assigned" || ev === "order_delivered") fetchOrders();
     }, { fallbackPoll: fetchOrders, pollIntervalMs: 5000 });
     const safety = setInterval(fetchOrders, 15000);

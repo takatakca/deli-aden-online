@@ -393,3 +393,72 @@ En mode MySQL, inclure les nouvelles tables dans le dump habituel
 (ou `data/orders.json` en repli JSON) — les tables inventaire y sont
 incluses. Faire une sauvegarde **avant** toute réception de bon de
 commande massive ou correction d'inventaire globale.
+
+
+## 16. Source of truth — GitHub (no Lovable)
+
+This project is now maintained directly from GitHub. Lovable is not part of the
+build, authentication, MCP, preview, hosting, or production deployment path.
+
+Production flow:
+
+`GitHub branch → PR → Deli Aden CI → main → MochaHost deployment → public health check`
+
+The repository's GitHub Actions workflows are:
+
+- `.github/workflows/ci.yml`
+- `.github/workflows/deploy-mochahost.yml`
+
+### GitHub Actions repository variables
+
+Set these under GitHub → Settings → Secrets and variables → Actions → Variables:
+
+`VITE_SUPABASE_URL`  
+`VITE_SUPABASE_PUBLISHABLE_KEY`  
+`VITE_SUPABASE_PROJECT_ID`
+
+These are build-time browser configuration values. GitHub documents repository
+configuration variables separately from encrypted secrets. Use secrets for
+credentials and private deployment material.
+
+### GitHub Actions deployment secrets
+
+Set these under GitHub → Settings → Secrets and variables → Actions → Secrets:
+
+`MOCHAHOST_HOST`  
+`MOCHAHOST_USER`  
+`MOCHAHOST_PORT` (optional; defaults to 22)  
+`MOCHAHOST_APP_PATH`  
+`MOCHAHOST_SSH_KEY`  
+`MOCHAHOST_KNOWN_HOSTS`
+
+The production workflow never expects the application password, database
+password, SMTP password, Stripe credentials, Twilio credentials or Supabase
+service-role key to be committed to the repository.
+
+The production `.env` remains on the server and is not replaced by the
+deployment archive.
+
+### Release behavior
+
+The deployment workflow:
+
+1. Checks out the exact validated Git commit.
+2. Installs dependencies on the GitHub runner.
+3. Builds the application outside MochaHost.
+4. Normalizes the frontend artifact.
+5. Uploads the release over SSH.
+6. Creates a staged release on the server.
+7. Keeps a previous release for rollback.
+8. Activates the new release.
+9. Touches `tmp/restart.txt` for cPanel Passenger.
+10. Verifies `/healthz`, `/revision.txt`, and the public homepage.
+11. Restores the previous release if verification fails.
+
+Do not run a production build on the MochaHost terminal.
+
+### Important
+
+A deployment is considered **PRODUCTION VERIFIED** only when the public
+health check and revision check succeed. A successful GitHub build alone does
+not prove that production is live.

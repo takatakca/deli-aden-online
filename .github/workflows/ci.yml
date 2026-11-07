@@ -1,0 +1,51 @@
+name: Deli Aden CI
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deli-aden-ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  quality:
+    name: Frozen build, security tests and native preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
+      - run: node --experimental-strip-types scripts/export-menu.mjs
+      - run: npm run lint
+      - name: Server syntax and security regressions
+        run: |
+          set -euo pipefail
+          for module in server*.cjs; do node --check "$module"; done
+          npm test
+      # The actual API is Express, not the unused generated Supabase middleware.
+      # No placeholder credentials. Deployment stays a read-only preview.
+      - run: npm run build
+      - name: Package exact revision
+        env:
+          DEPLOY_SHA: ${{ github.sha }}
+        run: node scripts/prepare-release.mjs
+      - name: Build and exercise actual native container
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          docker build --build-arg SOURCE_COMMIT="$SOURCE_COMMIT" -t deli-preview .
+          docker run -d --name deli-preview -p 127.0.0.1:3199:3000 deli-preview
+          trap 'docker logs deli-preview; docker rm -f deli-preview' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3199/healthz; then break; fi
+            sleep 2
+          done
+          node scripts/verify-preview.mjs http://127.0.0.1:3199 "$SOURCE_COMMIT"

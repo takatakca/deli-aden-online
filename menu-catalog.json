@@ -1,5 +1,4 @@
 {
-  "generatedAt": "2026-08-08T01:02:34.791Z",
   "comboDelta": 4,
   "categories": [
     {
@@ -12,7 +11,7 @@
           "name": "Rechta",
           "description": "Fines pâtes en nouilles servies avec viande tendre, poulet ou légumes. Un plat traditionnel réconfortant et raffiné.",
           "price": 14.99,
-          "image": "https://images.unsplash.com/photo-1604908554049-29bce8a47b75?auto=format&fit=crop&w=800&q=70",
+          "image": "https://images.unsplash.com/photo-1612929633738-8fe44f7ec841?auto=format&fit=crop&w=800&q=70",
           "combo": false,
           "options": []
         },
@@ -66,7 +65,7 @@
           "name": "Zfiti Bou-Saada",
           "description": "Plat traditionnel épicé avec galette émiettée, tomate, piment et huile d'olive.",
           "price": 14.99,
-          "image": "https://images.unsplash.com/photo-1606755962773-d324e0a13086?auto=format&fit=crop&w=800&q=70",
+          "image": "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=70",
           "combo": false,
           "options": []
         }
@@ -392,7 +391,7 @@
           "name": "Poulet Rôti au Four",
           "description": "Poulet tendre et juteux, assaisonné d'herbes et d'épices, peau dorée et croustillante.",
           "price": 18.99,
-          "image": "https://images.unsplash.com/photo-1598103442097-8b74394b95c6?auto=format&fit=crop&w=800&q=70",
+          "image": "https://images.unsplash.com/photo-1600891964092-4316c288032e?auto=format&fit=crop&w=800&q=70",
           "combo": false,
           "options": [
             {
@@ -568,7 +567,7 @@
           "name": "Sandwich Viande Hachée",
           "description": "Sandwich généreux de viande hachée épicée.",
           "price": 11.99,
-          "image": "https://images.unsplash.com/photo-1606755962773-d324e0a13086?auto=format&fit=crop&w=800&q=70",
+          "image": "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=800&q=70",
           "combo": true,
           "options": []
         },
@@ -586,7 +585,7 @@
           "name": "Panini Viande Hachée",
           "description": null,
           "price": 10.99,
-          "image": "https://images.unsplash.com/photo-1539252554453-80ab65ce3586?auto=format&fit=crop&w=800&q=70",
+          "image": "https://images.unsplash.com/photo-1559181567-c3190ca9959b?auto=format&fit=crop&w=800&q=70",
           "combo": true,
           "options": []
         },
@@ -595,7 +594,7 @@
           "name": "Panini Poulet Mariné",
           "description": null,
           "price": 10.99,
-          "image": "https://images.unsplash.com/photo-1626700051175-d4c9b0a35e0b?auto=format&fit=crop&w=800&q=70",
+          "image": "https://images.unsplash.com/photo-1521305916504-4a1121188589?auto=format&fit=crop&w=800&q=70",
           "combo": true,
           "options": []
         },
@@ -604,7 +603,7 @@
           "name": "Panini Thon",
           "description": null,
           "price": 10.99,
-          "image": "https://images.unsplash.com/photo-1539252554453-80ab65ce3586?auto=format&fit=crop&w=800&q=70",
+          "image": "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=70",
           "combo": true,
           "options": []
         },
@@ -631,7 +630,7 @@
           "name": "Chicken Burger",
           "description": null,
           "price": 11.99,
-          "image": "https://images.unsplash.com/photo-1606755962773-d324e0a13086?auto=format&fit=crop&w=800&q=70",
+          "image": "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=70",
           "combo": true,
           "options": []
         },
@@ -829,7 +828,7 @@
           "name": "Plat Sardine",
           "description": "Sardines grillées ou poêlées, relevées d'épices, servies avec salade fraîche, riz parfumé ou pommes de terre.",
           "price": 15.99,
-          "image": "https://images.unsplash.com/photo-1535140728325-a4d3707eee94?auto=format&fit=crop&w=800&q=70",
+          "image": "https://images.unsplash.com/photo-1595295333158-4742f28fbd85?auto=format&fit=crop&w=800&q=70",
           "combo": false,
           "options": [
             {
@@ -950,7 +949,7 @@
           "name": "Mhadjeb",
           "description": "Délicieuses crêpes fines à base de semoule, farcies de légumes épicés.",
           "price": 3.99,
-          "image": "https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=800&q=70",
+          "image": "https://images.unsplash.com/photo-1516684669134-de6f7c473a2a?auto=format&fit=crop&w=800&q=70",
           "combo": false,
           "options": []
         },
@@ -977,7 +976,7 @@
           "name": "Brik Annabi",
           "description": "Feuilleté croustillant farci de viande ou de thon, parfumé aux épices et herbes traditionnelles.",
           "price": 8,
-          "image": "https://images.unsplash.com/photo-1626700051175-d4c9b0a35e0b?auto=format&fit=crop&w=800&q=70",
+          "image": "https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?auto=format&fit=crop&w=800&q=70",
           "combo": false,
           "options": []
         },
@@ -995,7 +994,7 @@
           "name": "Bourek",
           "description": "Feuilletés croustillants garnis de viande, épices et herbes fraîches.",
           "price": 3,
-          "image": "https://images.unsplash.com/photo-1626700051175-d4c9b0a35e0b?auto=format&fit=crop&w=800&q=70",
+          "image": "https://images.unsplash.com/photo-1563245372-f21724e3856d?auto=format&fit=crop&w=800&q=70",
           "combo": false,
           "options": []
         },
@@ -1162,7 +1161,7 @@
           "name": "Milk Tea",
           "description": null,
           "price": 2,
-          "image": "https://images.unsplash.com/photo-1558857563-c0c6ee6ff8a7?auto=format&fit=crop&w=800&q=70",
+          "image": "https://images.unsplash.com/photo-1558160074-4d7d8bdf4256?auto=format&fit=crop&w=800&q=70",
           "combo": false,
           "options": []
         },
@@ -1196,7 +1195,7 @@
           "name": "Soupe Loubia",
           "description": "Soupe traditionnelle aux haricots blancs, tomate et épices.",
           "price": 7.99,
-          "image": "https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=800&q=70",
+          "image": "https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=800&q=70",
           "combo": false,
           "options": []
         },
@@ -1205,7 +1204,7 @@
           "name": "Soupe Lentilles",
           "description": "Soupe veloutée de lentilles, parfumée aux épices.",
           "price": 7.99,
-          "image": "https://images.unsplash.com/photo-1606755962773-d324e0a13086?auto=format&fit=crop&w=800&q=70",
+          "image": "https://images.unsplash.com/photo-1476718406336-bb5a9690ee2a?auto=format&fit=crop&w=800&q=70",
           "combo": false,
           "options": []
         },

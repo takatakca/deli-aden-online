@@ -41,6 +41,8 @@ export function SiteHeader() {
   }, [count]);
 
   return (
+    <>
+    {settings?.preview_mode && <div role="status" className="bg-primary px-4 py-3 text-center text-sm font-medium text-primary-foreground">Menu en aperçu — commandes, paiements et comptes bientôt disponibles.</div>}
     <header
       className={`sticky top-0 z-40 border-b bg-background/90 backdrop-blur-md transition-all ${
         scrolled ? "border-border shadow-lg shadow-black/40" : "border-border/40"
@@ -163,5 +165,6 @@ export function SiteHeader() {
         </div>
       )}
     </header>
+    </>
   );
 }

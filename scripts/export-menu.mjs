@@ -13,7 +13,6 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const { MENU, COMBO_DELTA } = await import(path.join(here, "..", "src", "lib", "menu.ts"));
 
 const catalog = {
-  generatedAt: new Date().toISOString(),
   comboDelta: COMBO_DELTA,
   categories: MENU.map((c) => ({
     id: c.id,

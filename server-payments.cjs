@@ -197,15 +197,12 @@ function webhookHandler() {
     const whSec = process.env.STRIPE_WEBHOOK_SECRET;
     let event;
     try {
-      if (whSec && sig) {
-        event = stripe.webhooks.constructEvent(req.body, sig, whSec);
-      } else {
-        // Dev fallback when no webhook secret is configured
-        event = typeof req.body === "object" && !Buffer.isBuffer(req.body)
-          ? req.body
-          : JSON.parse(Buffer.isBuffer(req.body) ? req.body.toString("utf8") : String(req.body));
-        console.warn("[stripe-webhook] no STRIPE_WEBHOOK_SECRET — signature NOT verified (dev only)");
+      if (!whSec) {
+        console.error("[stripe-webhook] STRIPE_WEBHOOK_SECRET not configured; refusing unverified event");
+        return res.status(503).send("Webhook signing not configured");
       }
+      if (!sig) return res.status(400).send("Missing webhook signature");
+      event = stripe.webhooks.constructEvent(req.body, sig, whSec);
     } catch (err) {
       console.error("[stripe-webhook] signature verification failed", err.message);
       return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -213,60 +210,81 @@ function webhookHandler() {
     try {
       await handleStripeEvent(event);
     } catch (err) {
-      console.error("[stripe-webhook] handler error", err);
+      console.error("[stripe-webhook] handler error", err.message);
+      return res.status(500).json({ error: "Webhook processing failed; retry required" });
     }
     res.json({ received: true });
   };
 }
 
+// Never trust metadata alone: only a locally created, bound intent may change an order.
+async function boundPayment(pi) {
+  const rawId = pi.metadata && pi.metadata.order_id;
+  if (!rawId) return null; // Other products may share the Stripe account.
+  if (!/^[1-9][0-9]*$/.test(rawId)) throw new Error("Invalid payment order binding");
+  const payment = await dbGet("SELECT * FROM payments WHERE stripe_payment_intent_id = ?", [pi.id]);
+  const order = await dbGet("SELECT * FROM orders WHERE id = ?", [Number(rawId)]);
+  if (!payment || !order) throw new Error("Payment binding not yet persisted");
+  if (Number(payment.order_id) !== Number(order.id) || order.stripe_payment_intent_id !== pi.id ||
+      Number(payment.amount_cents) !== Math.round(Number(order.total) * 100) ||
+      Number(pi.amount) !== Number(payment.amount_cents) || pi.currency !== payment.currency || pi.currency !== "cad") {
+    throw new Error("Payment order/amount/currency mismatch");
+  }
+  return { payment, order };
+}
 async function handleStripeEvent(event) {
   const t = event.type;
-  if (t === "payment_intent.succeeded") {
+  if (t === "payment_intent.succeeded" || t === "payment_intent.payment_failed") {
     const pi = event.data.object;
-    const orderId = pi.metadata && pi.metadata.order_id ? parseInt(pi.metadata.order_id, 10) : null;
-    if (!orderId) return;
-    const chargeId = pi.latest_charge || (pi.charges && pi.charges.data && pi.charges.data[0] && pi.charges.data[0].id) || null;
-    // Upsert payments row
-    const existing = await dbGet("SELECT id FROM payments WHERE stripe_payment_intent_id = ?", [pi.id]);
-    if (existing) {
-      await dbRun("UPDATE payments SET status = ?, stripe_charge_id = ?, raw_event_json = ? WHERE id = ?",
-        ["succeeded", chargeId, JSON.stringify(event).slice(0, 60000), existing.id]);
+    const bound = await boundPayment(pi);
+    if (!bound) return;
+    const { payment, order } = bound;
+    if (t === "payment_intent.succeeded") {
+      if (Number(pi.amount_received) !== Number(payment.amount_cents)) throw new Error("Payment not fully received");
+      // A replay must not overwrite a refund or notify the customer twice.
+      await dbRun("UPDATE payments SET status = 'succeeded', stripe_charge_id = ?, raw_event_json = ? WHERE id = ?",
+        [typeof pi.latest_charge === "string" ? pi.latest_charge : null, JSON.stringify(event).slice(0, 60000), payment.id]);
+      const changed = await dbRun("UPDATE orders SET payment_status = 'paid' WHERE id = ? AND stripe_payment_intent_id = ? AND payment_status IN ('unpaid','pending','failed')", [order.id, pi.id]);
+      if (changed.changes) {
+        await DEPS.logOrderEvent?.(order.id, "payment_succeeded", JSON.stringify({ pi: pi.id, amount: pi.amount }));
+        await DEPS.emitOrderById?.(order.id, "payment_succeeded", { amount_cents: pi.amount });
+      }
     } else {
-      await dbRun(
-        "INSERT INTO payments (order_id, stripe_payment_intent_id, stripe_charge_id, amount_cents, currency, status, raw_event_json) VALUES (?,?,?,?,?,?,?)",
-        [orderId, pi.id, chargeId, pi.amount, pi.currency || "cad", "succeeded", JSON.stringify(event).slice(0, 60000)]
-      );
+      const changed = await dbRun("UPDATE orders SET payment_status = 'failed' WHERE id = ? AND stripe_payment_intent_id = ? AND payment_status IN ('unpaid','pending')", [order.id, pi.id]);
+      if (changed.changes) {
+        await DEPS.logOrderEvent?.(order.id, "payment_failed", null);
+        await DEPS.emitOrderById?.(order.id, "payment_failed", {});
+      }
     }
-    await dbRun("UPDATE orders SET payment_status = 'paid', stripe_payment_intent_id = ? WHERE id = ?", [pi.id, orderId]);
-    DEPS.logOrderEvent && DEPS.logOrderEvent(orderId, "payment_succeeded", JSON.stringify({ pi: pi.id, amount: pi.amount }));
-    DEPS.emitOrderById && DEPS.emitOrderById(orderId, "payment_succeeded", { amount_cents: pi.amount });
-  } else if (t === "payment_intent.payment_failed") {
-    const pi = event.data.object;
-    const orderId = pi.metadata && pi.metadata.order_id ? parseInt(pi.metadata.order_id, 10) : null;
-    if (!orderId) return;
-    await dbRun("UPDATE orders SET payment_status = 'failed' WHERE id = ?", [orderId]);
-    DEPS.logOrderEvent && DEPS.logOrderEvent(orderId, "payment_failed", pi.last_payment_error ? JSON.stringify(pi.last_payment_error).slice(0, 1000) : null);
-    DEPS.emitOrderById && DEPS.emitOrderById(orderId, "payment_failed", {});
   } else if (t === "charge.refunded") {
     const ch = event.data.object;
-    const piId = ch.payment_intent;
-    const payment = await dbGet("SELECT * FROM payments WHERE stripe_payment_intent_id = ?", [piId]);
-    if (!payment) return;
-    // Iterate refunds list, insert any not yet stored
-    const list = (ch.refunds && ch.refunds.data) || [];
-    for (const r of list) {
-      const exists = await dbGet("SELECT id FROM refunds WHERE stripe_refund_id = ?", [r.id]);
-      if (exists) continue;
+    const payment = await dbGet("SELECT * FROM payments WHERE stripe_payment_intent_id = ?", [ch.payment_intent]);
+    if (!payment) throw new Error("Refund payment binding not yet persisted");
+    const order = await dbGet("SELECT * FROM orders WHERE id = ?", [payment.order_id]);
+    if (!order || order.stripe_payment_intent_id !== ch.payment_intent ||
+        (payment.stripe_charge_id && payment.stripe_charge_id !== ch.id) ||
+        ch.currency !== payment.currency || Number(ch.amount) !== Number(payment.amount_cents)) throw new Error("Refund binding mismatch");
+    for (const r of (ch.refunds && ch.refunds.data) || []) {
+      if (r.status && r.status !== "succeeded") continue;
+      if (!Number.isSafeInteger(r.amount) || r.amount <= 0 || r.amount > Number(payment.amount_cents)) throw new Error("Invalid refund amount");
+      const existing = await dbGet("SELECT * FROM refunds WHERE stripe_refund_id = ?", [r.id]);
+      if (existing) {
+        if (Number(existing.payment_id) !== Number(payment.id) || Number(existing.amount_cents) !== r.amount) throw new Error("Refund binding mismatch");
+        continue;
+      }
       await dbRun("INSERT INTO refunds (payment_id, order_id, stripe_refund_id, amount_cents, reason) VALUES (?,?,?,?,?)",
         [payment.id, payment.order_id, r.id, r.amount, r.reason || null]);
     }
-    // Compute total refunded; update order payment_status
-    const totals = await dbGet("SELECT COALESCE(SUM(amount_cents),0) s FROM refunds WHERE order_id = ?", [payment.order_id]);
-    const refundedCents = Number(totals.s);
-    const newStatus = refundedCents >= Number(payment.amount_cents) ? "refunded" : "partially_refunded";
-    await dbRun("UPDATE orders SET payment_status = ? WHERE id = ?", [newStatus, payment.order_id]);
-    DEPS.logOrderEvent && DEPS.logOrderEvent(payment.order_id, "refunded", JSON.stringify({ cents: refundedCents }));
-    DEPS.emitOrderById && DEPS.emitOrderById(payment.order_id, "refund_created", { refunded_cents: refundedCents, status: newStatus });
+    const totals = await dbGet("SELECT COALESCE(SUM(amount_cents),0) s FROM refunds WHERE payment_id = ?", [payment.id]);
+    const cents = Number(totals.s);
+    if (!cents) return;
+    if (cents > Number(payment.amount_cents)) throw new Error("Refund total exceeds payment");
+    const status = cents >= Number(payment.amount_cents) ? "refunded" : "partially_refunded";
+    const changed = await dbRun("UPDATE orders SET payment_status = ? WHERE id = ? AND stripe_payment_intent_id = ? AND payment_status != 'refunded' AND payment_status != ?", [status, payment.order_id, ch.payment_intent, status]);
+    if (changed.changes) {
+      await DEPS.logOrderEvent?.(payment.order_id, "refunded", JSON.stringify({ cents }));
+      await DEPS.emitOrderById?.(payment.order_id, "refund_created", { refunded_cents: cents, status });
+    }
   }
 }
 
@@ -281,7 +299,7 @@ async function mountPayments(app, deps) {
   app.get("/api/payments/config", (_req, res) => {
     res.json({
       publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || null,
-      enabled: Boolean(process.env.STRIPE_PUBLISHABLE_KEY && process.env.STRIPE_SECRET_KEY),
+      enabled: Boolean(process.env.STRIPE_PUBLISHABLE_KEY && process.env.STRIPE_SECRET_KEY && process.env.STRIPE_WEBHOOK_SECRET),
     });
   });
 
@@ -301,7 +319,7 @@ async function mountPayments(app, deps) {
   app.post("/api/payments/create-intent", paymentLimiter, async (req, res) => {
     try {
       const stripe = getStripe();
-      if (!stripe) return res.status(503).json({ error: "Paiements en ligne non configurés" });
+      if (!stripe || !process.env.STRIPE_WEBHOOK_SECRET) return res.status(503).json({ error: "Paiements en ligne non configurés" });
       const q = await computeQuote(req.body || {});
       // Build the insert payload using the prepared object — already validated server-side
       const b = req.body || {};
@@ -329,6 +347,13 @@ async function mountPayments(app, deps) {
         estimated_ready_time: prepared.estimated_ready_time,
         estimated_delivery_time: prepared.estimated_delivery_time,
       });
+      // Transactional SMS only after the customer explicitly opts in.
+      // Fail closed if the column is not available during an upgrade.
+      try {
+        await dbRun("UPDATE orders SET sms_opt_in=? WHERE id=?", [b.smsOptIn === true ? 1 : 0, id]);
+      } catch (error) {
+        console.error("[pay] unable to persist SMS consent", error.message);
+      }
       // Attach coupon/discount + initial pending state + attach customer if token
       const updates = ["payment_status = 'pending'"];
       const params = [];
@@ -351,7 +376,7 @@ async function mountPayments(app, deps) {
         metadata: { order_id: String(id), order_number: orderNumber },
         receipt_email: prepared.customer_email || undefined,
         description: `Commande ${orderNumber}`,
-      });
+      }, { idempotencyKey: `deli-order-${orderNumber}-${id}` });
       await dbRun(
         "INSERT INTO payments (order_id, stripe_payment_intent_id, amount_cents, currency, status) VALUES (?,?,?,?,?)",
         [id, pi.id, pi.amount, pi.currency, "pending"]
@@ -362,6 +387,7 @@ async function mountPayments(app, deps) {
         orderNumber,
         orderId: id,
         total: q.total,
+        orderToken: deps.makeOrderViewToken(orderNumber),
       });
     } catch (e) {
       const code = e.statusCode || 500;
@@ -382,7 +408,7 @@ async function mountPayments(app, deps) {
       const already = Number(refundedRow.s);
       const max = Number(payment.amount_cents) - already;
       const askedAmount = req.body && req.body.amount != null ? Math.round(Number(req.body.amount) * 100) : max;
-      if (!askedAmount || askedAmount <= 0) return res.status(400).json({ error: "Montant invalide" });
+      if (!Number.isSafeInteger(askedAmount) || askedAmount <= 0) return res.status(400).json({ error: "Montant invalide" });
       if (askedAmount > max) return res.status(400).json({ error: `Montant maximum remboursable : ${(max / 100).toFixed(2)} $` });
       const refund = await stripe.refunds.create({
         payment_intent: payment.stripe_payment_intent_id,
