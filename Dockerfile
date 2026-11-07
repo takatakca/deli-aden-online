@@ -9,6 +9,7 @@ ARG SOURCE_COMMIT
 RUN DEPLOY_SHA="$SOURCE_COMMIT" node scripts/prepare-release.mjs && npm prune --omit=dev --legacy-peer-deps --no-audit --no-fund
 
 FROM node:22-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production PORT=3000
 WORKDIR /app
 COPY --from=build --chown=node:node /app/.release/ ./
