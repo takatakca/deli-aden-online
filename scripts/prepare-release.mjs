@@ -1,7 +1,8 @@
-// Assemble a static SPA release on GitHub Actions, never on MochaHost.
+// Assemble a static SPA release on GitHub Actions, for the explicit native container or a separately verified host.
 // TanStack Start SPA builds commonly emit "_shell.html" rather than "index.html".
 import {
   existsSync,
+  statSync,
   mkdirSync,
   cpSync,
   copyFileSync,
@@ -11,6 +12,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
+import { createHash } from "node:crypto";
 
 const revision = process.env.DEPLOY_SHA;
 if (!revision || !/^[0-9a-f]{40}$/.test(revision)) {
@@ -55,6 +57,7 @@ for (const file of serverFiles) {
   copyFileSync(file, join(releaseRoot, file));
 }
 copyFileSync("package.json", join(releaseRoot, "package.json"));
+copyFileSync("package-lock.json", join(releaseRoot, "package-lock.json"));
 // The checkout validator reads this catalogue at runtime for authoritative pricing.
 copyFileSync("menu-catalog.json", join(releaseRoot, "menu-catalog.json"));
 writeFileSync(join(releaseDist, "revision.txt"), `${revision}\n`, "utf8");
@@ -67,3 +70,19 @@ console.log(
     serverModules: serverFiles,
   }),
 );
+
+// Attest deployment inputs without environment variables or private runtime data.
+const inputs = [];
+const roots = ["src", "public", "scripts", "package.json", "package-lock.json", "menu-catalog.json", ".dockerignore", "Dockerfile", "vite.config.ts", "tsconfig.json", ...serverFiles];
+function visit(file) {
+  if (!existsSync(file)) return;
+  if (statSync(file).isDirectory()) {
+    for (const entry of readdirSync(file).sort()) visit(join(file, entry));
+  } else { inputs.push(file); }
+}
+for (const root of roots) visit(root);
+const digest = createHash("sha256");
+for (const file of [...new Set(inputs)].sort()) digest.update(file).update("\0").update(readFileSync(file)).update("\0");
+const manifest = { schemaVersion: 1, product: "deli-aden", revision, sourceDigest: digest.digest("hex"), defaultMode: "preview", orderingEnabledByDefault: false };
+writeFileSync(join(releaseDist, "release-manifest.json"), JSON.stringify(manifest) + "\n");
+console.log(JSON.stringify(manifest));

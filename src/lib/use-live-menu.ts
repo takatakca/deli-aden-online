@@ -5,7 +5,7 @@ import { buildLiveMenu, type LiveItem } from "@/lib/menu-search";
 /**
  * Live catalog + restaurant settings for customer-facing surfaces.
  * Never fails hard: if the backend is unreachable we fall back to the static
- * menu so the storefront still sells food (prices/availability from code).
+ * menu for browsing. Ordering stays unavailable until settings are loaded.
  */
 export function useLiveMenu() {
   const settingsQ = useQuery({
@@ -34,12 +34,12 @@ export function etaLabels(settings: PublicSettings | null) {
   return {
     pickup: `${Math.max(5, pickup - 5)}–${pickup + 5} min`,
     delivery: `${Math.max(10, delivery - 10)}–${delivery} min`,
-    pickupEnabled: settings ? settings.pickup_enabled !== false : true,
-    deliveryEnabled: settings ? settings.delivery_enabled !== false : true,
+    pickupEnabled: settings ? settings.pickup_enabled !== false : false,
+    deliveryEnabled: settings ? settings.delivery_enabled !== false : false,
   };
 }
 
 export function isOpenNow(settings: PublicSettings | null) {
-  if (!settings) return true;
+  if (!settings) return false;
   return settings.is_open !== false && settings.orders_paused !== true;
 }

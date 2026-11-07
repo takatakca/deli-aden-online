@@ -77,9 +77,9 @@ function CheckoutPage() {
       .catch((e) => { setSettings(null); setSettingsError(e instanceof Error ? e.message : "Erreur"); });
   }, []);
 
-  const allowPickup = settings?.pickup_enabled !== false;
-  const allowDelivery = settings?.delivery_enabled !== false;
-  const closed = settings ? !settings.is_open : false;
+  const allowPickup = settings?.pickup_enabled === true;
+  const allowDelivery = settings?.delivery_enabled === true;
+  const closed = settings ? !settings.is_open : true;
   const paused = settings?.orders_paused === true;
 
   // Step state

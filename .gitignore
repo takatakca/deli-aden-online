@@ -31,3 +31,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+.release/
+data/
+*.db
+*.db-*
+*.sqlite*

@@ -695,6 +695,7 @@ export type OrderEvent = {
 };
 
 export type PublicSettings = {
+  preview_mode?: boolean;
   is_open: boolean;
   orders_paused: boolean;
   pickup_enabled: boolean;

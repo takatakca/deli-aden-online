@@ -16,7 +16,8 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository
+    # Legacy host is not the current target. Enable only after a separate host/rollback review.
+    if: vars.DELI_DEPLOY_TARGET == 'mochahost-approved' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -59,7 +60,7 @@ jobs:
           test -n "$VITE_SUPABASE_PROJECT_ID" || { echo "::error::Missing VITE_SUPABASE_PROJECT_ID"; exit 1; }
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps --no-audit --no-fund
+        run: npm ci --legacy-peer-deps --no-audit --no-fund
 
       - name: Refresh authoritative menu catalogue
         run: node --experimental-strip-types scripts/export-menu.mjs

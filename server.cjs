@@ -1639,7 +1639,7 @@ let server;
   });
   server = app.listen(PORT, () => {
     const smtpConfigured = Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
-    console.log(`[Deli Aden] Server running on port ${PORT} (${NODE_ENV})`);
+    console.log(`[Deli Aden] Server running on port ${server.address().port} (${NODE_ENV})`);
     console.log(`[Deli Aden] Database: ${dbApi.kind.toUpperCase()}${dbApi.kind === "mysql" ? ` @ ${process.env.DB_HOST}/${process.env.DB_NAME}` : ""}`);
     console.log(`[Deli Aden] Dist:     ${DIST_DIR}${fs.existsSync(DIST_DIR) ? "" : " (MISSING — run `npm run build`)"}`);
     console.log(`[Deli Aden] SMTP:     ${smtpConfigured ? "configured" : "NOT configured (emails disabled, orders still saved)"}`);

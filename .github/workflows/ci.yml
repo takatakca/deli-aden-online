@@ -1,73 +1,51 @@
 name: Deli Aden CI
-
 on:
   push:
-    branches: ["main", "codex/**"]
+    branches: [main, 'codex/**']
   pull_request:
-    branches: ["main"]
+    branches: [main]
   workflow_dispatch:
-
 permissions:
   contents: read
-
 concurrency:
   group: deli-aden-ci-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   quality:
-    name: Build and quality checks
+    name: Frozen build, security tests and native preview
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    env:
-      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
-      VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
-      VITE_SUPABASE_PROJECT_ID: ${{ vars.VITE_SUPABASE_PROJECT_ID }}
-      VITE_APP_URL: https://deliaden.ca
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
           node-version: 22
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps --no-audit --no-fund
-      - name: Refresh authoritative menu catalogue
-        run: node --experimental-strip-types scripts/export-menu.mjs
-
-      - name: Lint
-        run: npm run lint
-      - name: Check server JavaScript syntax
-        shell: bash
+          cache: npm
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
+      - run: node --experimental-strip-types scripts/export-menu.mjs
+      - run: npm run lint
+      - name: Server syntax and security regressions
         run: |
           set -euo pipefail
-          node --check server.cjs
-          for module in server-*.cjs; do
-            node --check "$module"
-          done
-      - name: Server pricing security regression tests
-        run: node --test tests/server-pricing.test.cjs
-
-      # Compile with unmistakably non-deployable placeholders only when the
-      # approved GitHub variables are absent. Build output is never deployed:
-      # the independent production workflow rebuilds from the approved SHA.
-      - name: Build and typecheck (diagnostic, not a release)
+          for module in server*.cjs; do node --check "$module"; done
+          npm test
+      # The actual API is Express, not the unused generated Supabase middleware.
+      # No placeholder credentials. Deployment stays a read-only preview.
+      - run: npm run build
+      - name: Package exact revision
         env:
-          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || 'https://ci-build-only.invalid' }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || 'ci-build-only-not-a-real-key' }}
-          VITE_SUPABASE_PROJECT_ID: ${{ vars.VITE_SUPABASE_PROJECT_ID || 'ci-build-only' }}
-        run: npm run build
-      - name: Verify build output
-        shell: bash
+          DEPLOY_SHA: ${{ github.sha }}
+        run: node scripts/prepare-release.mjs
+      - name: Build and exercise actual native container
+        env:
+          SOURCE_COMMIT: ${{ github.sha }}
         run: |
           set -euo pipefail
-          test -f dist/client/_shell.html || test -f dist/client/index.html || test -f dist/index.html || test -f dist/_shell.html || test -f .output/public/index.html || test -f .output/public/_shell.html
-
-      # This must remain AFTER diagnostic build and must fail the entire job
-      # when any real variable is missing; production workflow_run must not fire.
-      - name: Validate production browser configuration
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "$VITE_SUPABASE_URL" || { echo "::error::Missing VITE_SUPABASE_URL"; exit 1; }
-          test -n "$VITE_SUPABASE_PUBLISHABLE_KEY" || { echo "::error::Missing VITE_SUPABASE_PUBLISHABLE_KEY"; exit 1; }
-          test -n "$VITE_SUPABASE_PROJECT_ID" || { echo "::error::Missing VITE_SUPABASE_PROJECT_ID"; exit 1; }
+          docker build --build-arg SOURCE_COMMIT="$SOURCE_COMMIT" -t deli-preview .
+          docker run -d --name deli-preview -p 127.0.0.1:3199:3000 deli-preview
+          trap 'docker logs deli-preview; docker rm -f deli-preview' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3199/healthz; then break; fi
+            sleep 2
+          done
+          node scripts/verify-preview.mjs http://127.0.0.1:3199 "$SOURCE_COMMIT"

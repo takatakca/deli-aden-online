@@ -1,0 +1,13 @@
+.git
+node_modules
+dist
+.release
+.output
+.tanstack
+.env
+.env.*
+data
+*.db
+*.db-*
+*.sqlite*
+*.log
