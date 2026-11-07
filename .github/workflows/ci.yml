@@ -48,4 +48,6 @@ jobs:
             if curl --fail --silent http://127.0.0.1:3199/healthz; then break; fi
             sleep 2
           done
+          # Coolify replaces the image healthcheck with a curl/wget probe.
+          docker exec deli-preview curl --fail --silent http://127.0.0.1:3000/healthz
           node scripts/verify-preview.mjs http://127.0.0.1:3199 "$SOURCE_COMMIT"

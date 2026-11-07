@@ -1,5 +1,7 @@
 # Work log
 
+- 2026-11-07 | Codex — ChatGPT Work | codex/native-healthcheck-20261107 | code complete; CI/native verification pending | Repair native Coolify healthcheck: image built successfully but platform curl/wget probe failed because runtime tools are absent | Next: add curl, prove the platform probe in container CI, merge and verify pinned native preview; commercial gates stay closed
+
 - 2026-11-07 | Codex — ChatGPT Work | codex/direct-github-takatak-migration → PR #1 | done (source; release receipt in PR #1) | Reconciled main; frozen Node22 build/typecheck/lint,27 regressions and actual Docker preview pass CI42380599466; fixed prerender loopback | Next: require final checkpoint/main CI, native preview verification and signed PR #1 receipt; keep #2/#3/#4 open
 
 - 2026-10-28 | ChatGPT | codex/direct-github-takatak-migration → PR #1 | code pushed; CI pending | Added security regression tests for server-owned prices/options and moved CI compile/typecheck before the real Supabase release gate using CI-only placeholders | Next: review Actions for this SHA; add genuine approved Supabase variables, create verified lockfile, stage checkout and MochaHost deployment before merge
